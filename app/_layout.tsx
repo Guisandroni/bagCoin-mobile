@@ -8,7 +8,7 @@ export default function RootLayout() {
     <Stack.Screen name="index"
       
     />
-    <Stack.Screen name="Welcome"/>
+    {/* <Stack.Screen name="welcome"/> */}
   </Stack>
   )
   

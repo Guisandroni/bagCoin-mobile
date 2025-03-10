@@ -15,7 +15,7 @@ const NavigatorTabs = ({focused, icon, title}:TypeTabs) => {
         <Image
             tintColor={focused? '#0061ff' : '#666876'}
             resizeMode='contain'
-            className='size-6'
+            className='size-8'
         source={icon}/>
       <Text
       className={`${focused ? 'text-primary-300 font-rubik-medium' : 'text-black-200 font-rubik'}

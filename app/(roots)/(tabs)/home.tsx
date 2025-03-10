@@ -1,5 +1,4 @@
-import { View, Text, ScrollView, Image, TouchableOpacity, FlatList } from 'react-native'
-import React from 'react'
+import { View, Text, ScrollView, Image, TouchableOpacity, FlatList, Modal, TextInput, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import images from '@/constraints/images'
 import icons from '@/constraints/icons'
@@ -7,18 +6,17 @@ import TypeTransaction from '@/components/TypeTransaction'
 import SaldoContainer from '@/components/SaldoContainer'
 import MetasList from '@/components/MetasList'
 import Transacoes, { Transactions } from '@/components/Transacoes'
+import { Cartoes } from '@/components/cartoes'
+import { Carteira } from '@/components/carteiras'
 
 const Home = () => {
 
-  const handleType = () => {
-    console.log('click')
-  }
 
- 
   return (
     <SafeAreaView className='h-full bg-white'>
       <ScrollView
-        contentContainerClassName='px-4 pb-40 py-4'
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 160, paddingTop: 16 }}
+        showsVerticalScrollIndicator={false}
       >
         <View className='flex flex-row items-center justify-between gap-2'>
           <Image source={images.avatar} className='size-8' />
@@ -30,19 +28,20 @@ const Home = () => {
 
         <SaldoContainer />
 
+        <Carteira />
+        <Cartoes />
+
         <MetasList />
 
-        {/* <View className='mt-6 flex flex-col w-full items-start gap-4'> */}
-        <Text className='text-xl font-rubik-semibold mt-10 mb-4'>Transações</Text>
+        <Text className='mt-10 mb-4 text-xl font-rubik-semibold'>Transações</Text>
 
         <TypeTransaction icon={''} styleBg={'bg-primary-300'} TypeLanc='geral' />
 
         <FlatList
           data={Transactions}
-          renderItem={({item}) => <Transacoes category={item.category} carteira={item.carteira} value={item.value} styleIcon={item.styleIcon} styleValue={item.styleValue}/>
-        }
+          renderItem={({ item }) => <Transacoes category={item.category} carteira={item.carteira} value={item.value} styleIcon={item.styleIcon} styleValue={item.styleValue} />}
+          scrollEnabled={false}
         />
-
       </ScrollView>
 
     </SafeAreaView>

@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity } from 'react-native'
 import React, { useState } from 'react'
 import { Tabs } from 'expo-router'
-import NavigatorTabs from '@/components/NavigatorTabs'
+import NavigatorTabs from '@/app/(roots)/(tabs)/components/NavigatorTabs'
 import icons from '@/constraints/icons'
-import Modaladd from '@/components/modalAdd'
+import Modaladd from '@/app/(roots)/(tabs)/components/modalAdd'
 import { Ionicons } from '@expo/vector-icons'
 
 const TabsLayout = () => {

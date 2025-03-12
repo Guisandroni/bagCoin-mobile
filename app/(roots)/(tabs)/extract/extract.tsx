@@ -2,23 +2,23 @@ import { View, Text, ScrollView, TextInput, Image, TouchableOpacity, FlatList } 
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import icons from '@/constraints/icons'
-import TypeTransaction from '@/components/TypeTransaction'
-import Transacoes, { Transactions } from '@/components/Transacoes'
+import TypeTransaction from '@/app/(roots)/(tabs)/extract/TypeTransaction'
+import Transacoes, { Transactions } from '@/app/(roots)/(tabs)/components/Transacoes'
 
 const Extract = () => {
   
   return (
-    <SafeAreaView className='bg-white h-full'>
+    <SafeAreaView className='h-full bg-white'>
       <ScrollView contentContainerClassName='px-4 pb-40 '>  
-       <View className='flex flex-col  items-start px-2 gap-2'>
-       <Text className='font-rubik-bold text-xl'>Lançamentos</Text>
-        <View className='flex flex-row  items-center justify-center shadow-xl shadow-black-100 bg-white w-full  rounded-full px-4'>
+       <View className='flex flex-col gap-2 items-start px-2'>
+       <Text className='text-xl font-rubik-bold'>Lançamentos</Text>
+        <View className='flex flex-row justify-center items-center px-4 w-full bg-white rounded-full shadow-xl shadow-black-100'>
           <Image source={icons.search} className='size-4'/>
           <TextInput className='w-full' placeholder='Pesquise aqui'/>
         </View>
        </View>
 
-       <View className='flex flex-row  items-center justify-between px-4 mt-4 bg-gray-100 rounded-xl py-2'>
+       <View className='flex flex-row justify-between items-center px-4 py-2 mt-4 bg-gray-100 rounded-xl'>
         <TouchableOpacity>
           <Image source={icons.rightArrow} className='size-5'/>
         </TouchableOpacity>

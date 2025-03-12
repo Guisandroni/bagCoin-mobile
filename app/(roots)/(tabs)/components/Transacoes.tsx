@@ -21,17 +21,17 @@ const Transacoes = ({category,carteira,value,styleIcon,styleValue}: {category:st
     const FormatValue = value.toLocaleString('pt-br', {style:'currency', currency:'BRL'})
    
     return (
-        <TouchableOpacity className='flex flex-row items-center justify-between  gap-4 mt-4 border-b border-primary-200 py-4  '>
-            <View className='flex flex-row items-center gap-4'>
-                <View className={`bg-white rounded-full p-2 ${styleIcon}`}>
+        <TouchableOpacity className='flex flex-row gap-4 justify-between items-center py-4 mt-4 border-b border-primary-200'>
+            <View className='flex flex-row gap-4 items-center'>
+                <View className={`p-2 bg-white rounded-full ${styleIcon}`}>
                     <Image source={icons.chat} className='size-6' tintColor={'black'} />
                 </View>
                 <View className='w-30'>
                     <Text className='font-rubik text-black-300'>{category}</Text>
-                    <Text className='font-rubik text-black-100 uppercase'>{carteira}</Text>
+                    <Text className='uppercase font-rubik text-black-100'>{carteira}</Text>
                 </View>
             </View>
-            <Text className={`font-rubik-semibold  text-xl ${styleValue}`}>{FormatValue}</Text>
+            <Text className={`text-xl font-rubik-semibold ${styleValue}`}>{FormatValue}</Text>
         </TouchableOpacity>
     )
 }

@@ -2,12 +2,12 @@ import { View, Text, ScrollView, Image, TouchableOpacity, FlatList, Modal, TextI
 import { SafeAreaView } from 'react-native-safe-area-context'
 import images from '@/constraints/images'
 import icons from '@/constraints/icons'
-import TypeTransaction from '@/components/TypeTransaction'
-import SaldoContainer from '@/components/SaldoContainer'
-import MetasList from '@/components/MetasList'
-import Transacoes, { Transactions } from '@/components/Transacoes'
-import { Cartoes } from '@/components/cartoes'
-import { Carteira } from '@/components/carteiras'
+import TypeTransaction from '@/app/(roots)/(tabs)/extract/TypeTransaction'
+import SaldoContainer from '@/app/(roots)/(tabs)/home/components/SaldoContainer'
+import MetasList from '@/app/(roots)/(tabs)/home/components/MetasList'
+import Transacoes, { Transactions } from '@/app/(roots)/(tabs)/components/Transacoes'
+import { Cartoes } from '@/app/(roots)/(tabs)/home/components/cartoes'
+import { Carteira } from '@/app/(roots)/(tabs)/home/components/carteiras'
 
 const Home = () => {
 
@@ -18,7 +18,7 @@ const Home = () => {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 160, paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className='flex flex-row items-center justify-between gap-2'>
+        <View className='flex flex-row gap-2 justify-between items-center'>
           <Image source={images.avatar} className='size-8' />
           <Text className='text-lg font-rubik-bold'>Guilherme Dias</Text>
           <TouchableOpacity>

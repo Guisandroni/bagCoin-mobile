@@ -65,7 +65,7 @@ const MetasList = () => {
 
   return (
     <View className='mt-8'>
-      <View className='flex-row items-center justify-between mb-4'>
+      <View className='flex-row justify-between items-center mb-4'>
         <Text className='text-xl font-rubik-semibold'>Minhas Metas</Text>
         <TouchableOpacity onPress={handleVerTodasMetas}>
           <Text className='text-primary-300 font-rubik-medium'>Ver todas</Text>
@@ -77,12 +77,12 @@ const MetasList = () => {
           <TouchableOpacity 
             key={meta.id}
             onPress={() => handleMetaPress(meta.id)}
-            className='gap-3 px-4 py-3 bg-white border border-gray-100 shadow-sm shadow-zinc-200 rounded-xl'
+            className='gap-3 px-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm shadow-zinc-200'
           >
-            <View className='flex flex-row items-center justify-between'>
-              <View className='flex flex-row items-center gap-4'>
+            <View className='flex flex-row justify-between items-center'>
+              <View className='flex flex-row gap-4 items-center'>
                 <View className={`w-10 h-10 ${meta.cor} rounded-full items-center justify-center`}>
-                  <Ionicons name={meta.icon} size={20} color="white" />
+                  <Ionicons name={meta.icon as any} size={20} color="white" />
                 </View>
                 <View className='flex items-start'>
                   <Text className='text-lg font-rubik-semibold'>{meta.nome}</Text>
@@ -100,7 +100,7 @@ const MetasList = () => {
             </View>
 
             <View className='mt-2'>
-              <View className='h-2 overflow-hidden bg-gray-100 rounded-full'>
+              <View className='overflow-hidden h-2 bg-gray-100 rounded-full'>
                 <View 
                   className={`h-full ${meta.cor} rounded-full`}
                   style={{ width: `${getProgressoPercentual(meta.valorAtual, meta.valor)}%` }}

@@ -23,9 +23,9 @@ const TypeTransaction = ({ icon, styleBg, TypeLanc }: { icon: any, styleBg: any,
             >
                 <TouchableOpacity onPress={handleType} >
 
-                    <View className={`bg-white px-2 py-2 rounded-full flex flex-row items-center justify-center gap-4 ${styleBg}`}>
+                    <View className={`flex flex-row gap-4 justify-center items-center px-2 py-2 bg-white rounded-full ${styleBg}`}>
                         <Image source={icon} className='size-6' />
-                        <Text className=' text-white font-rubik'>{TypeLanc}</Text>
+                        <Text className='text-white font-rubik'>{TypeLanc}</Text>
                     </View>
                 </TouchableOpacity>
             </ScrollView>

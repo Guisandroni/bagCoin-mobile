@@ -28,7 +28,7 @@ export default function RootLayout() {
         title: ''
       }}
     >
-      <Stack.Screen 
+      {/* <Stack.Screen 
         name="modal-pages/despesa"
         options={{
           presentation: 'modal',
@@ -48,7 +48,7 @@ export default function RootLayout() {
           presentation: 'modal',
           animation: 'slide_from_bottom',
         }}
-      />
+      /> */}
       <Stack.Screen name="(roots)" options={{ headerShown: false }} />
     </Stack>
   )

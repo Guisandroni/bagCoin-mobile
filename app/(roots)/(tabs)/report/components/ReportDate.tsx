@@ -9,10 +9,10 @@ export const reportDate = [
 ]
 const ReportDate = () => {
     return (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className=' mt-1 py-4 '>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className='py-4 mt-1'>
            {reportDate.map((item,index) =>(
-             <TouchableOpacity className='bg-white  px-5 py-2 rounded-xl mr-4 shadow-lg '>
-             <Text className=' font-rubik-medium'>{item.title}</Text>
+             <TouchableOpacity className='px-5 py-2 mr-4 bg-white rounded-xl shadow-lg'>
+             <Text className='font-rubik-medium'>{item.title}</Text>
          </TouchableOpacity>
            ))}
         </ScrollView>

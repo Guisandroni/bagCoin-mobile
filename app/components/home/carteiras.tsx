@@ -2,8 +2,7 @@ import { View, Text, ScrollView, Image, TouchableOpacity, FlatList, Modal, TextI
 import React, { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 
-
-export const Carteira = () => {
+ const Carteira = () => {
   const [showAddWalletModal, setShowAddWalletModal] = useState(false);
   const [novaCarteira, setNovaCarteira] = useState({ nome: '', saldo: '' });
 
@@ -51,7 +50,7 @@ export const Carteira = () => {
   return (
     <>
       <View className="mt-6">
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row justify-between items-center mb-4">
           <Text className="text-xl font-rubik-semibold">Carteiras</Text>
           <TouchableOpacity
             onPress={() => setShowAddWalletModal(true)}
@@ -64,7 +63,7 @@ export const Carteira = () => {
           <View className="flex-row gap-4">
             {carteiras.map((carteira) => (
               <View key={carteira.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 min-w-[160px]">
-                <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row justify-between items-center mb-2">
                   <View className="flex-row items-center">
                     <Ionicons name="wallet-outline" size={20} color="#666" />
                     <Text className="ml-2 font-rubik-medium">{carteira.nome}</Text>
@@ -96,7 +95,7 @@ export const Carteira = () => {
           onPress={() => setShowAddWalletModal(false)}
           className="flex-1 bg-black/50"
         >
-          <View className="justify-end flex-1">
+          <View className="flex-1 justify-end">
             <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
               <View className="bg-white rounded-t-3xl">
                 <View className="p-4 border-b border-gray-200">
@@ -106,7 +105,7 @@ export const Carteira = () => {
                   <View>
                     <Text className="mb-2 text-sm font-medium text-gray-700">Nome da Carteira</Text>
                     <TextInput
-                      className="w-full p-4 border border-gray-200 bg-gray-50 rounded-xl"
+                      className="p-4 w-full bg-gray-50 rounded-xl border border-gray-200"
                       placeholder="Digite o nome"
                       value={novaCarteira.nome}
                       onChangeText={(text) => setNovaCarteira({ ...novaCarteira, nome: text })}
@@ -115,7 +114,7 @@ export const Carteira = () => {
                   <View>
                     <Text className="mb-2 text-sm font-medium text-gray-700">Saldo Inicial</Text>
                     <TextInput
-                      className="w-full p-4 border border-gray-200 bg-gray-50 rounded-xl"
+                      className="p-4 w-full bg-gray-50 rounded-xl border border-gray-200"
                       placeholder="R$ 0,00"
                       keyboardType="numeric"
                       value={novaCarteira.saldo}
@@ -125,13 +124,13 @@ export const Carteira = () => {
                   <View className="flex-row space-x-4">
                     <TouchableOpacity
                       onPress={() => setShowAddWalletModal(false)}
-                      className="flex-1 p-4 border border-gray-200 rounded-xl"
+                      className="flex-1 p-4 rounded-xl border border-gray-200"
                     >
                       <Text className="text-center text-gray-700">Cancelar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={handleAddWallet}
-                      className="flex-1 p-4 bg-primary-300 rounded-xl"
+                      className="flex-1 p-4 rounded-xl bg-primary-300"
                     >
                       <Text className="font-medium text-center text-white">Salvar</Text>
                     </TouchableOpacity>
@@ -146,3 +145,5 @@ export const Carteira = () => {
 
   )
 }
+
+export default Carteira

@@ -2,8 +2,8 @@ import { View, Text, ScrollView, TextInput, Image, TouchableOpacity, FlatList } 
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import icons from '@/constraints/icons'
-import TypeTransaction from '@/app/(roots)/(tabs)/extract/TypeTransaction'
-import Transacoes, { Transactions } from '@/app/(roots)/(tabs)/components/Transacoes'
+import TypeTransaction from '@/app/components/extract/TypeTransaction'
+import Transacoes, { Transactions } from '@/app/components/Transacoes'
 
 const Extract = () => {
   

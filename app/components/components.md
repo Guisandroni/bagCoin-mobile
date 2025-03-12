@@ -1,0 +1,1 @@
+pasta para todos os components da aplicação, paginas divida por pastas

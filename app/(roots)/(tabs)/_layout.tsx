@@ -1,9 +1,9 @@
 import { View, Text, TouchableOpacity } from 'react-native'
 import React, { useState } from 'react'
 import { Tabs } from 'expo-router'
-import NavigatorTabs from '@/app/(roots)/(tabs)/components/NavigatorTabs'
+import NavigatorTabs from '@/app/components/NavigatorTabs'
 import icons from '@/constraints/icons'
-import Modaladd from '@/app/(roots)/(tabs)/components/modalAdd'
+import Modaladd from '@/app/components/modalAdd'
 import { Ionicons } from '@expo/vector-icons'
 
 const TabsLayout = () => {
@@ -54,7 +54,7 @@ const TabsLayout = () => {
               <View className="items-center" style={{ width: 75 }}>
                 <TouchableOpacity
                   onPress={() => setModalVisible(true)}
-                  className="items-center justify-center w-12 h-12 bg-blue-500 rounded-full shadow-lg"
+                  className="justify-center items-center w-12 h-12 bg-blue-500 rounded-full shadow-lg"
                   style={{
                     elevation: 4,
                     shadowColor: '#000',

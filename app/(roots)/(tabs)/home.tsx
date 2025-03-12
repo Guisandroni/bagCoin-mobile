@@ -2,12 +2,12 @@ import { View, Text, ScrollView, Image, TouchableOpacity, FlatList, Modal, TextI
 import { SafeAreaView } from 'react-native-safe-area-context'
 import images from '@/constraints/images'
 import icons from '@/constraints/icons'
-import TypeTransaction from '@/app/(roots)/(tabs)/extract/TypeTransaction'
-import SaldoContainer from '@/app/(roots)/(tabs)/home/components/SaldoContainer'
-import MetasList from '@/app/(roots)/(tabs)/home/components/MetasList'
-import Transacoes, { Transactions } from '@/app/(roots)/(tabs)/components/Transacoes'
-import { Cartoes } from '@/app/(roots)/(tabs)/home/components/cartoes'
-import { Carteira } from '@/app/(roots)/(tabs)/home/components/carteiras'
+import TypeTransaction from '@/app/components/extract/TypeTransaction'
+import SaldoContainer from '@/app/components/home/SaldoContainer'
+import MetasList from '@/app/components/home/MetasList'
+import Transacoes, { Transactions } from '@/app/components/Transacoes'
+import Cartoes from '@/app/components/home/cartoes'
+import Carteira from '@/app/components/home/carteiras'
 
 const Home = () => {
 

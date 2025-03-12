@@ -2,7 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import icons from '@/constraints/icons'
-import ReportDate from '@/app/(roots)/(tabs)/report/components/ReportDate'
+import ReportDate from '@/app/components/report/ReportDate'
 
 const Report = () => {
   return (

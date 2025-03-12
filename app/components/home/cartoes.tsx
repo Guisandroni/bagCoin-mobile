@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 
 
-export const Cartoes = () => {
+const Cartoes = () => {
     const [showAddCardModal, setShowAddCardModal] = useState(false);
     const [novoCartao, setNovoCartao] = useState({ nome: '', limite: '', fechamento: '', vencimento: '' });
 
@@ -56,7 +56,7 @@ export const Cartoes = () => {
     return (
         <>
             <View className="mt-6">
-                <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-row justify-between items-center mb-4">
                     <Text className="text-xl font-rubik-semibold">Cartões de Crédito</Text>
                     <TouchableOpacity
                         onPress={() => setShowAddCardModal(true)}
@@ -69,7 +69,7 @@ export const Cartoes = () => {
                     <View className="flex-row gap-4">
                         {cartoes.map((cartao) => (
                             <View key={cartao.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 min-w-[200px]">
-                                <View className="flex-row items-center justify-between mb-2">
+                                <View className="flex-row justify-between items-center mb-2">
                                     <View className="flex-row items-center">
                                         <Ionicons name="card-outline" size={20} color="#666" />
                                         <Text className="ml-2 font-rubik-medium">{cartao.nome}</Text>
@@ -105,7 +105,7 @@ export const Cartoes = () => {
                     onPress={() => setShowAddCardModal(false)}
                     className="flex-1 bg-black/50"
                 >
-                    <View className="justify-end flex-1">
+                    <View className="flex-1 justify-end">
                         <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
                             <View className="bg-white rounded-t-3xl">
                                 <View className="p-4 border-b border-gray-200">
@@ -115,7 +115,7 @@ export const Cartoes = () => {
                                     <View>
                                         <Text className="mb-2 text-sm font-medium text-gray-700">Nome do Cartão</Text>
                                         <TextInput
-                                            className="w-full p-4 border border-gray-200 bg-gray-50 rounded-xl"
+                                            className="p-4 w-full bg-gray-50 rounded-xl border border-gray-200"
                                             placeholder="Digite o nome"
                                             value={novoCartao.nome}
                                             onChangeText={(text) => setNovoCartao({ ...novoCartao, nome: text })}
@@ -124,7 +124,7 @@ export const Cartoes = () => {
                                     <View>
                                         <Text className="mb-2 text-sm font-medium text-gray-700">Limite</Text>
                                         <TextInput
-                                            className="w-full p-4 border border-gray-200 bg-gray-50 rounded-xl"
+                                            className="p-4 w-full bg-gray-50 rounded-xl border border-gray-200"
                                             placeholder="R$ 0,00"
                                             keyboardType="numeric"
                                             value={novoCartao.limite}
@@ -135,7 +135,7 @@ export const Cartoes = () => {
                                         <View className="flex-1">
                                             <Text className="mb-2 text-sm font-medium text-gray-700">Dia Fechamento</Text>
                                             <TextInput
-                                                className="w-full p-4 border border-gray-200 bg-gray-50 rounded-xl"
+                                                className="p-4 w-full bg-gray-50 rounded-xl border border-gray-200"
                                                 placeholder="Dia"
                                                 keyboardType="numeric"
                                                 value={novoCartao.fechamento}
@@ -145,7 +145,7 @@ export const Cartoes = () => {
                                         <View className="flex-1">
                                             <Text className="mb-2 text-sm font-medium text-gray-700">Dia Vencimento</Text>
                                             <TextInput
-                                                className="w-full p-4 border border-gray-200 bg-gray-50 rounded-xl"
+                                                className="p-4 w-full bg-gray-50 rounded-xl border border-gray-200"
                                                 placeholder="Dia"
                                                 keyboardType="numeric"
                                                 value={novoCartao.vencimento}
@@ -156,13 +156,13 @@ export const Cartoes = () => {
                                     <View className="flex-row space-x-4">
                                         <TouchableOpacity
                                             onPress={() => setShowAddCardModal(false)}
-                                            className="flex-1 p-4 border border-gray-200 rounded-xl"
+                                            className="flex-1 p-4 rounded-xl border border-gray-200"
                                         >
                                             <Text className="text-center text-gray-700">Cancelar</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             onPress={handleAddCard}
-                                            className="flex-1 p-4 bg-primary-300 rounded-xl"
+                                            className="flex-1 p-4 rounded-xl bg-primary-300"
                                         >
                                             <Text className="font-medium text-center text-white">Salvar</Text>
                                         </TouchableOpacity>
@@ -176,3 +176,6 @@ export const Cartoes = () => {
         </>
     )
 }
+
+
+export default Cartoes

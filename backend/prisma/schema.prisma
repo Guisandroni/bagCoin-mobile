@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FrequenciaRecorrencia {
+  SEMANAL
+  MENSAL
+  ANUAL
+}
+
+model User {
+  id         String     @id @default(uuid())
+  name       String
+  email      String     @unique
+  password   String
+  created_at DateTime   @default(now())
+  carteiras  Carteira[]
+}
+
+model Carteira {
+  id         String   @id @default(uuid())
+  name       String
+  balance    Decimal  @default(0.00)
+  created_at DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  despesas Despesa[]
+  receitas Receita[]
+  metas    Meta[]
+  
+  @@index([userId])
+}
+
+model Despesa {
+  id          String                 @id @default(uuid())
+  name        String
+  valor       Decimal
+  description String?
+  recorrente  Boolean                @default(false)
+  frequencia  FrequenciaRecorrencia? @default(MENSAL)
+  proximaData DateTime?
+
+  carteira   Carteira @relation(fields: [carteiraId], references: [id], onDelete: Cascade)
+  carteiraId String
+
+  created_at DateTime @default(now())
+  
+  @@index([carteiraId])
+}
+
+model Receita {
+  id          String                 @id @default(uuid())
+  name        String
+  value       Decimal
+  description String?
+  recorrente  Boolean                @default(false)
+  frequencia  FrequenciaRecorrencia? @default(MENSAL)
+  proximaData DateTime?
+
+  carteira   Carteira @relation(fields: [carteiraId], references: [id], onDelete: Cascade)
+  carteiraId String
+
+  created_at DateTime @default(now())
+  
+  @@index([carteiraId])
+}
+
+model Meta {
+  id          String                 @id @default(uuid())
+  name        String
+  value       Decimal
+  description String?
+  recorrente  Boolean                @default(false)
+  frequencia  FrequenciaRecorrencia? @default(MENSAL)
+  proximaData DateTime?
+  progresso   Decimal                @default(0.00)
+  dataFinal   DateTime
+
+  carteira   Carteira @relation(fields: [carteiraId], references: [id], onDelete: Cascade)
+  carteiraId String
+
+  created_at DateTime @default(now())
+  
+  @@index([carteiraId])
+}

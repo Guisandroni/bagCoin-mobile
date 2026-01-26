@@ -1,0 +1,3 @@
+{
+  "extends": "@bagcoin/config/tsconfig.base.json"
+}

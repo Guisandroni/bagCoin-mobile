@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "scheme": "bagcoin",
+    "userInterfaceStyle": "automatic",
+    "orientation": "default",
+    "web": {
+      "bundler": "metro"
+    },
+    "name": "bagcoin",
+    "slug": "bagcoin",
+    "plugins": ["expo-font"],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

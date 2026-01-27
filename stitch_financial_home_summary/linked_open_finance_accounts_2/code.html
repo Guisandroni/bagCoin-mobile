@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#000000",
+                        "accent": "#00C853",
+                        "background-light": "#F9FAFB",
+                    },
+                    fontFamily: {
+                        "sans": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.75rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .glass-input {
+                @apply bg-white/40 backdrop-blur-md border border-white/60 shadow-sm focus:ring-2 focus:ring-black/5 focus:border-black/20 transition-all;
+            }
+            .ios-blur {
+                @apply backdrop-blur-md bg-white/80;
+            }
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #FFFFFF;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-white min-h-screen text-slate-900">
+<header class="sticky top-0 z-50 ios-blur">
+<div class="flex items-center px-6 py-4 justify-between">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 transition-colors">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+<h1 class="text-[17px] font-bold tracking-tight">Nova Conexão</h1>
+<div class="w-10"></div>
+</div>
+</header>
+<main class="max-w-md mx-auto px-6 pb-40">
+<div class="mt-4 mb-8">
+<div class="flex p-1 bg-slate-100 rounded-xl">
+<button class="flex-1 py-2.5 text-[14px] font-bold rounded-lg bg-white shadow-sm">Conta Corrente</button>
+<button class="flex-1 py-2.5 text-[14px] font-semibold text-slate-500">Cartão de Crédito</button>
+</div>
+</div>
+<form class="space-y-6">
+<div class="space-y-2">
+<label class="text-[13px] font-bold text-slate-400 uppercase tracking-wider ml-1">Apelido da Conta</label>
+<input class="w-full h-14 px-5 rounded-2xl glass-input text-slate-900 font-medium placeholder:text-slate-300 border-none outline-none" placeholder="Ex: Minha Conta Principal" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="text-[13px] font-bold text-slate-400 uppercase tracking-wider ml-1">Instituição Financeira</label>
+<div class="relative group">
+<input class="w-full h-14 px-5 pl-12 rounded-2xl glass-input text-slate-900 font-medium placeholder:text-slate-300 border-none outline-none" placeholder="Buscar banco..." type="text"/>
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+</div>
+<div class="flex gap-3 mt-3 overflow-x-auto pb-2 no-scrollbar">
+<div class="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200">
+<span class="material-symbols-outlined text-slate-400">account_balance</span>
+</div>
+<div class="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200">
+<span class="material-symbols-outlined text-slate-400">account_balance</span>
+</div>
+<div class="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200">
+<span class="material-symbols-outlined text-slate-400">account_balance</span>
+</div>
+<div class="flex-shrink-0 w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200">
+<span class="material-symbols-outlined text-slate-400">account_balance</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="text-[13px] font-bold text-slate-400 uppercase tracking-wider ml-1">Saldo Inicial</label>
+<input class="w-full h-14 px-5 rounded-2xl glass-input text-slate-900 font-medium placeholder:text-slate-300 border-none outline-none" placeholder="R$ 0,00" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="text-[13px] font-bold text-slate-400 uppercase tracking-wider ml-1">Tipo de Conta</label>
+<div class="relative">
+<select class="w-full h-14 px-5 pr-10 rounded-2xl glass-input text-slate-900 font-medium appearance-none border-none outline-none">
+<option>Individual</option>
+<option>Conjunta</option>
+<option>Empresarial</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100/50 mt-8">
+<div class="flex gap-3">
+<span class="material-symbols-outlined text-blue-500 text-[20px]">verified_user</span>
+<div>
+<p class="text-[14px] font-bold text-blue-900 mb-1">Segurança Open Finance</p>
+<p class="text-[12px] leading-relaxed text-blue-700/80">Seus dados são criptografados e compartilhados apenas com sua autorização expressa, seguindo as normas do Banco Central.</p>
+</div>
+</div>
+</div>
+</form>
+</main>
+<footer class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-6 pb-10 pt-4 z-50">
+<div class="max-w-md mx-auto space-y-3">
+<button class="w-full h-14 bg-black text-white font-bold rounded-2xl shadow-lg shadow-black/10 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined text-[20px]">hub</span>
+                Conectar via Open Finance
+            </button>
+<button class="w-full h-14 bg-white text-slate-900 font-bold rounded-2xl border border-slate-200 active:scale-[0.98] transition-transform">
+                Adicionar Manualmente
+            </button>
+</div>
+</footer>
+
+</body></html>

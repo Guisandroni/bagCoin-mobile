@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manual Expense Entry - Red Theme</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ee5f2b",
+                        "expense-soft": "#ff6b6b",
+                        "expense-red": "#ef4444",
+                        "income-soft": "#2ecc71",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221510",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .dark .glass-effect {
+            background: rgba(34, 21, 16, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        input:focus {
+            outline: none;
+            box-shadow: none;
+        }
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#181311] dark:text-white transition-colors duration-300">
+<div class="relative flex h-auto min-h-screen w-full max-w-[430px] mx-auto flex-col bg-white dark:bg-[#1a110e] overflow-x-hidden shadow-2xl">
+<div class="flex items-center bg-white dark:bg-[#1a110e] p-4 pb-2 justify-between sticky top-0 z-10">
+<div class="text-[#181311] dark:text-white flex size-12 shrink-0 items-center justify-start cursor-pointer">
+<span class="material-symbols-outlined">close</span>
+</div>
+<h2 class="text-[#181311] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center pr-12">Nova Transação</h2>
+</div>
+<div class="flex px-4 py-3">
+<div class="flex h-12 flex-1 items-center justify-center rounded-xl bg-gray-100 dark:bg-[#2d1d17] p-1">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 bg-expense-soft/20 text-expense-soft text-sm font-bold transition-all">
+<span class="truncate">Despesa</span>
+<input checked="" class="hidden" name="transaction-type" type="radio" value="expense"/>
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-lg px-2 text-[#896c61] text-sm font-bold transition-all hover:text-income-soft">
+<span class="truncate">Receita</span>
+<input class="hidden" name="transaction-type" type="radio" value="income"/>
+</label>
+</div>
+</div>
+<div class="flex flex-col items-center justify-center py-12 px-4 w-full">
+<p class="text-[#896c61] text-xs font-bold uppercase tracking-widest mb-4">Valor da Transação</p>
+<div class="flex items-center justify-center w-full text-expense-red">
+<span class="text-3xl font-bold mr-2 mt-1">R$</span>
+<input class="text-6xl font-extrabold tracking-tight bg-transparent border-none p-0 focus:ring-0 w-full text-center text-expense-red" type="text" value="0,00"/>
+</div>
+</div>
+<div class="space-y-4 px-4 pb-40">
+<div class="flex flex-col gap-2">
+<label class="flex flex-col flex-1">
+<p class="text-[#181311] dark:text-gray-300 text-sm font-semibold leading-normal pb-1 px-1">Descrição</p>
+<div class="glass-effect flex items-center border border-gray-200 dark:border-gray-800 rounded-xl px-4 h-14">
+<span class="material-symbols-outlined text-[#896c61] mr-3">edit_note</span>
+<input class="w-full bg-transparent border-none text-[#181311] dark:text-white focus:ring-0 p-0 placeholder:text-[#896c61] text-base" placeholder="Ex: Mercado Central" value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-col gap-2">
+<p class="text-[#181311] dark:text-gray-300 text-sm font-semibold leading-normal px-1">Categoria</p>
+<div class="grid grid-cols-4 gap-3">
+<button class="flex flex-col items-center gap-2 p-3 rounded-xl bg-expense-red/10 border-2 border-expense-red">
+<span class="material-symbols-outlined text-expense-red">shopping_cart</span>
+<span class="text-[10px] font-bold text-expense-red">Compras</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-[#2d1d17] border-2 border-transparent">
+<span class="material-symbols-outlined text-[#896c61]">restaurant</span>
+<span class="text-[10px] font-bold text-[#896c61]">Alimentação</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-[#2d1d17] border-2 border-transparent">
+<span class="material-symbols-outlined text-[#896c61]">directions_car</span>
+<span class="text-[10px] font-bold text-[#896c61]">Transporte</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 rounded-xl bg-gray-50 dark:bg-[#2d1d17] border-2 border-transparent">
+<span class="material-symbols-outlined text-[#896c61]">more_horiz</span>
+<span class="text-[10px] font-bold text-[#896c61]">Outros</span>
+</button>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="flex flex-col flex-1 gap-2">
+<p class="text-[#181311] dark:text-gray-300 text-sm font-semibold leading-normal px-1">Data</p>
+<div class="glass-effect flex items-center border border-gray-200 dark:border-gray-800 rounded-xl px-4 h-14">
+<span class="material-symbols-outlined text-[#896c61] mr-3">calendar_today</span>
+<input class="w-full bg-transparent border-none text-[#181311] dark:text-white focus:ring-0 p-0 text-sm font-medium" type="text" value="Hoje, 24 Mai"/>
+</div>
+</div>
+<div class="flex flex-col flex-1 gap-2">
+<p class="text-[#181311] dark:text-gray-300 text-sm font-semibold leading-normal px-1">Conta</p>
+<div class="glass-effect flex items-center border border-gray-200 dark:border-gray-800 rounded-xl px-4 h-14">
+<span class="material-symbols-outlined text-[#896c61] mr-3">account_balance_wallet</span>
+<input class="w-full bg-transparent border-none text-[#181311] dark:text-white focus:ring-0 p-0 text-sm font-medium" type="text" value="Carteira"/>
+</div>
+</div>
+</div>
+</div>
+<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-6 pt-2 bg-gradient-to-t from-white dark:from-[#1a110e] via-white/95 dark:via-[#1a110e]/95 to-transparent">
+<button class="w-full bg-expense-red text-white font-bold py-4 rounded-xl shadow-lg shadow-expense-red/30 active:scale-95 transition-transform mb-4">
+                Salvar Despesa
+            </button>
+<div class="flex items-center justify-around py-2 glass-effect rounded-full border border-gray-100 dark:border-gray-800 shadow-xl px-4">
+<button class="text-[#896c61] p-2"><span class="material-symbols-outlined">home</span></button>
+<button class="text-[#896c61] p-2"><span class="material-symbols-outlined">analytics</span></button>
+<div class="relative -top-6">
+<button class="bg-expense-red text-white size-14 rounded-full flex items-center justify-center shadow-xl shadow-expense-red/40 ring-4 ring-white dark:ring-[#1a110e]">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+</div>
+<button class="text-[#896c61] p-2"><span class="material-symbols-outlined">credit_card</span></button>
+<button class="text-[#896c61] p-2"><span class="material-symbols-outlined">person</span></button>
+</div>
+</div>
+</div>
+
+</body></html>

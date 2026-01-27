@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#10b981",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                        "neutral-surface": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer components {
+            .glass-card {
+                @apply bg-white/60 dark:bg-white/5 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-sm;
+            }
+            .no-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .no-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        }
+    </style>
+<title>Income and Inflow Tracking - Minimalist</title>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#f8fafc] dark:bg-[#0f172a] font-display text-slate-900 dark:text-white min-h-screen">
+<nav class="sticky top-0 z-50 bg-white/70 dark:bg-[#0f172a]/70 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-2xl text-slate-400">arrow_back_ios</span>
+</div>
+<h2 class="text-sm font-bold tracking-tight uppercase text-slate-500 dark:text-slate-400">Income Overview</h2>
+<div class="flex gap-4">
+<button class="flex items-center justify-center size-9 rounded-full bg-slate-100 dark:bg-white/10">
+<span class="material-symbols-outlined text-xl text-slate-600 dark:text-slate-300">visibility</span>
+</button>
+</div>
+</nav>
+<main class="max-w-md mx-auto pb-32">
+<div class="px-6 pt-6">
+<div class="flex p-1 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200/50 dark:border-white/10">
+<button class="flex-1 py-2 px-4 text-xs font-bold uppercase tracking-wider rounded-lg bg-white dark:bg-white/10 text-primary shadow-sm transition-all">
+                    Receitas
+                </button>
+<button class="flex-1 py-2 px-4 text-xs font-bold uppercase tracking-wider rounded-lg text-slate-400 dark:text-slate-500 transition-all">
+                    Despesas
+                </button>
+</div>
+</div>
+<section class="px-6 pt-8 pb-8 text-center relative overflow-hidden">
+<div class="inline-block px-3 py-1 rounded-full bg-white dark:bg-white/5 text-slate-500 dark:text-slate-400 text-[10px] font-bold mb-6 tracking-widest uppercase border border-slate-200/50 dark:border-white/10">
+                Total Revenue • May 2024
+            </div>
+<h1 class="text-6xl font-extrabold tracking-tighter text-primary">
+                $12,450<span class="text-3xl opacity-50">.00</span>
+</h1>
+<div class="mt-4 flex items-center justify-center gap-2">
+<div class="flex items-center gap-1 bg-primary/10 px-2.5 py-1 rounded-full">
+<span class="material-symbols-outlined text-primary text-sm font-bold">trending_up</span>
+<span class="text-primary text-xs font-bold">+14.2%</span>
+</div>
+<span class="text-slate-400 text-xs font-medium">from last month</span>
+</div>
+</section>
+<section class="px-6 py-4">
+<div class="glass-card rounded-2xl p-5">
+<div class="flex justify-between items-end mb-4">
+<div>
+<p class="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">Monthly Goal</p>
+<p class="text-lg font-bold text-slate-800 dark:text-slate-100">$12,450 <span class="text-slate-400 font-normal">/ $15,000</span></p>
+</div>
+<p class="text-primary font-bold text-sm">83%</p>
+</div>
+<div class="h-1.5 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 83%"></div>
+</div>
+</div>
+</section>
+<section class="mt-4">
+<div class="flex justify-between items-center px-6 mb-4">
+<h3 class="text-sm font-bold tracking-tight uppercase text-slate-400">Income Sources</h3>
+<span class="text-primary text-xs font-bold">Details</span>
+</div>
+<div class="flex overflow-x-auto gap-3 px-6 pb-2 no-scrollbar">
+<div class="min-w-[130px] glass-card p-4 rounded-2xl flex flex-col items-start gap-3">
+<div class="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xl">payments</span>
+</div>
+<div>
+<span class="text-[10px] font-bold text-slate-400 uppercase block">Salary</span>
+<span class="text-base font-bold text-slate-800 dark:text-slate-100">$8,500</span>
+</div>
+<span class="text-[9px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md uppercase">Monthly</span>
+</div>
+<div class="min-w-[130px] glass-card p-4 rounded-2xl flex flex-col items-start gap-3">
+<div class="size-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-blue-500 text-xl">auto_awesome</span>
+</div>
+<div>
+<span class="text-[10px] font-bold text-slate-400 uppercase block">Freelance</span>
+<span class="text-base font-bold text-slate-800 dark:text-slate-100">$3,200</span>
+</div>
+<span class="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-md uppercase">Active</span>
+</div>
+<div class="min-w-[130px] glass-card p-4 rounded-2xl flex flex-col items-start gap-3">
+<div class="size-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-amber-500 text-xl">monitoring</span>
+</div>
+<div>
+<span class="text-[10px] font-bold text-slate-400 uppercase block">Dividends</span>
+<span class="text-base font-bold text-slate-800 dark:text-slate-100">$750</span>
+</div>
+<span class="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md uppercase">+5% Yield</span>
+</div>
+</div>
+</section>
+<section class="px-6 mt-8">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-sm font-bold tracking-tight uppercase text-slate-400">Recent Inflows</h3>
+<div class="flex items-center gap-1 text-slate-300">
+<span class="material-symbols-outlined text-base">cloud_done</span>
+<span class="text-[10px] font-bold uppercase">Live</span>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between p-4 glass-card rounded-2xl">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-white/5">
+<img class="w-full h-full object-cover" data-alt="Stripe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9_EiLboAGZiZiwErOv3F1jvycNvR0S4DLOsexdeAZevPS6x_cl4xsbb00x8Vy2dBXCzbFJdRWdGFsGwLJn3hyolTDuuOhVVkJbbOqcxCD-0kjW3vAnlBRHLbu2HLFuJvrNiztQcuwoU8clrPtsZgOSasZhaL_Vtpa3UnNPB4AFWOdTXuHRv4nr8be8qXQb4dbyhoKQLqLtweCbfQXAnYbntaug9jc2u16IqWCzBMlwu7FzC4KTkgsH0WGuG89J1K0cthCahgoW2Y2"/>
+</div>
+<div>
+<p class="font-bold text-sm text-slate-800 dark:text-slate-100">Merchant Payout</p>
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Today • #20492</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-primary font-bold text-sm">+$1,240.00</p>
+<span class="text-[9px] font-black text-primary uppercase bg-primary/10 px-1.5 py-0.5 rounded">New</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 glass-card rounded-2xl">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-white/5">
+<img class="w-full h-full object-cover" data-alt="TechCorp" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6inzaQXwdzNJmmRDabJod1lIq8VvBgkCdDL6x5chUwvTp-XBzBrzj_hbP_hpxOpls3o-7ziS-yih7sncCXRRs5rACgBo94VNyTtKGqwFD1HzxBzajFVoSWVt2nMjUb1QqCfiGbgrFWOU0ZNLw8mybAalHNm09z2N_P6yVRwjYHORmo4vJyWTaEDc2nw_vhrGCLBlAhu4H7AIe_Lglfq8oaLkyQAUEW8-qRY9nUEBMHlR9q533AlTu0Jiclw-EWpZQoAYG-JOm5t5p"/>
+</div>
+<div>
+<p class="font-bold text-sm text-slate-800 dark:text-slate-100">Monthly Payroll</p>
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Yesterday • Salary</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-primary font-bold text-sm">+$4,250.00</p>
+<span class="text-[9px] font-bold text-slate-400 uppercase">Cleared</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 glass-card rounded-2xl">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-white/5">
+<img class="w-full h-full object-cover" data-alt="Fidelity" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBK0RTt7SC4JiwaWwrC2x4lJEYjHh2e7yjUMPtOzVzdOJAm8lp7OBUZvP0tWml5NgcCH7cNaUWrafq9rOSKLErbkJDWzpK-8g-0AkB-GP1VjnLBPm-lIYDzNM73hDxMBh1efrVWypZe3LPnJf3rQzZl-t7N-u_-kifEZmu_Vxxw6Y_KhdVrtinEPDzwBIgZfMerAgXSTx13Qs7PJVKUrNfSwYV7P9OwgloaCstru11bPkRwgFBZrrvH7oX9OHbiA_j06vNC3-sySXVa"/>
+</div>
+<div>
+<p class="font-bold text-sm text-slate-800 dark:text-slate-100">Dividends Credit</p>
+<p class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">2 days ago • Inv</p>
+</div>
+</div>
+<div class="text-right">
+<p class="text-primary font-bold text-sm">+$340.50</p>
+<span class="text-[9px] font-bold text-slate-400 uppercase">Cleared</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 w-full bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-2xl border-t border-slate-100 dark:border-white/5 px-8 pt-4 pb-8 flex justify-between items-end z-50">
+<div class="flex flex-col items-center gap-1 opacity-25 text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-[26px]">grid_view</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-primary relative">
+<span class="material-symbols-outlined text-[28px] fill-primary">account_balance_wallet</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Income</span>
+<div class="absolute -bottom-3 size-1 bg-primary rounded-full"></div>
+</div>
+<div class="flex items-center justify-center pb-1">
+<button class="size-12 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl">add</span>
+</button>
+</div>
+<div class="flex flex-col items-center gap-1 opacity-25 text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-[26px]">analytics</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Stats</span>
+</div>
+<div class="flex flex-col items-center gap-1 opacity-25 text-slate-900 dark:text-white">
+<span class="material-symbols-outlined text-[26px]">person</span>
+<span class="text-[9px] font-bold uppercase tracking-wider">Profile</span>
+</div>
+</nav>
+
+</body></html>

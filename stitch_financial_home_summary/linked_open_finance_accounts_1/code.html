@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#000000",
+                        "accent": "#00C853",
+                        "background-light": "#F9FAFB",
+                        "glass-bg": "rgba(255, 255, 255, 0.7)",
+                    },
+                    fontFamily: {
+                        "sans": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.75rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .glass-morphism {
+                @apply bg-white/60 backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_0_rgba(0,0,0,0.05)];
+            }
+            .ios-blur {
+                @apply backdrop-blur-md bg-background-light/80;
+            }
+        }
+        body {
+            font-family: 'Manrope', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #F9FAFB;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light min-h-screen text-slate-900">
+<header class="sticky top-0 z-50 ios-blur">
+<div class="flex items-center px-6 py-4 justify-between">
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 transition-colors">
+<span class="material-symbols-outlined text-[24px]">chevron_left</span>
+</button>
+<h1 class="text-[17px] font-bold tracking-tight">Linked Accounts</h1>
+<button class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 transition-colors">
+<span class="material-symbols-outlined text-[24px]">more_horiz</span>
+</button>
+</div>
+</header>
+<main class="max-w-md mx-auto px-6 pb-36">
+<section class="py-8">
+<div class="flex flex-col items-center">
+<p class="text-[13px] font-semibold text-slate-400 uppercase tracking-[0.1em] mb-2">Total Balance</p>
+<h2 class="text-4xl font-extrabold tracking-tight text-slate-900">$42,550.00</h2>
+<div class="mt-3 flex items-center gap-1.5 bg-accent/10 px-3 py-1 rounded-full">
+<span class="material-symbols-outlined text-accent text-sm font-bold">trending_up</span>
+<span class="text-accent text-[12px] font-bold">+2.4% this month</span>
+</div>
+</div>
+</section>
+<section class="mb-10">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-[18px] font-bold">Bank Accounts</h3>
+<span class="text-[12px] font-bold text-slate-400">2 Connected</span>
+</div>
+<div class="space-y-5">
+<div class="glass-morphism rounded-2xl p-6 relative overflow-hidden group">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+<span class="material-symbols-outlined text-2xl">account_balance</span>
+</div>
+<div>
+<p class="font-bold text-[16px]">Premier Checking</p>
+<p class="text-slate-400 text-[12px] font-medium tracking-wide uppercase">Chase •••• 1234</p>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<p class="text-2xl font-extrabold tracking-tight text-slate-900">$12,450.00</p>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="w-1.5 h-1.5 rounded-full bg-accent"></span>
+<p class="text-[11px] font-medium text-slate-400">Updated 2m ago</p>
+</div>
+</div>
+<button class="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+</div>
+</div>
+<div class="glass-morphism rounded-2xl p-6 relative overflow-hidden">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-red-500 flex items-center justify-center text-white shadow-lg shadow-red-500/20">
+<span class="material-symbols-outlined text-2xl">savings</span>
+</div>
+<div>
+<p class="font-bold text-[16px]">Savings Account</p>
+<p class="text-slate-400 text-[12px] font-medium tracking-wide uppercase">BofA •••• 5678</p>
+</div>
+</div>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<p class="text-2xl font-extrabold tracking-tight text-slate-900">$8,200.00</p>
+<div class="flex items-center gap-1.5 mt-1">
+<span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+<p class="text-[11px] font-medium text-slate-400">Updated 1h ago</p>
+</div>
+</div>
+<button class="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<section class="mb-10">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-[18px] font-bold">Credit Cards</h3>
+<span class="text-[12px] font-bold text-slate-400">1 Connected</span>
+</div>
+<div class="glass-morphism rounded-2xl p-6 border-l-4 border-l-slate-900">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-2xl">credit_card</span>
+</div>
+<div>
+<p class="font-bold text-[16px]">Apple Card</p>
+<p class="text-slate-400 text-[12px] font-medium tracking-wide uppercase">Gold Titanium •••• 9012</p>
+</div>
+</div>
+<div class="bg-slate-100 px-2 py-1 rounded-md">
+<span class="text-[10px] font-bold text-slate-600">OPEN FINANCE</span>
+</div>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<p class="text-2xl font-extrabold tracking-tight text-slate-900">$1,240.45</p>
+<p class="text-[11px] font-medium text-slate-400 mt-1">Due in 12 days</p>
+</div>
+<button class="px-4 py-2 bg-slate-900 text-white text-[12px] font-bold rounded-lg hover:bg-slate-800 transition-colors">
+                    Pay Now
+                </button>
+</div>
+</div>
+</section>
+<div class="space-y-4">
+<button class="w-full flex items-center justify-center gap-3 p-5 rounded-2xl bg-white border border-slate-200 text-slate-900 font-bold text-[16px] shadow-sm hover:bg-slate-50 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined">add_link</span>
+<span>Add New Connection</span>
+</button>
+<div class="flex items-center justify-center gap-2 opacity-40">
+<span class="material-symbols-outlined text-sm">lock</span>
+<p class="text-[10px] font-bold uppercase tracking-widest">Secure Open Finance Protocol</p>
+</div>
+</div>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-8 pb-10 pt-4 z-50">
+<div class="max-w-md mx-auto flex justify-between items-center">
+<div class="flex flex-col items-center gap-1 text-slate-900">
+<span class="material-symbols-outlined text-[26px] fill-1">grid_view</span>
+<span class="text-[10px] font-bold">Overview</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-300">
+<span class="material-symbols-outlined text-[26px]">account_balance_wallet</span>
+<span class="text-[10px] font-bold">Wallet</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-300">
+<span class="material-symbols-outlined text-[26px]">bar_chart</span>
+<span class="text-[10px] font-bold">Insights</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-slate-300">
+<span class="material-symbols-outlined text-[26px]">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+</div>
+</div>
+</nav>
+
+</body></html>

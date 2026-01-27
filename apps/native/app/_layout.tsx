@@ -1,22 +1,37 @@
 import "@/global.css";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { HeroUINativeProvider } from "heroui-native";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { AppThemeProvider } from "@/contexts/app-theme-context";
+import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/trpc";
 
 export const unstable_settings = {
-  initialRouteName: "(drawer)",
+  initialRouteName: "(auth)",
 };
 
-function StackLayout() {
+function RootStack() {
+  const { data: session, isPending } = authClient.useSession();
+
+  useEffect(() => {
+    if (!isPending) {
+      if (session?.user) {
+        router.replace("/(app)/(tabs)");
+      } else {
+        router.replace("/(auth)/login");
+      }
+    }
+  }, [session, isPending]);
+
   return (
-    <Stack screenOptions={{}}>
-      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-      <Stack.Screen name="modal" options={{ title: "Modal", presentation: "modal" }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(app)" />
+      <Stack.Screen name="+not-found" />
     </Stack>
   );
 }
@@ -28,7 +43,7 @@ export default function Layout() {
         <KeyboardProvider>
           <AppThemeProvider>
             <HeroUINativeProvider>
-              <StackLayout />
+              <RootStack />
             </HeroUINativeProvider>
           </AppThemeProvider>
         </KeyboardProvider>

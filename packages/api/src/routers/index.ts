@@ -1,5 +1,9 @@
 import { protectedProcedure, publicProcedure, router } from "../index";
 import { todoRouter } from "./todo";
+import { bankRouter } from "./bank";
+import { cardRouter } from "./card";
+import { categoryRouter } from "./category";
+import { transactionRouter } from "./transaction";
 
 export const appRouter = router({
   healthCheck: publicProcedure.query(() => {
@@ -12,5 +16,9 @@ export const appRouter = router({
     };
   }),
   todo: todoRouter,
+  bank: bankRouter,
+  card: cardRouter,
+  category: categoryRouter,
+  transaction: transactionRouter,
 });
 export type AppRouter = typeof appRouter;

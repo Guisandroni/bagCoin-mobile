@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec6a",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#102217",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#111814] dark:text-white transition-colors duration-300">
+<div class="relative flex h-auto min-h-screen w-full flex-col max-w-[430px] mx-auto overflow-x-hidden border-x border-gray-100 dark:border-gray-800 shadow-2xl">
+<!-- Top Navigation -->
+<div class="flex items-center p-4 pb-2 justify-between">
+<button class="text-[#111814] dark:text-white flex size-12 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined">arrow_back_ios_new</span>
+</button>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-background-dark text-sm font-bold">account_balance_wallet</span>
+</div>
+</div>
+<div class="size-12"></div>
+</div>
+<!-- Headline -->
+<div class="px-4 pt-8 pb-2">
+<h1 class="text-[#111814] dark:text-white tracking-tight text-[32px] font-extrabold leading-tight">
+                Crie sua conta em segundos
+            </h1>
+<p class="text-[#618971] dark:text-gray-400 text-lg font-medium mt-2">
+                Comece sua jornada financeira com praticidade e inteligência.
+            </p>
+</div>
+<!-- Open Finance Context Box -->
+<div class="p-4 @container">
+<div class="flex flex-1 flex-col items-start justify-between gap-4 rounded-xl border border-[#dbe6df] dark:border-gray-700 bg-white dark:bg-gray-900/50 p-5">
+<div class="flex items-center gap-3 mb-1">
+<div class="p-2 bg-primary/20 rounded-lg">
+<span class="material-symbols-outlined text-primary font-bold">verified_user</span>
+</div>
+<p class="text-[#111814] dark:text-white text-base font-bold leading-tight">
+                        Segurança em primeiro lugar
+                    </p>
+</div>
+<p class="text-[#618971] dark:text-gray-300 text-sm font-normal leading-normal">
+                    Utilizamos o login social para garantir uma conexão segura e instantânea com seus dados via <strong>Open Finance</strong>. Seus dados são protegidos por criptografia de ponta a ponta.
+                </p>
+<a class="text-sm font-bold leading-normal tracking-[0.015em] flex items-center gap-2 text-primary hover:underline" href="#">
+                    Saiba como protegemos você
+                    <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Social Buttons -->
+<div class="flex justify-center mt-4">
+<div class="flex flex-1 gap-4 max-w-[480px] flex-col items-stretch px-4 py-3">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-xl h-14 px-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-[#111814] dark:text-white text-base font-bold leading-normal tracking-[0.015em] w-full hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-[0.98]">
+<img alt="Google Logo" class="w-5 h-5" data-alt="Google colorful letter G logo" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaOr88VggAbFkY1wfrgmn7gFGgYVEqWjipKmLJzcCZF5mzsl4OSQAEnE_TtzV1L72tlKhSTC28mzZ3XzIDyGYQIFl_C7Q6KcXMY49TlYhEsoZGe5A1mnK_UBR19OIXSIXyPNIfxQ238l0uyRbhJq-BEHHfBmxgVXU-WtVwSku9zZ8JaMp_bz0sS7D7AxdMsu-uDe1-8lLwctuvGaIDJvS2bynbYTkxThHJq9MX-vupCwZmzuWH3Qi3JhVD2gRcV5eRXv4XppPVwips"/>
+<span class="truncate">Continuar com Google</span>
+</button>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-xl h-14 px-5 bg-[#1877F2] text-white text-base font-bold leading-normal tracking-[0.015em] w-full hover:bg-[#166fe5] transition-all active:scale-[0.98]">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"></path></svg>
+<span class="truncate">Continuar com Facebook</span>
+</button>
+<div class="relative flex py-5 items-center">
+<div class="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
+<span class="flex-shrink mx-4 text-gray-400 text-xs font-bold uppercase tracking-widest">ou use seu e-mail</span>
+<div class="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 px-5 bg-primary/10 text-primary text-base font-bold leading-normal tracking-[0.015em] w-full hover:bg-primary/20 transition-all">
+<span class="truncate">Criar com e-mail</span>
+</button>
+</div>
+</div>
+<!-- Login Redirect -->
+<div class="mt-auto p-8 text-center">
+<p class="text-[#618971] dark:text-gray-400 text-sm">
+                Já tem uma conta? 
+                <a class="text-primary font-bold hover:underline ml-1" href="#">Entrar agora</a>
+</p>
+</div>
+<!-- Legal Terms -->
+<div class="px-6 pb-10 text-center">
+<p class="text-[10px] text-gray-400 leading-relaxed uppercase tracking-tighter">
+                Ao continuar, você concorda com nossos <a class="underline" href="#">Termos de Uso</a> e <a class="underline" href="#">Política de Privacidade</a>. Operamos sob as diretrizes do Banco Central do Brasil.
+            </p>
+</div>
+<!-- iOS Indicator -->
+<div class="flex justify-center pb-2">
+<div class="w-32 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full"></div>
+</div>
+</div>
+</body></html>

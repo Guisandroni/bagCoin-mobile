@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>User Profile - Minimalist</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#000000",
+                        "accent": "#007AFF",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "system-ui", "-apple-system", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            font-size: 24px;
+        }
+        .nav-active .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #ffffff;
+        }
+        .thin-divider {
+            height: 1px;
+            background-color: #f2f2f7;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-white font-sans text-black antialiased">
+<div class="relative flex min-h-screen w-full flex-col max-w-[430px] mx-auto bg-white">
+<div class="sticky top-0 z-50 flex items-center bg-white/80 backdrop-blur-md px-4 py-4 justify-between border-b border-gray-50">
+<div class="flex items-center justify-start w-10">
+<span class="material-symbols-outlined cursor-pointer text-black !text-[20px]">arrow_back_ios</span>
+</div>
+<h1 class="text-[17px] font-semibold tracking-tight">Profile</h1>
+<div class="flex items-center justify-end w-10">
+<span class="material-symbols-outlined cursor-pointer text-black">more_horiz</span>
+</div>
+</div>
+<div class="flex flex-col items-center pt-10 pb-8">
+<div class="relative mb-4">
+<div class="aspect-square w-24 rounded-full bg-gray-100 bg-center bg-no-repeat bg-cover border border-gray-50" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjfDizCO9rDnNGdq2qqVqJy2rk8tttNhO0NSt-vX7SVOZuN1ixVB2DqpTH0-Ackv0UJXyFb1tbzLaMrh18eN24fn_9MveWOddhQ33NUGvhsTRbiAaBUwdNKeN2f15WHlgVFMjhuTjx3gORR-ddk_Oh0n5f10a-IL6cQbCphH6-625n5tlESXNYdqA7D6npGcMRVnK_fLSKBGve0Wge18JbsuNoQv6ZdxyQn-1NcO2FpoD--rof9r4034n5tpvw2M5XjLSmnq96mk1Y");'>
+</div>
+</div>
+<h2 class="text-2xl font-medium tracking-tight">Alex Thompson</h2>
+<p class="text-gray-400 text-sm mt-1">Member since October 2022</p>
+</div>
+<div class="flex flex-col px-6">
+<div class="py-4">
+<p class="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">Open Finance</p>
+<div class="flex items-center justify-between py-4 group cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-black transition-colors">category</span>
+<span class="text-[16px] font-normal">Category Management</span>
+</div>
+<span class="material-symbols-outlined text-gray-300 !text-sm">chevron_right</span>
+</div>
+<div class="thin-divider"></div>
+<div class="flex items-center justify-between py-4 group cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-black transition-colors">account_balance_wallet</span>
+<span class="text-[16px] font-normal">Bank Permissions</span>
+</div>
+<span class="material-symbols-outlined text-gray-300 !text-sm">chevron_right</span>
+</div>
+</div>
+<div class="py-4">
+<p class="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2 px-1">Security</p>
+<div class="flex items-center justify-between py-4">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-gray-400">fingerprint</span>
+<span class="text-[16px] font-normal">Biometrics</span>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-gray-100 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
+</label>
+</div>
+<div class="thin-divider"></div>
+<div class="flex items-center justify-between py-4 group cursor-pointer">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-black transition-colors">notifications</span>
+<span class="text-[16px] font-normal">Notifications</span>
+</div>
+<span class="material-symbols-outlined text-gray-300 !text-sm">chevron_right</span>
+</div>
+</div>
+<div class="mt-12 mb-32">
+<button class="w-full py-4 text-[16px] font-medium text-red-500 border border-red-50 px-4 rounded-xl hover:bg-red-50 transition-colors">
+                    Sign Out
+                </button>
+<p class="text-center text-[10px] text-gray-300 mt-8 tracking-wide">VERSION 2.4.1 (882)</p>
+</div>
+</div>
+<div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white/95 backdrop-blur-xl border-t border-gray-100 flex justify-around items-end pt-3 pb-8 px-6">
+<div class="flex flex-col items-center justify-center flex-1">
+<span class="material-symbols-outlined text-gray-300">home</span>
+<div class="h-1 w-1 bg-transparent rounded-full mt-1"></div>
+</div>
+<div class="flex flex-col items-center justify-center flex-1">
+<span class="material-symbols-outlined text-gray-300">account_balance_wallet</span>
+<div class="h-1 w-1 bg-transparent rounded-full mt-1"></div>
+</div>
+<div class="flex flex-col items-center justify-center flex-1">
+<span class="material-symbols-outlined text-gray-300">payments</span>
+<div class="h-1 w-1 bg-transparent rounded-full mt-1"></div>
+</div>
+<div class="flex flex-col items-center justify-center flex-1">
+<span class="material-symbols-outlined text-gray-300">bar_chart</span>
+<div class="h-1 w-1 bg-transparent rounded-full mt-1"></div>
+</div>
+<div class="flex flex-col items-center justify-center flex-1 nav-active">
+<span class="material-symbols-outlined text-black">person</span>
+<div class="h-1 w-1 bg-black rounded-full mt-1"></div>
+</div>
+</div>
+</div>
+
+</body></html>

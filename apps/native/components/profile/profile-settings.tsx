@@ -1,5 +1,6 @@
 import { View, Text, Pressable, Image, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ProfileSettingsProps {
   user: {
@@ -14,36 +15,75 @@ interface ProfileSettingsProps {
   onBankPermissions?: () => void;
   onNotifications?: () => void;
   onSignOut?: () => void;
+  onBackPress?: () => void;
 }
 
-interface SettingsItemProps {
+interface SettingsRowProps {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
 }
 
-function SettingsItem({ icon, label, onPress, rightElement }: SettingsItemProps) {
+function SettingsRow({ icon, label, onPress, rightElement }: SettingsRowProps) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center justify-between py-4"
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: 16,
+        opacity: pressed ? 0.7 : 1,
+      })}
     >
-      <View className="flex-row items-center gap-4">
-        <Ionicons name={icon} size={24} color="#9ca3af" />
-        <Text className="text-base font-normal text-slate-900 dark:text-white">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+        <Ionicons name={icon} size={24} color="#9CA3AF" />
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: "400",
+            color: "#111827",
+          }}
+        >
           {label}
         </Text>
       </View>
+
       {rightElement ?? (
-        <Ionicons name="chevron-forward" size={14} color="#d1d5db" />
+        <Ionicons name="chevron-forward" size={14} color="#D1D5DB" />
       )}
     </Pressable>
   );
 }
 
 function Divider() {
-  return <View className="h-px bg-slate-100 dark:bg-slate-800" />;
+  return (
+    <View
+      style={{
+        height: 1,
+        backgroundColor: "#F2F2F7",
+      }}
+    />
+  );
+}
+
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <Text
+      style={{
+        fontSize: 11,
+        fontWeight: "600",
+        color: "#9CA3AF",
+        textTransform: "uppercase",
+        letterSpacing: 1.5,
+        marginBottom: 8,
+        paddingHorizontal: 4,
+      }}
+    >
+      {label}
+    </Text>
+  );
 }
 
 export function ProfileSettings({
@@ -54,69 +94,170 @@ export function ProfileSettings({
   onBankPermissions,
   onNotifications,
   onSignOut,
+  onBackPress,
 }: ProfileSettingsProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View className="flex-1 bg-white dark:bg-slate-900">
-      {/* Profile Header */}
-      <View className="items-center pt-10 pb-8">
-        <View className="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-800 mb-4 overflow-hidden border border-slate-50 dark:border-slate-700">
-          {user.image ? (
-            <Image source={{ uri: user.image }} className="w-full h-full" />
-          ) : (
-            <View className="w-full h-full items-center justify-center">
-              <Ionicons name="person" size={40} color="#9ca3af" />
-            </View>
-          )}
+    <View style={{ flex: 1, backgroundColor: "white" }}>
+      {/* ── Top Nav ── */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 16,
+          paddingTop: insets.top + 8,
+          paddingBottom: 16,
+          backgroundColor: "rgba(255,255,255,0.85)",
+          borderBottomWidth: 1,
+          borderBottomColor: "#F9F9F9",
+        }}
+      >
+        <Pressable
+          onPress={onBackPress}
+          style={({ pressed }) => ({
+            width: 40,
+            alignItems: "flex-start",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Ionicons name="chevron-back" size={20} color="#111827" />
+        </Pressable>
+
+        <Text
+          style={{
+            fontSize: 17,
+            fontWeight: "600",
+            letterSpacing: -0.3,
+            color: "#111827",
+          }}
+        >
+          Profile
+        </Text>
+
+        <Pressable
+          style={({ pressed }) => ({
+            width: 40,
+            alignItems: "flex-end",
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Ionicons name="ellipsis-horizontal" size={24} color="#111827" />
+        </Pressable>
+      </View>
+
+      {/* ── Avatar + Name ── */}
+      <View
+        style={{
+          alignItems: "center",
+          paddingTop: 40,
+          paddingBottom: 32,
+        }}
+      >
+        {/* Avatar */}
+        <View
+          style={{
+            position: "relative",
+            marginBottom: 16,
+          }}
+        >
+          <View
+            style={{
+              width: 96,
+              height: 96,
+              borderRadius: 48,
+              overflow: "hidden",
+              backgroundColor: "#F3F4F6",
+              borderWidth: 1,
+              borderColor: "#F9FAFB",
+            }}
+          >
+            {user.image ? (
+              <Image
+                source={{ uri: user.image }}
+                style={{ width: "100%", height: "100%" }}
+                resizeMode="cover"
+              />
+            ) : (
+              <View
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="person" size={40} color="#9CA3AF" />
+              </View>
+            )}
+          </View>
         </View>
-        <Text className="text-2xl font-medium tracking-tight text-slate-900 dark:text-white">
+
+        {/* Name */}
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: "500",
+            letterSpacing: -0.5,
+            color: "#111827",
+          }}
+        >
           {user.name}
         </Text>
+
+        {/* Member since */}
         {user.memberSince && (
-          <Text className="text-slate-400 text-sm mt-1">
+          <Text
+            style={{
+              fontSize: 14,
+              color: "#9CA3AF",
+              marginTop: 4,
+            }}
+          >
             Membro desde {user.memberSince}
           </Text>
         )}
       </View>
 
-      {/* Settings Sections */}
-      <View className="px-6">
-        {/* Open Finance Section */}
-        <View className="py-4">
-          <Text className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2 px-1">
-            Open Finance
-          </Text>
-          <SettingsItem
+      {/* ── Settings ── */}
+      <View style={{ paddingHorizontal: 24 }}>
+        {/* OPEN FINANCE */}
+        <View style={{ paddingTop: 16, paddingBottom: 8 }}>
+          <SectionLabel label="Open Finance" />
+
+          <SettingsRow
             icon="grid-outline"
             label="Gerenciar Categorias"
             onPress={onCategoryManagement}
           />
           <Divider />
-          <SettingsItem
+          <SettingsRow
             icon="wallet-outline"
             label="Permissões Bancárias"
             onPress={onBankPermissions}
           />
         </View>
 
-        {/* Security Section */}
-        <View className="py-4">
-          <Text className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2 px-1">
-            Segurança
-          </Text>
-          <SettingsItem
+        {/* SECURITY */}
+        <View style={{ paddingTop: 16, paddingBottom: 8 }}>
+          <SectionLabel label="Segurança" />
+
+          <SettingsRow
             icon="finger-print"
             label="Biometria"
             rightElement={
               <Switch
                 value={biometricsEnabled}
                 onValueChange={onBiometricsToggle}
-                trackColor={{ false: "#e5e7eb", true: "#000000" }}
-                thumbColor="#ffffff"
+                trackColor={{ false: "#E5E7EB", true: "#111827" }}
+                thumbColor="white"
+                ios_backgroundColor="#E5E7EB"
               />
             }
           />
           <Divider />
-          <SettingsItem
+          <SettingsRow
             icon="notifications-outline"
             label="Notificações"
             onPress={onNotifications}
@@ -124,16 +265,40 @@ export function ProfileSettings({
         </View>
 
         {/* Sign Out */}
-        <View className="mt-12 mb-32">
+        <View style={{ marginTop: 48, marginBottom: 32 }}>
           <Pressable
             onPress={onSignOut}
-            className="w-full py-4 border border-red-50 dark:border-red-900 rounded-xl items-center"
+            style={({ pressed }) => ({
+              width: "100%",
+              paddingVertical: 16,
+              borderWidth: 1,
+              borderColor: "#FFF1F2",
+              borderRadius: 12,
+              alignItems: "center",
+              backgroundColor: pressed ? "#FFF1F2" : "white",
+            })}
           >
-            <Text className="text-base font-medium text-red-500">
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "500",
+                color: "#EF4444",
+              }}
+            >
               Sair da Conta
             </Text>
           </Pressable>
-          <Text className="text-center text-[10px] text-slate-300 dark:text-slate-600 mt-8 tracking-wide">
+
+          <Text
+            style={{
+              textAlign: "center",
+              fontSize: 10,
+              color: "#D1D5DB",
+              marginTop: 32,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+            }}
+          >
             VERSÃO 1.0.0 (1)
           </Text>
         </View>

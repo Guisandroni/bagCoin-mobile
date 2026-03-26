@@ -38,8 +38,12 @@ export default function ProfileTab() {
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top }} className="bg-white dark:bg-slate-900">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+    <View style={{ flex: 1, backgroundColor: "white" }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 120 }}
+        showsVerticalScrollIndicator={false}
+      >
         <ProfileSettings
           user={user}
           biometricsEnabled={biometricsEnabled}
@@ -48,6 +52,7 @@ export default function ProfileTab() {
           onBankPermissions={handleBankPermissions}
           onNotifications={handleNotifications}
           onSignOut={handleSignOut}
+          onBackPress={() => router.back()}
         />
       </ScrollView>
     </View>

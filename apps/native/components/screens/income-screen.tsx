@@ -1,6 +1,5 @@
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { GlassCard, ProgressBar } from "../ui";
 
 interface IncomeSource {
   id: number;
@@ -9,6 +8,7 @@ interface IncomeSource {
   amount: number;
   type: "monthly" | "active" | "yield";
   color: string;
+  typeLabel: string;
 }
 
 interface RecentInflow {
@@ -17,7 +17,7 @@ interface RecentInflow {
   subtitle: string;
   amount: number;
   isNew?: boolean;
-  imageUrl?: string;
+  status?: string;
 }
 
 interface IncomeScreenProps {
@@ -30,6 +30,8 @@ interface IncomeScreenProps {
   onBackPress?: () => void;
 }
 
+const PRIMARY = "#10b981";
+
 export function IncomeScreen({
   totalIncome,
   percentageChange,
@@ -39,205 +41,630 @@ export function IncomeScreen({
   onAddPress,
   onBackPress,
 }: IncomeScreenProps) {
-  const formattedTotal = new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(totalIncome);
+  const goalProgress = Math.min((totalIncome / monthlyGoal) * 100, 100);
 
-  const formattedGoal = new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(monthlyGoal);
+  const fmt = (val: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+      minimumFractionDigits: 2,
+    }).format(val);
 
-  const goalProgress = (totalIncome / monthlyGoal) * 100;
+  // Split formatted value into integer and decimal for big display
+  const fmtBig = (val: number) => {
+    const formatted = new Intl.NumberFormat("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(val);
+    const parts = formatted.split(",");
+    return { integer: parts[0], decimal: parts[1] ?? "00" };
+  };
+
+  const { integer, decimal } = fmtBig(totalIncome);
+  const goalFmt = fmtBig(totalIncome);
+  const goalMaxFmt = fmtBig(monthlyGoal);
 
   return (
-    <View className="flex-1 bg-slate-50 dark:bg-slate-900">
-      {/* Header */}
-      <View className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl px-4 py-3 flex-row items-center justify-between border-b border-slate-100 dark:border-white/5">
-        <Pressable onPress={onBackPress}>
-          <Ionicons name="chevron-back" size={24} color="#94a3b8" />
+    <View style={{ flex: 1, backgroundColor: "#f8fafc" }}>
+      {/* ── Header ── */}
+      <View
+        style={{
+          backgroundColor: "rgba(255,255,255,0.75)",
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottomWidth: 1,
+          borderBottomColor: "rgba(241,245,249,0.8)",
+        }}
+      >
+        <Pressable
+          onPress={onBackPress}
+          style={{
+            width: 36,
+            height: 36,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name="chevron-back" size={24} color="#94A3B8" />
         </Pressable>
-        <Text className="text-sm font-bold tracking-tight uppercase text-slate-500 dark:text-slate-400">
-          Visão de Receitas
+
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "700",
+            color: "#64748B",
+            textTransform: "uppercase",
+            letterSpacing: 1.5,
+          }}
+        >
+          Income Overview
         </Text>
-        <Pressable className="w-9 h-9 rounded-full bg-slate-100 dark:bg-white/10 items-center justify-center">
-          <Ionicons name="eye" size={20} color="#64748b" />
+
+        <Pressable
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: "#F1F5F9",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name="eye" size={20} color="#64748B" />
         </Pressable>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 140 }}>
-        {/* Toggle */}
-        <View className="px-6 pt-6">
-          <View className="flex-row p-1 bg-slate-100 dark:bg-white/5 rounded-xl border border-slate-200/50 dark:border-white/10">
-            <Pressable className="flex-1 py-2 px-4 bg-white dark:bg-white/10 rounded-lg shadow-sm items-center">
-              <Text className="text-xs font-bold uppercase tracking-wider text-emerald-500">
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Toggle Receitas / Despesas ── */}
+        <View style={{ paddingHorizontal: 24, paddingTop: 24 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              padding: 4,
+              backgroundColor: "#F1F5F9",
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "rgba(226,232,240,0.5)",
+            }}
+          >
+            {/* Receitas (active) */}
+            <Pressable
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                backgroundColor: "white",
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.05,
+                shadowRadius: 3,
+                elevation: 1,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  color: PRIMARY,
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                }}
+              >
                 Receitas
               </Text>
             </Pressable>
-            <Pressable className="flex-1 py-2 px-4 items-center">
-              <Text className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+
+            {/* Despesas (inactive) */}
+            <Pressable
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                borderRadius: 8,
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  color: "#94A3B8",
+                  textTransform: "uppercase",
+                  letterSpacing: 1,
+                }}
+              >
                 Despesas
               </Text>
             </Pressable>
           </View>
         </View>
 
-        {/* Total Revenue */}
-        <View className="px-6 pt-8 pb-8 items-center">
-          <View className="px-3 py-1 rounded-full bg-white dark:bg-white/5 border border-slate-200/50 dark:border-white/10 mb-6">
-            <Text className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              Receita Total • {new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
+        {/* ── Total Revenue ── */}
+        <View
+          style={{
+            paddingHorizontal: 24,
+            paddingTop: 32,
+            paddingBottom: 32,
+            alignItems: "center",
+          }}
+        >
+          {/* Caption pill */}
+          <View
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: 9999,
+              backgroundColor: "white",
+              borderWidth: 1,
+              borderColor: "rgba(226,232,240,0.5)",
+              marginBottom: 24,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "700",
+                color: "#64748B",
+                textTransform: "uppercase",
+                letterSpacing: 1.5,
+              }}
+            >
+              Receita Total •{" "}
+              {new Date().toLocaleDateString("pt-BR", {
+                month: "long",
+                year: "numeric",
+              })}
             </Text>
           </View>
-          <Text className="text-6xl font-extrabold tracking-tighter text-emerald-500">
-            {formattedTotal.split(",")[0]}
-            <Text className="text-3xl opacity-50">,{formattedTotal.split(",")[1]}</Text>
+
+          {/* Big number */}
+          <Text
+            style={{
+              color: PRIMARY,
+              fontWeight: "800",
+              letterSpacing: -2,
+              lineHeight: 72,
+            }}
+          >
+            <Text style={{ fontSize: 64 }}>R${integer}</Text>
+            <Text style={{ fontSize: 32, opacity: 0.5 }}>,{decimal}</Text>
           </Text>
-          <View className="flex-row items-center gap-2 mt-4">
-            <View className="flex-row items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-full">
-              <Ionicons name="trending-up" size={14} color="#10b981" />
-              <Text className="text-emerald-500 text-xs font-bold">
+
+          {/* Badge */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 16,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                backgroundColor: "rgba(16,185,129,0.1)",
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderRadius: 9999,
+              }}
+            >
+              <Ionicons name="trending-up" size={14} color={PRIMARY} />
+              <Text style={{ color: PRIMARY, fontSize: 12, fontWeight: "700" }}>
                 +{percentageChange}%
               </Text>
             </View>
-            <Text className="text-slate-400 text-xs font-medium">
+            <Text style={{ color: "#94A3B8", fontSize: 12, fontWeight: "500" }}>
               em relação ao mês anterior
             </Text>
           </View>
         </View>
 
-        {/* Monthly Goal */}
-        <View className="px-6 py-4">
-          <GlassCard className="p-5">
-            <View className="flex-row justify-between items-end mb-4">
+        {/* ── Monthly Goal ── */}
+        <View style={{ paddingHorizontal: 24, paddingBottom: 16 }}>
+          <View
+            style={{
+              backgroundColor: "rgba(255,255,255,0.6)",
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: "rgba(226,232,240,0.5)",
+              padding: 20,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.03,
+              shadowRadius: 8,
+              elevation: 1,
+            }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "flex-end",
+                marginBottom: 16,
+              }}
+            >
               <View>
-                <Text className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: "#94A3B8",
+                    textTransform: "uppercase",
+                    fontWeight: "700",
+                    letterSpacing: 1.5,
+                    marginBottom: 4,
+                  }}
+                >
                   Meta Mensal
                 </Text>
-                <Text className="text-lg font-bold text-slate-800 dark:text-slate-100">
-                  {formattedTotal}{" "}
-                  <Text className="text-slate-400 font-normal">/ {formattedGoal}</Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: "#1E293B",
+                  }}
+                >
+                  {fmt(totalIncome)}{" "}
+                  <Text style={{ fontWeight: "400", color: "#94A3B8" }}>
+                    / {fmt(monthlyGoal)}
+                  </Text>
                 </Text>
               </View>
-              <Text className="text-emerald-500 font-bold text-sm">
+              <Text
+                style={{
+                  color: PRIMARY,
+                  fontWeight: "700",
+                  fontSize: 14,
+                }}
+              >
                 {goalProgress.toFixed(0)}%
               </Text>
             </View>
-            <ProgressBar progress={goalProgress} color="bg-emerald-500" />
-          </GlassCard>
+
+            {/* Progress bar */}
+            <View
+              style={{
+                height: 6,
+                backgroundColor: "#F1F5F9",
+                borderRadius: 9999,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  width: `${goalProgress}%`,
+                  height: "100%",
+                  backgroundColor: PRIMARY,
+                  borderRadius: 9999,
+                }}
+              />
+            </View>
+          </View>
         </View>
 
-        {/* Income Sources */}
-        <View className="mt-4">
-          <View className="flex-row justify-between items-center px-6 mb-4">
-            <Text className="text-sm font-bold tracking-tight uppercase text-slate-400">
+        {/* ── Income Sources ── */}
+        <View style={{ marginTop: 16 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingHorizontal: 24,
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "700",
+                color: "#64748B",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+              }}
+            >
               Fontes de Receita
             </Text>
-            <Text className="text-emerald-500 text-xs font-bold">Detalhes</Text>
+            <Text
+              style={{
+                color: PRIMARY,
+                fontSize: 12,
+                fontWeight: "700",
+              }}
+            >
+              Detalhes
+            </Text>
           </View>
+
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 24, gap: 12 }}
+            contentContainerStyle={{
+              paddingHorizontal: 24,
+              gap: 12,
+              paddingBottom: 8,
+            }}
           >
-            {incomeSources.map((source) => {
-              const formattedAmount = new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(source.amount);
+            {incomeSources.map((src) => (
+              <View
+                key={src.id}
+                style={{
+                  minWidth: 130,
+                  backgroundColor: "rgba(255,255,255,0.6)",
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: "rgba(226,232,240,0.5)",
+                  padding: 16,
+                  gap: 12,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.03,
+                  shadowRadius: 6,
+                  elevation: 1,
+                }}
+              >
+                {/* Icon */}
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 10,
+                    backgroundColor: `${src.color}18`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name={src.icon} size={20} color={src.color} />
+                </View>
 
-              return (
-                <GlassCard key={source.id} className="min-w-[130px] p-4 gap-3">
-                  <View
-                    className="w-10 h-10 rounded-xl items-center justify-center"
-                    style={{ backgroundColor: `${source.color}20` }}
+                {/* Name + Amount */}
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: "700",
+                      color: "#94A3B8",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.8,
+                      marginBottom: 2,
+                    }}
                   >
-                    <Ionicons name={source.icon} size={20} color={source.color} />
-                  </View>
-                  <View>
-                    <Text className="text-[10px] font-bold text-slate-400 uppercase">
-                      {source.name}
-                    </Text>
-                    <Text className="text-base font-bold text-slate-800 dark:text-slate-100">
-                      {formattedAmount}
-                    </Text>
-                  </View>
-                  <View
-                    className="px-2 py-0.5 rounded-md self-start"
-                    style={{ backgroundColor: `${source.color}20` }}
+                    {src.name}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 16,
+                      fontWeight: "700",
+                      color: "#1E293B",
+                    }}
                   >
-                    <Text
-                      className="text-[9px] font-bold uppercase"
-                      style={{ color: source.color }}
-                    >
-                      {source.type === "monthly" ? "Mensal" : source.type === "active" ? "Ativo" : "Rendimento"}
-                    </Text>
-                  </View>
-                </GlassCard>
-              );
-            })}
+                    {new Intl.NumberFormat("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                      minimumFractionDigits: 0,
+                    }).format(src.amount)}
+                  </Text>
+                </View>
+
+                {/* Type badge */}
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 4,
+                    backgroundColor: `${src.color}18`,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 9,
+                      fontWeight: "700",
+                      color: src.color,
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    {src.typeLabel}
+                  </Text>
+                </View>
+              </View>
+            ))}
           </ScrollView>
         </View>
 
-        {/* Recent Inflows */}
-        <View className="px-6 mt-8">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-sm font-bold tracking-tight uppercase text-slate-400">
+        {/* ── Recent Inflows ── */}
+        <View style={{ paddingHorizontal: 24, marginTop: 32 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: "700",
+                color: "#64748B",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+              }}
+            >
               Entradas Recentes
             </Text>
-            <View className="flex-row items-center gap-1 text-slate-300">
-              <Ionicons name="cloud-done" size={14} color="#d1d5db" />
-              <Text className="text-[10px] font-bold uppercase text-slate-300">
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+            >
+              <Ionicons name="cloud-done" size={14} color="#CBD5E1" />
+              <Text
+                style={{
+                  fontSize: 10,
+                  fontWeight: "700",
+                  color: "#CBD5E1",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.8,
+                }}
+              >
                 Ao Vivo
               </Text>
             </View>
           </View>
-          <View className="gap-2">
-            {recentInflows.map((inflow) => {
-              const formattedAmount = new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(inflow.amount);
 
-              return (
-                <GlassCard key={inflow.id} className="flex-row items-center justify-between p-4">
-                  <View className="flex-row items-center gap-3">
-                    <View className="w-10 h-10 rounded-full bg-slate-50 dark:bg-white/5 items-center justify-center overflow-hidden border border-slate-100 dark:border-white/5">
-                      <Ionicons name="cash" size={20} color="#10b981" />
-                    </View>
-                    <View>
-                      <Text className="font-bold text-sm text-slate-800 dark:text-slate-100">
-                        {inflow.title}
-                      </Text>
-                      <Text className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">
-                        {inflow.subtitle}
-                      </Text>
-                    </View>
+          <View style={{ gap: 8 }}>
+            {recentInflows.map((inflow) => (
+              <View
+                key={inflow.id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: 16,
+                  backgroundColor: "rgba(255,255,255,0.6)",
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: "rgba(226,232,240,0.5)",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.03,
+                  shadowRadius: 4,
+                  elevation: 1,
+                }}
+              >
+                {/* Left */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: "#F8FAFC",
+                      borderWidth: 1,
+                      borderColor: "#F1F5F9",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Ionicons name="cash-outline" size={20} color={PRIMARY} />
                   </View>
-                  <View className="items-end">
-                    <Text className="text-emerald-500 font-bold text-sm">
-                      +{formattedAmount}
+                  <View>
+                    <Text
+                      style={{
+                        fontWeight: "700",
+                        fontSize: 14,
+                        color: "#1E293B",
+                      }}
+                    >
+                      {inflow.title}
                     </Text>
-                    {inflow.isNew && (
-                      <Text className="text-[9px] font-black text-emerald-500 uppercase bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        color: "#94A3B8",
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        marginTop: 2,
+                      }}
+                    >
+                      {inflow.subtitle}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Right */}
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text
+                    style={{
+                      color: PRIMARY,
+                      fontWeight: "700",
+                      fontSize: 14,
+                    }}
+                  >
+                    +{fmt(inflow.amount)}
+                  </Text>
+                  {inflow.isNew ? (
+                    <View
+                      style={{
+                        marginTop: 3,
+                        backgroundColor: "rgba(16,185,129,0.1)",
+                        paddingHorizontal: 6,
+                        paddingVertical: 1,
+                        borderRadius: 4,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 9,
+                          fontWeight: "800",
+                          color: PRIMARY,
+                          textTransform: "uppercase",
+                          letterSpacing: 0.5,
+                        }}
+                      >
                         Novo
                       </Text>
-                    )}
-                  </View>
-                </GlassCard>
-              );
-            })}
+                    </View>
+                  ) : inflow.status ? (
+                    <Text
+                      style={{
+                        fontSize: 9,
+                        fontWeight: "700",
+                        color: "#94A3B8",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                        marginTop: 3,
+                      }}
+                    >
+                      {inflow.status}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ))}
           </View>
         </View>
       </ScrollView>
 
-      {/* Add Button */}
+      {/* ── FAB ── */}
       <Pressable
         onPress={onAddPress}
-        className="absolute bottom-28 left-1/2 -translate-x-1/2 w-12 h-12 bg-slate-900 dark:bg-white rounded-2xl items-center justify-center shadow-lg"
+        style={({ pressed }) => ({
+          position: "absolute",
+          bottom: 100,
+          alignSelf: "center",
+          width: 52,
+          height: 52,
+          borderRadius: 16,
+          backgroundColor: "#0F172A",
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 10,
+          elevation: 8,
+          opacity: pressed ? 0.85 : 1,
+          transform: [{ scale: pressed ? 0.94 : 1 }],
+        })}
       >
-        <Ionicons name="add" size={24} color="#ffffff" />
+        <Ionicons name="add" size={26} color="white" />
       </Pressable>
     </View>
   );

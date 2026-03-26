@@ -7,7 +7,6 @@ import { IncomeScreen } from "@/components/screens";
 export default function IncomeTab() {
   const insets = useSafeAreaInsets();
 
-  // Mock data
   const mockIncomeSources = [
     {
       id: 1,
@@ -15,6 +14,7 @@ export default function IncomeTab() {
       icon: "cash" as const,
       amount: 8500,
       type: "monthly" as const,
+      typeLabel: "Mensal",
       color: "#10b981",
     },
     {
@@ -23,6 +23,7 @@ export default function IncomeTab() {
       icon: "sparkles" as const,
       amount: 3200,
       type: "active" as const,
+      typeLabel: "Ativo",
       color: "#3b82f6",
     },
     {
@@ -31,6 +32,7 @@ export default function IncomeTab() {
       icon: "trending-up" as const,
       amount: 750,
       type: "yield" as const,
+      typeLabel: "+5% Yield",
       color: "#f59e0b",
     },
   ];
@@ -48,12 +50,14 @@ export default function IncomeTab() {
       title: "Salário Mensal",
       subtitle: "Ontem • Salário",
       amount: 4250,
+      status: "Confirmado",
     },
     {
       id: 3,
       title: "Crédito Dividendos",
       subtitle: "2 dias atrás • Inv",
       amount: 340.5,
+      status: "Confirmado",
     },
   ];
 
@@ -62,7 +66,7 @@ export default function IncomeTab() {
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top }}>
+    <View style={{ flex: 1 }}>
       <IncomeScreen
         totalIncome={12450}
         percentageChange={14.2}

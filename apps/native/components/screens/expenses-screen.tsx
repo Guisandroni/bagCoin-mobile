@@ -1,7 +1,6 @@
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { ProgressBar, GlassCard } from "../ui";
-import { cn } from "heroui-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface ExpenseCategory {
   id: number;
@@ -34,112 +33,288 @@ export function ExpensesScreen({
   onAddPress,
   onBackPress,
 }: ExpensesScreenProps) {
+  const insets = useSafeAreaInsets();
+
   const formattedTotal = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
   }).format(totalExpenses);
 
   return (
-    <View className="flex-1 bg-slate-50 dark:bg-slate-900">
-      {/* Header */}
-      <View className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl px-6 pt-12 pb-2 border-b border-transparent">
-        <View className="flex-row items-center justify-between mb-4">
-          <Pressable onPress={onBackPress} className="p-2 -ml-2">
-            <Ionicons name="chevron-back" size={24} color="#1f2937" />
+    <View style={{ flex: 1, backgroundColor: "#FAFAFA" }}>
+      {/* ── Header ── */}
+      <View
+        style={{
+          backgroundColor: "rgba(255,255,255,0.85)",
+          paddingTop: insets.top,
+          paddingHorizontal: 24,
+          paddingBottom: 8,
+          borderBottomWidth: 0,
+        }}
+      >
+        {/* Nav row */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <Pressable
+            onPress={onBackPress}
+            style={({ pressed }) => ({
+              padding: 8,
+              marginLeft: -8,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Ionicons name="chevron-back" size={24} color="#111827" />
           </Pressable>
-          <Text className="text-sm font-semibold tracking-tight">
+
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              letterSpacing: -0.2,
+              color: "#111827",
+            }}
+          >
             Análise de Agosto
           </Text>
-          <Pressable className="p-2 -mr-2">
-            <Ionicons name="ellipsis-horizontal" size={24} color="#1f2937" />
+
+          <Pressable
+            style={({ pressed }) => ({
+              padding: 8,
+              marginRight: -8,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <Ionicons name="ellipsis-horizontal" size={24} color="#111827" />
           </Pressable>
         </View>
 
-        {/* Tabs */}
-        <View className="flex-row p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-2">
-          <Pressable className="flex-1 py-2 items-center rounded-lg">
-            <Text className="text-xs font-semibold text-slate-400">
+        {/* Receitas / Despesas toggle */}
+        <View
+          style={{
+            flexDirection: "row",
+            padding: 4,
+            backgroundColor: "#F3F4F6",
+            borderRadius: 12,
+            marginBottom: 8,
+          }}
+        >
+          <Pressable
+            style={{
+              flex: 1,
+              paddingVertical: 8,
+              alignItems: "center",
+              borderRadius: 8,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: "#6B7280",
+              }}
+            >
               Receitas
             </Text>
           </Pressable>
-          <Pressable className="flex-1 py-2 items-center bg-white dark:bg-slate-700 rounded-lg shadow-sm">
-            <Text className="text-xs font-bold text-rose-500">Despesas</Text>
+          <Pressable
+            style={{
+              flex: 1,
+              paddingVertical: 8,
+              alignItems: "center",
+              backgroundColor: "white",
+              borderRadius: 8,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.06,
+              shadowRadius: 3,
+              elevation: 1,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "700",
+                color: "#F43F5E",
+              }}
+            >
+              Despesas
+            </Text>
           </Pressable>
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-6 pb-32">
-        {/* Total */}
-        <View className="mt-8 mb-10">
-          <Text className="text-xs font-medium text-slate-400 uppercase tracking-widest mb-2">
+      {/* ── Scrollable Body ── */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 24,
+          paddingBottom: 140,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Total Spending */}
+        <View style={{ marginTop: 32, marginBottom: 40 }}>
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "600",
+              color: "#6B7280",
+              textTransform: "uppercase",
+              letterSpacing: 2,
+              marginBottom: 8,
+            }}
+          >
             Gastos Atuais
           </Text>
-          <Text className="text-5xl font-extrabold tracking-tighter text-rose-500">
+          <Text
+            style={{
+              fontSize: 48,
+              fontWeight: "800",
+              letterSpacing: -1.5,
+              color: "#E11D48",
+              lineHeight: 56,
+            }}
+          >
             {formattedTotal}
           </Text>
-          <View className="flex-row items-center gap-1.5 mt-4">
-            <Ionicons name="trending-up" size={14} color="#64748b" />
-            <Text className="text-xs font-semibold text-slate-500">
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              marginTop: 16,
+            }}
+          >
+            <Ionicons name="trending-up" size={14} color="#6B7280" />
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "600",
+                color: "#6B7280",
+              }}
+            >
               +{percentageChange}% vs mês anterior
             </Text>
           </View>
         </View>
 
-        {/* Period Toggle */}
-        <View className="flex-row p-1 bg-slate-100 dark:bg-slate-800 rounded-full mb-10 max-w-[200px]">
+        {/* Monthly / Custom toggle pill */}
+        <View
+          style={{
+            flexDirection: "row",
+            padding: 4,
+            backgroundColor: "#F3F4F6",
+            borderRadius: 9999,
+            alignSelf: "flex-start",
+            marginBottom: 40,
+          }}
+        >
           <Pressable
             onPress={() => onPeriodChange?.("monthly")}
-            className={cn(
-              "flex-1 py-1.5 items-center rounded-full",
-              selectedPeriod === "monthly" && "bg-white dark:bg-slate-700 shadow-sm"
-            )}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 16,
+              borderRadius: 9999,
+              backgroundColor:
+                selectedPeriod === "monthly" ? "white" : "transparent",
+              shadowColor:
+                selectedPeriod === "monthly" ? "#000" : "transparent",
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: selectedPeriod === "monthly" ? 0.06 : 0,
+              shadowRadius: 3,
+              elevation: selectedPeriod === "monthly" ? 1 : 0,
+            }}
           >
             <Text
-              className={cn(
-                "text-xs font-bold",
-                selectedPeriod === "monthly" ? "text-slate-900 dark:text-white" : "text-slate-400"
-              )}
+              style={{
+                fontSize: 12,
+                fontWeight: selectedPeriod === "monthly" ? "700" : "600",
+                color: selectedPeriod === "monthly" ? "#111827" : "#6B7280",
+              }}
             >
               Mensal
             </Text>
           </Pressable>
           <Pressable
             onPress={() => onPeriodChange?.("custom")}
-            className={cn(
-              "flex-1 py-1.5 items-center rounded-full",
-              selectedPeriod === "custom" && "bg-white dark:bg-slate-700 shadow-sm"
-            )}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 16,
+              borderRadius: 9999,
+              backgroundColor:
+                selectedPeriod === "custom" ? "white" : "transparent",
+            }}
           >
             <Text
-              className={cn(
-                "text-xs font-semibold",
-                selectedPeriod === "custom" ? "text-slate-900 dark:text-white" : "text-slate-400"
-              )}
+              style={{
+                fontSize: 12,
+                fontWeight: selectedPeriod === "custom" ? "700" : "600",
+                color: selectedPeriod === "custom" ? "#111827" : "#6B7280",
+              }}
             >
               Personalizado
             </Text>
           </Pressable>
         </View>
 
-        {/* Categories Header */}
-        <View className="flex-row items-center justify-between mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
-          <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">
+        {/* Categories header */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 24,
+            paddingBottom: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: "#E5E7EB",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 11,
+              fontWeight: "700",
+              color: "#6B7280",
+              textTransform: "uppercase",
+              letterSpacing: 2,
+            }}
+          >
             Categorias
           </Text>
-          <View className="flex-row items-center gap-1">
-            <Text className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-0.5 rounded">
+          <View
+            style={{
+              backgroundColor: "#ECFDF5",
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 4,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "700",
+                color: "#059669",
+              }}
+            >
               Sincronizado
             </Text>
           </View>
         </View>
 
-        {/* Categories List */}
-        <View className="gap-8">
+        {/* Category list */}
+        <View style={{ gap: 32 }}>
           {categories.map((category) => {
             const progress = category.budget
               ? (category.amount / category.budget) * 100
               : 0;
             const isOverBudget = progress > 100;
+            const clampedProgress = Math.min(progress, 100);
+
             const formattedAmount = new Intl.NumberFormat("pt-BR", {
               style: "currency",
               currency: "BRL",
@@ -149,39 +324,93 @@ export function ExpensesScreen({
               <Pressable
                 key={category.id}
                 onPress={() => onCategoryPress?.(category.id)}
-                className="gap-3"
+                style={({ pressed }) => ({
+                  opacity: category.amount === 0 ? 0.5 : pressed ? 0.85 : 1,
+                  gap: 12,
+                })}
               >
-                <View className="flex-row justify-between items-end">
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-10 h-10 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 items-center justify-center">
-                      <Ionicons name={category.icon} size={20} color="#374151" />
+                {/* Row: icon + info + amount */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-end",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  {/* Left: icon + text */}
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 16,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        borderWidth: 1,
+                        borderColor: "#E5E7EB",
+                        backgroundColor: "white",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name={category.icon}
+                        size={20}
+                        color="#111827"
+                      />
                     </View>
                     <View>
-                      <Text className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "700",
+                          letterSpacing: -0.2,
+                          color: category.amount === 0 ? "#6B7280" : "#111827",
+                        }}
+                      >
                         {category.name}
                       </Text>
-                      <Text className="text-[11px] text-slate-400">
+                      <Text
+                        style={{
+                          fontSize: 11,
+                          color: "#6B7280",
+                          marginTop: 1,
+                        }}
+                      >
                         {category.isFixed
                           ? "Despesa Fixa"
                           : `${category.transactionCount ?? 0} Transações`}
                       </Text>
                     </View>
                   </View>
-                  <View className="items-end">
+
+                  {/* Right: amount + label */}
+                  <View style={{ alignItems: "flex-end" }}>
                     <Text
-                      className={cn(
-                        "text-sm font-bold",
-                        isOverBudget ? "text-rose-500" : "text-slate-900 dark:text-white"
-                      )}
+                      style={{
+                        fontSize: 14,
+                        fontWeight: "700",
+                        color: isOverBudget ? "#E11D48" : "#111827",
+                      }}
                     >
                       {formattedAmount}
                     </Text>
                     {category.budget && (
                       <Text
-                        className={cn(
-                          "text-[10px] font-bold uppercase tracking-tighter",
-                          isOverBudget ? "text-rose-500/60" : "text-slate-400"
-                        )}
+                        style={{
+                          fontSize: 10,
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                          letterSpacing: 0.5,
+                          color: isOverBudget
+                            ? "rgba(225, 29, 72, 0.6)"
+                            : "#6B7280",
+                          marginTop: 1,
+                        }}
                       >
                         {isOverBudget
                           ? "Acima do Limite"
@@ -190,22 +419,55 @@ export function ExpensesScreen({
                     )}
                   </View>
                 </View>
-                <ProgressBar
-                  progress={Math.min(progress, 100)}
-                  color={isOverBudget ? "bg-rose-500" : "bg-slate-900 dark:bg-white"}
-                />
+
+                {/* Progress bar */}
+                <View
+                  style={{
+                    width: "100%",
+                    height: 4,
+                    backgroundColor: "#F3F4F6",
+                    borderRadius: 9999,
+                    overflow: "hidden",
+                  }}
+                >
+                  <View
+                    style={{
+                      width: `${clampedProgress}%`,
+                      height: "100%",
+                      borderRadius: 9999,
+                      backgroundColor: isOverBudget ? "#E11D48" : "#111827",
+                    }}
+                  />
+                </View>
               </Pressable>
             );
           })}
         </View>
       </ScrollView>
 
-      {/* FAB */}
+      {/* ── FAB ── */}
       <Pressable
         onPress={onAddPress}
-        className="absolute bottom-28 right-6 w-14 h-14 bg-slate-900 dark:bg-white rounded-full items-center justify-center shadow-2xl"
+        style={({ pressed }) => ({
+          position: "absolute",
+          bottom: 100,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: "#111827",
+          alignItems: "center",
+          justifyContent: "center",
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.3,
+          shadowRadius: 12,
+          elevation: 8,
+          opacity: pressed ? 0.85 : 1,
+          transform: [{ scale: pressed ? 0.94 : 1 }],
+        })}
       >
-        <Ionicons name="add" size={24} color="#ffffff" />
+        <Ionicons name="add" size={28} color="white" />
       </Pressable>
     </View>
   );

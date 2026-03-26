@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
 
 import { ExpensesScreen } from "@/components/screens";
 
 export default function ExpensesTab() {
-  const insets = useSafeAreaInsets();
-  const [selectedPeriod, setSelectedPeriod] = useState<"monthly" | "custom">("monthly");
+  const [selectedPeriod, setSelectedPeriod] = useState<"monthly" | "custom">(
+    "monthly",
+  );
 
   // Mock data
   const mockCategories = [
@@ -62,7 +62,7 @@ export default function ExpensesTab() {
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top }}>
+    <View style={{ flex: 1 }}>
       <ExpensesScreen
         totalExpenses={4892.45}
         percentageChange={12.4}

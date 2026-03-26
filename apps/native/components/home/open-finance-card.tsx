@@ -2,41 +2,94 @@ import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 interface OpenFinanceCardProps {
-  integrationsCount: number;
+  integrationsCount?: number;
   onPress?: () => void;
 }
 
 export function OpenFinanceCard({
-  integrationsCount,
+  integrationsCount = 3,
   onPress,
 }: OpenFinanceCardProps) {
   return (
-    // glass-card: bg-white/70 backdrop-blur-xl border border-white/60
-    <View className="bg-white/70 border border-white/80 rounded-xl p-3 flex-row items-center justify-between">
-      <View className="flex-row items-center gap-3">
-        {/* Icon: size-9 bg-slate-900 rounded-lg */}
-        <View className="w-9 h-9 items-center justify-center rounded-lg bg-slate-900 shadow-sm">
-          <Ionicons name="git-network-outline" size={18} color="#ffffff" />
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: 12,
+        borderRadius: 12,
+        backgroundColor: "rgba(255, 255, 255, 0.7)",
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.8)",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 1,
+        opacity: pressed ? 0.9 : 1,
+      })}
+    >
+      {/* Left: icon + text */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        {/* Dark icon container */}
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            backgroundColor: "#0F172A",
+            alignItems: "center",
+            justifyContent: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 2,
+          }}
+        >
+          <Ionicons name="git-network" size={18} color="white" />
         </View>
+
         <View>
-          {/* Title: text-xs font-bold */}
-          <Text className="text-xs font-bold text-slate-900 leading-none mb-0.5">
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "700",
+              color: "#0F172A",
+              lineHeight: 16,
+              marginBottom: 1,
+            }}
+          >
             Open Finance
           </Text>
-          {/* Subtitle: text-[10px] font-medium */}
-          <Text className="text-[10px] text-slate-500 font-medium">
+          <Text
+            style={{
+              fontSize: 10,
+              fontWeight: "500",
+              color: "#64748B",
+            }}
+          >
             {integrationsCount} integrações ativas
           </Text>
         </View>
       </View>
 
-      {/* Arrow button: size-7 rounded-lg */}
-      <Pressable
-        onPress={onPress}
-        className="w-7 h-7 items-center justify-center rounded-lg border border-slate-100 bg-white"
+      {/* Right: chevron button */}
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 7,
+          borderWidth: 1,
+          borderColor: "#F1F5F9",
+          backgroundColor: "white",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
-      </Pressable>
-    </View>
+        <Ionicons name="chevron-forward" size={14} color="#94A3B8" />
+      </View>
+    </Pressable>
   );
 }

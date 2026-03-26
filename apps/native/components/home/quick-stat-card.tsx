@@ -19,41 +19,102 @@ export function QuickStatCard({
   const clampedProgress = Math.min(Math.max(progress, 0), 100);
 
   return (
-    // glass-card: bg-white/70 backdrop-blur-xl border border-white/60
-    // proportional-square: aspect-ratio ~1.1
     <View
-      className="flex-1 bg-white/70 border border-white/60 rounded-xl p-4 justify-between"
-      style={{ aspectRatio: 1.1 }}
+      style={{
+        flex: 1,
+        backgroundColor: "rgba(255, 255, 255, 0.7)",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.6)",
+        padding: 16,
+        aspectRatio: 1.1,
+        justifyContent: "space-between",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 8,
+        elevation: 1,
+      }}
     >
-      {/* Header row */}
-      <View className="flex-row justify-between items-start">
-        {/* Icon container: size-8 rounded-lg bg-white/50 */}
-        <View className="w-8 h-8 rounded-lg bg-white/50 items-center justify-center border border-white/60">
-          <Ionicons name={icon} size={18} color="#64748b" />
+      {/* Top row: icon + label */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        {/* Icon box */}
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            backgroundColor: "rgba(255,255,255,0.5)",
+            borderWidth: 1,
+            borderColor: "rgba(255,255,255,0.6)",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Ionicons name={icon} size={18} color="#64748B" />
         </View>
-        {/* Label: text-[8px] font-bold uppercase tracking-wider */}
-        <Text className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+
+        {/* Label badge */}
+        <Text
+          style={{
+            fontSize: 8,
+            fontWeight: "700",
+            color: "#94A3B8",
+            textTransform: "uppercase",
+            letterSpacing: 1,
+          }}
+        >
           {label}
         </Text>
       </View>
 
-      {/* Value section */}
+      {/* Middle: title + value */}
       <View>
-        {/* Title: text-[10px] font-semibold */}
-        <Text className="text-[10px] text-slate-500 font-semibold mb-0.5">
+        <Text
+          style={{
+            fontSize: 10,
+            fontWeight: "600",
+            color: "#64748B",
+            marginBottom: 2,
+          }}
+        >
           {title}
         </Text>
-        {/* Value: text-lg font-extrabold */}
-        <Text className="text-lg font-extrabold text-slate-900">
+        <Text
+          style={{
+            fontSize: 20,
+            fontWeight: "800",
+            color: "#0F172A",
+            letterSpacing: -0.3,
+          }}
+        >
           {value}
         </Text>
       </View>
 
-      {/* Progress bar: h-1 rounded-full */}
-      <View className="w-full bg-slate-100/50 h-1 rounded-full overflow-hidden">
+      {/* Bottom: progress bar */}
+      <View
+        style={{
+          width: "100%",
+          height: 4,
+          backgroundColor: "rgba(241,245,249,0.5)",
+          borderRadius: 9999,
+          overflow: "hidden",
+        }}
+      >
         <View
-          className="bg-black h-full rounded-full"
-          style={{ width: `${clampedProgress}%` }}
+          style={{
+            width: `${clampedProgress}%`,
+            height: "100%",
+            backgroundColor: "#0F172A",
+            borderRadius: 9999,
+          }}
         />
       </View>
     </View>

@@ -1,11 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { TransactionForm } from "@/components/forms";
 
 export default function NewTransactionScreen() {
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ type?: "expense" | "income" }>();
 
   const handleSubmit = async (data: {
@@ -25,7 +23,7 @@ export default function NewTransactionScreen() {
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top }} className="bg-white dark:bg-slate-900">
+    <View style={{ flex: 1, backgroundColor: "white" }}>
       <TransactionForm
         initialType={params.type ?? "expense"}
         onSubmit={handleSubmit}

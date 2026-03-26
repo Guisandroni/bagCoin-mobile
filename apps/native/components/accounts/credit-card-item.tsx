@@ -1,105 +1,187 @@
 import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { GlassCard } from "../ui";
 
 interface CreditCardItemProps {
   id: number;
   name: string;
   lastFourDigits?: string;
+  cardType?: string;
   currentBalance: number;
   creditLimit?: number;
   dueDay?: number;
   color: string;
-  onPayPress?: () => void;
   onPress?: () => void;
+  onPayPress?: () => void;
 }
 
 export function CreditCardItem({
   name,
   lastFourDigits,
+  cardType,
   currentBalance,
-  creditLimit,
   dueDay,
   color,
-  onPayPress,
   onPress,
+  onPayPress,
 }: CreditCardItemProps) {
   const formattedBalance = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
+    minimumFractionDigits: 2,
   }).format(currentBalance);
 
-  const daysUntilDue = dueDay ? calculateDaysUntilDue(dueDay) : null;
-
   return (
-    <Pressable onPress={onPress}>
-      <GlassCard
-        className="p-6 gap-4"
-        style={{ borderLeftWidth: 4, borderLeftColor: color }}
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: "rgba(255,255,255,0.6)",
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.4)",
+        borderLeftWidth: 4,
+        borderLeftColor: color,
+        padding: 24,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 2,
+        opacity: pressed ? 0.92 : 1,
+      })}
+    >
+      {/* ── Top row: icon + info + badge ── */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 24,
+        }}
       >
-        <View className="flex-row justify-between items-start">
-          <View className="flex-row items-center gap-4">
-            <View
-              className="w-12 h-12 rounded-xl items-center justify-center"
-              style={{ backgroundColor: color }}
-            >
-              <Ionicons name="card" size={24} color="#ffffff" />
-            </View>
-            <View>
-              <Text className="font-bold text-base text-slate-900 dark:text-white">
-                {name}
-              </Text>
-              <Text className="text-slate-400 text-xs font-medium uppercase tracking-wide">
-                {lastFourDigits && `•••• ${lastFourDigits}`}
-              </Text>
-            </View>
+        {/* Icon + card info */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              backgroundColor: color,
+              alignItems: "center",
+              justifyContent: "center",
+              shadowColor: color,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 3,
+            }}
+          >
+            <Ionicons name="card" size={24} color="white" />
           </View>
-          <View className="bg-slate-100 dark:bg-white/10 px-2 py-1 rounded-md">
-            <Text className="text-[10px] font-bold text-slate-600 dark:text-slate-300">
-              OPEN FINANCE
+
+          <View>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "700",
+                color: "#111827",
+                marginBottom: 2,
+              }}
+            >
+              {name}
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                fontWeight: "500",
+                color: "#94A3B8",
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+              }}
+            >
+              {cardType ? `${cardType} ` : ""}
+              {lastFourDigits ? `•••• ${lastFourDigits}` : ""}
             </Text>
           </View>
         </View>
-        <View className="flex-row justify-between items-end">
-          <View>
-            <Text className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              {formattedBalance}
-            </Text>
-            {daysUntilDue !== null && (
-              <Text className="text-[11px] font-medium text-slate-400 mt-1">
-                Vence em {daysUntilDue} dias
-              </Text>
-            )}
-          </View>
-          {onPayPress && (
-            <Pressable
-              onPress={onPayPress}
-              className="px-4 py-2 bg-slate-900 dark:bg-white rounded-lg"
+
+        {/* Open Finance badge */}
+        <View
+          style={{
+            backgroundColor: "#F1F5F9",
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 6,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 9,
+              fontWeight: "700",
+              color: "#475569",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+              lineHeight: 13,
+            }}
+          >
+            OPEN{"\n"}FINANCE
+          </Text>
+        </View>
+      </View>
+
+      {/* ── Bottom row: balance + pay button ── */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+        }}
+      >
+        <View>
+          <Text
+            style={{
+              fontSize: 24,
+              fontWeight: "800",
+              letterSpacing: -0.5,
+              color: "#111827",
+            }}
+          >
+            {formattedBalance}
+          </Text>
+          {dueDay && (
+            <Text
+              style={{
+                fontSize: 11,
+                fontWeight: "500",
+                color: "#94A3B8",
+                marginTop: 4,
+              }}
             >
-              <Text className="text-xs font-bold text-white dark:text-slate-900">
-                Pagar
-              </Text>
-            </Pressable>
+              Vence em {dueDay} dias
+            </Text>
           )}
         </View>
-      </GlassCard>
+
+        <Pressable
+          onPress={onPayPress}
+          style={({ pressed }) => ({
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: color === "#1A1A1A" ? "#111827" : color,
+            borderRadius: 8,
+            opacity: pressed ? 0.85 : 1,
+          })}
+        >
+          <Text
+            style={{
+              fontSize: 12,
+              fontWeight: "700",
+              color: "white",
+            }}
+          >
+            Pagar Agora
+          </Text>
+        </Pressable>
+      </View>
     </Pressable>
   );
-}
-
-function calculateDaysUntilDue(dueDay: number): number {
-  const today = new Date();
-  const currentDay = today.getDate();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  let dueDate: Date;
-  if (currentDay <= dueDay) {
-    dueDate = new Date(currentYear, currentMonth, dueDay);
-  } else {
-    dueDate = new Date(currentYear, currentMonth + 1, dueDay);
-  }
-
-  const diffTime = dueDate.getTime() - today.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }

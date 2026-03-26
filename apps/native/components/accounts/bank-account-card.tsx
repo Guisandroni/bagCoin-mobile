@@ -1,6 +1,5 @@
-import { View, Text, Pressable, Image } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { GlassCard } from "../ui";
 
 interface BankAccountCardProps {
   id: number;
@@ -11,8 +10,9 @@ interface BankAccountCardProps {
   color: string;
   icon: keyof typeof Ionicons.glyphMap;
   lastSync?: string;
-  onRefresh?: () => void;
+  isSynced?: boolean;
   onPress?: () => void;
+  onRefresh?: () => void;
 }
 
 export function BankAccountCard({
@@ -23,59 +23,158 @@ export function BankAccountCard({
   color,
   icon,
   lastSync,
-  onRefresh,
+  isSynced = true,
   onPress,
+  onRefresh,
 }: BankAccountCardProps) {
   const formattedBalance = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
+    minimumFractionDigits: 2,
   }).format(balance);
 
   return (
-    <Pressable onPress={onPress}>
-      <GlassCard className="p-6 gap-4">
-        <View className="flex-row justify-between items-start">
-          <View className="flex-row items-center gap-4">
-            <View
-              className="w-12 h-12 rounded-xl items-center justify-center"
-              style={{ backgroundColor: color }}
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: "rgba(255, 255, 255, 0.6)",
+        borderRadius: 16,
+        padding: 24,
+        borderWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.4)",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 24,
+        elevation: 2,
+        opacity: pressed ? 0.9 : 1,
+      })}
+    >
+      {/* Top row: icon + name + bank */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 24,
+        }}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+          {/* Colored icon */}
+          <View
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              backgroundColor: color,
+              alignItems: "center",
+              justifyContent: "center",
+              shadowColor: color,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 3,
+            }}
+          >
+            <Ionicons name={icon} size={24} color="white" />
+          </View>
+
+          <View>
+            <Text
+              style={{
+                fontWeight: "700",
+                fontSize: 16,
+                color: "#0F172A",
+                letterSpacing: -0.2,
+              }}
             >
-              <Ionicons name={icon} size={24} color="#ffffff" />
-            </View>
-            <View>
-              <Text className="font-bold text-base text-slate-900 dark:text-white">
-                {name}
-              </Text>
-              <Text className="text-slate-400 text-xs font-medium uppercase tracking-wide">
-                {bankName} {lastFourDigits && `•••• ${lastFourDigits}`}
-              </Text>
-            </View>
+              {name}
+            </Text>
+            <Text
+              style={{
+                color: "#94A3B8",
+                fontSize: 12,
+                fontWeight: "500",
+                letterSpacing: 0.5,
+                textTransform: "uppercase",
+                marginTop: 2,
+              }}
+            >
+              {bankName}
+              {lastFourDigits ? ` •••• ${lastFourDigits}` : ""}
+            </Text>
           </View>
         </View>
-        <View className="flex-row justify-between items-end">
-          <View>
-            <Text className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              {formattedBalance}
-            </Text>
-            {lastSync && (
-              <View className="flex-row items-center gap-1.5 mt-1">
-                <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <Text className="text-[11px] font-medium text-slate-400">
-                  Atualizado {lastSync}
-                </Text>
-              </View>
-            )}
-          </View>
-          {onRefresh && (
-            <Pressable
-              onPress={onRefresh}
-              className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/10 items-center justify-center"
+      </View>
+
+      {/* Bottom row: balance + sync */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+        }}
+      >
+        <View>
+          {/* Balance */}
+          <Text
+            style={{
+              fontSize: 24,
+              fontWeight: "800",
+              letterSpacing: -0.5,
+              color: "#0F172A",
+            }}
+          >
+            {formattedBalance}
+          </Text>
+
+          {/* Sync status */}
+          {lastSync && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                marginTop: 4,
+              }}
             >
-              <Ionicons name="refresh" size={18} color="#64748b" />
-            </Pressable>
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: isSynced ? "#10B981" : "#94A3B8",
+                }}
+              />
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "500",
+                  color: "#94A3B8",
+                }}
+              >
+                Atualizado {lastSync}
+              </Text>
+            </View>
           )}
         </View>
-      </GlassCard>
+
+        {/* Refresh button */}
+        <Pressable
+          onPress={onRefresh}
+          style={({ pressed }) => ({
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: "#F1F5F9",
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name="refresh" size={18} color="#64748B" />
+        </Pressable>
+      </View>
     </Pressable>
   );
 }

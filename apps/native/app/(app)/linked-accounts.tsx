@@ -7,7 +7,6 @@ import { LinkedAccountsScreen } from "@/components/screens";
 export default function LinkedAccountsPage() {
   const insets = useSafeAreaInsets();
 
-  // Mock data
   const mockBankAccounts = [
     {
       id: 1,
@@ -18,6 +17,7 @@ export default function LinkedAccountsPage() {
       color: "#8B5CF6",
       icon: "wallet" as const,
       lastSync: "2m atrás",
+      isSynced: true,
     },
     {
       id: 2,
@@ -28,17 +28,19 @@ export default function LinkedAccountsPage() {
       color: "#EF4444",
       icon: "cash" as const,
       lastSync: "1h atrás",
+      isSynced: false,
     },
   ];
 
   const mockCreditCards = [
     {
       id: 1,
-      name: "Cartão Principal",
+      name: "Apple Card",
+      cardType: "Gold Titanium",
       lastFourDigits: "9012",
       currentBalance: 1240.45,
       creditLimit: 5000,
-      dueDay: 15,
+      dueDay: 12,
       color: "#1A1A1A",
     },
   ];
@@ -48,11 +50,11 @@ export default function LinkedAccountsPage() {
   };
 
   const handleAccountPress = (id: number) => {
-    router.push(`/(app)/bank/${id}`);
+    // TODO: Navigate to account details
   };
 
   const handleCardPress = (id: number) => {
-    router.push(`/(app)/card/${id}`);
+    // TODO: Navigate to card details
   };
 
   const handleRefresh = (id: number) => {
@@ -68,7 +70,7 @@ export default function LinkedAccountsPage() {
   };
 
   return (
-    <View style={{ flex: 1, paddingTop: insets.top }}>
+    <View style={{ flex: 1 }}>
       <LinkedAccountsScreen
         totalBalance={42550}
         percentageChange={2.4}

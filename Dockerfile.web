@@ -18,11 +18,14 @@ WORKDIR /app/apps/native
 RUN bunx expo export --platform web
 
 FROM oven/bun:1.3-slim
-WORKDIR /app
+WORKDIR /srv
+
 COPY --from=build /app/apps/native/dist ./dist
 COPY --from=build /app/apps/native/serve.ts ./serve.ts
+
+RUN printf '{"name":"bagcoin-web","scripts":{"start":"bun run serve.ts"}}\n' > package.json
 
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["bun", "run", "serve.ts"]
+CMD ["bun", "run", "start"]

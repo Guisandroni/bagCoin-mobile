@@ -1,0 +1,46 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@ai-sdk/react": "catalog:",
+    "@bagcoin/api": "workspace:*",
+    "@bagcoin/auth": "workspace:*",
+    "@bagcoin/env": "workspace:*",
+    "@bagcoin/ui": "workspace:*",
+    "@libsql/client": "catalog:",
+    "@tanstack/react-form": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@trpc/client": "catalog:",
+    "@trpc/server": "catalog:",
+    "@trpc/tanstack-react-query": "catalog:",
+    "ai": "catalog:",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "libsql": "catalog:",
+    "lucide-react": "catalog:",
+    "next": "^16.2.0",
+    "next-themes": "catalog:",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "sonner": "catalog:",
+    "streamdown": "^1.6.10",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@bagcoin/config": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@tanstack/react-query-devtools": "^5.91.1",
+    "@types/node": "^20",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "catalog:",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5"
+  }
+}

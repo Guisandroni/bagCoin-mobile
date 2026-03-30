@@ -1,0 +1,25 @@
+{
+  "name": "@bagcoin/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@bagcoin/db": "workspace:*",
+    "@bagcoin/env": "workspace:*",
+    "@better-auth/expo": "catalog:",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@bagcoin/config": "workspace:*",
+    "typescript": "^5"
+  }
+}

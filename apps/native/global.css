@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "uniwind";
+@import "heroui-native/styles";
+
+@source "./node_modules/heroui-native/lib";
+
+@theme {
+  --color-bagcoin-surface: #0b1420;
+  --color-bagcoin-surface-low: #131c28;
+  --color-bagcoin-surface-mid: #17202d;
+  --color-bagcoin-surface-high: #222a37;
+  --color-bagcoin-surface-highest: #2d3542;
+  --color-bagcoin-surface-bright: #313a47;
+  --color-bagcoin-primary: #adc6ff;
+  --color-bagcoin-primary-container: #4d8eff;
+  --color-bagcoin-on-primary: #002e6a;
+  --color-bagcoin-text: #dae3f4;
+  --color-bagcoin-text-muted: #8c909f;
+  --color-bagcoin-outline: #424754;
+  --color-bagcoin-gold: #eec05c;
+  --color-bagcoin-gold-dim: #b38b2c;
+  --color-bagcoin-inflow: #10b981;
+  --color-bagcoin-outflow: #ef4444;
+}

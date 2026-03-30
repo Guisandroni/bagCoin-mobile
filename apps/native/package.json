@@ -9,7 +9,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "export:web": "expo export --platform web"
   },
   "dependencies": {
     "@ai-sdk/react": "catalog:",

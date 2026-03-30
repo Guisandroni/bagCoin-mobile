@@ -72,6 +72,8 @@ new Elysia()
     return result.toUIMessageStreamResponse();
   })
   .get("/", () => "OK")
-  .listen(3000, () => {
-    console.log("Server is running on http://localhost:3000");
+  .listen(Number(process.env.PORT) || 3000, () => {
+    console.log(
+      `Server is running on port ${Number(process.env.PORT) || 3000}`
+    );
   });

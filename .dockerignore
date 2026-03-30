@@ -1,0 +1,13 @@
+node_modules
+.git
+.turbo
+.expo
+.cache
+*.db
+*.db-journal
+stitch_*
+ios
+android
+web-build
+.env
+.env*.local

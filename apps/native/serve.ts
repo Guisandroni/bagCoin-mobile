@@ -1,4 +1,4 @@
-const port = Number(process.env.PORT) || 8080;
+const port = Number(process.env.PORT) || 3000;
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html",

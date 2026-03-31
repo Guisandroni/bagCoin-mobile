@@ -4,14 +4,8 @@ import { useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
 
 import { Container } from "@/components/container";
-
-type ThemeOption = "light" | "dark" | "auto";
-
-const THEME_OPTIONS: { key: ThemeOption; label: string }[] = [
-  { key: "light", label: "Claro" },
-  { key: "dark", label: "Escuro" },
-  { key: "auto", label: "Auto" },
-];
+import { useProfile } from "@/hooks/use-api";
+import { authClient } from "@/lib/auth-client";
 
 const Divider = () => (
   <View
@@ -62,8 +56,19 @@ const RowIcon = ({
 );
 
 const ProfileScreen = () => {
-  const [theme, setTheme] = useState<ThemeOption>("dark");
   const [notifications, setNotifications] = useState(true);
+  const { data: profile } = useProfile();
+  const { data: session } = authClient.useSession();
+
+  const userName = profile?.user?.name ?? session?.user?.name ?? "Usuário";
+  const userEmail = profile?.user?.email ?? session?.user?.email ?? "";
+  const accountCount = profile?.stats?.accounts ?? 0;
+  const cardCount = profile?.stats?.cards ?? 0;
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+    router.replace("/sign-in");
+  };
 
   return (
     <Container>
@@ -103,7 +108,7 @@ const ProfileScreen = () => {
                   fontWeight: "700",
                 }}
               >
-                G
+                {userName.charAt(0).toUpperCase()}
               </Text>
             </View>
             <View
@@ -133,10 +138,10 @@ const ProfileScreen = () => {
               marginBottom: 2,
             }}
           >
-            Guilherme Silva
+            {userName}
           </Text>
           <Text style={{ fontSize: 14, color: "#94A3B8", marginBottom: 12 }}>
-            guilherme@email.com
+            {userEmail}
           </Text>
           <Pressable
             style={{
@@ -183,7 +188,7 @@ const ProfileScreen = () => {
                   Gerenciar Contas e Cartões
                 </Text>
                 <Text style={{ color: "#94A3B8", fontSize: 12, marginTop: 2 }}>
-                  3 contas · 2 cartões
+                  {accountCount} contas · {cardCount} cartões
                 </Text>
               </View>
               <Ionicons color="#475569" name="chevron-forward" size={18} />
@@ -283,32 +288,23 @@ const ProfileScreen = () => {
               >
                 Tema
               </Text>
-              <View style={{ flexDirection: "row", gap: 4 }}>
-                {THEME_OPTIONS.map((opt) => (
-                  <Pressable
-                    key={opt.key}
-                    onPress={() => setTheme(opt.key)}
-                    style={{
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 8,
-                      backgroundColor:
-                        theme === opt.key
-                          ? "rgba(173,198,255,0.1)"
-                          : "transparent",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 12,
-                        color: theme === opt.key ? "#ADC6FF" : "#475569",
-                        fontWeight: theme === opt.key ? "600" : "400",
-                      }}
-                    >
-                      {opt.label}
-                    </Text>
-                  </Pressable>
-                ))}
+              <View
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  backgroundColor: "rgba(173,198,255,0.1)",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "#ADC6FF",
+                    fontWeight: "600",
+                  }}
+                >
+                  Escuro
+                </Text>
               </View>
             </View>
 
@@ -563,6 +559,7 @@ const ProfileScreen = () => {
         </View>
 
         <Pressable
+          onPress={handleSignOut}
           style={{
             flexDirection: "row",
             alignItems: "center",

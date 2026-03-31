@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,11 +13,56 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { authClient } from "@/lib/auth-client";
+
 export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleGoogle = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const { error: socialError } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/(tabs)",
+        newUserCallbackURL: "/(tabs)",
+        errorCallbackURL: "/sign-in",
+      });
+      if (socialError) {
+        setError(socialError.message ?? "Erro ao entrar com Google");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao entrar com Google");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignIn = async () => {
+    if (!(email && password)) {
+      setError("Preencha todos os campos");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const result = await authClient.signIn.email({ email, password });
+      if (result.error) {
+        setError(result.error.message ?? "Erro ao entrar");
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch {
+      setError("Erro de conexão. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0B1420" }}>
@@ -204,8 +250,30 @@ export default function SignInScreen() {
               </Pressable>
             </View>
 
+            {error ? (
+              <View
+                style={{
+                  backgroundColor: "rgba(239,68,68,0.1)",
+                  borderRadius: 12,
+                  padding: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#EF4444",
+                    fontSize: 13,
+                    textAlign: "center",
+                  }}
+                >
+                  {error}
+                </Text>
+              </View>
+            ) : null}
+
             {/* CTA Button */}
             <Pressable
+              disabled={loading}
+              onPress={handleSignIn}
               style={({ pressed }) => ({
                 backgroundColor: "#ADC6FF",
                 borderRadius: 12,
@@ -214,7 +282,7 @@ export default function SignInScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-                opacity: pressed ? 0.85 : 1,
+                opacity: pressed || loading ? 0.7 : 1,
                 shadowColor: "#ADC6FF",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.3,
@@ -223,16 +291,22 @@ export default function SignInScreen() {
                 marginTop: 8,
               })}
             >
-              <Text
-                style={{
-                  color: "#002E6A",
-                  fontSize: 16,
-                  fontWeight: "700",
-                }}
-              >
-                Entrar
-              </Text>
-              <Ionicons color="#002E6A" name="arrow-forward" size={18} />
+              {loading ? (
+                <ActivityIndicator color="#002E6A" />
+              ) : (
+                <>
+                  <Text
+                    style={{
+                      color: "#002E6A",
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Entrar
+                  </Text>
+                  <Ionicons color="#002E6A" name="arrow-forward" size={18} />
+                </>
+              )}
             </Pressable>
           </View>
 
@@ -265,6 +339,8 @@ export default function SignInScreen() {
           {/* Social Buttons */}
           <View style={{ flexDirection: "row", gap: 12 }}>
             <Pressable
+              disabled={loading}
+              onPress={handleGoogle}
               style={({ pressed }) => ({
                 flex: 1,
                 backgroundColor: "#F1F5F9",
@@ -289,6 +365,7 @@ export default function SignInScreen() {
               </Text>
             </Pressable>
             <Pressable
+              disabled={loading}
               style={({ pressed }) => ({
                 flex: 1,
                 backgroundColor: "#1877F2",

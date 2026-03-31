@@ -1,194 +1,89 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 import { Container } from "@/components/container";
+import { useCategories, useTransactions } from "@/hooks/use-api";
 
-type CategoryKey =
-  | "alimentacao"
-  | "transporte"
-  | "moradia"
-  | "lazer"
-  | "assinaturas";
+const formatMoney = (value: number): string =>
+  `R$ ${(value / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 
-const CATEGORIES: {
-  id: CategoryKey;
-  emoji: string;
-  label: string;
-  amount: string;
-}[] = [
-  { id: "alimentacao", emoji: "🍔", label: "Alimentação", amount: "R$ 890" },
-  { id: "transporte", emoji: "🚗", label: "Transporte", amount: "R$ 520" },
-  { id: "moradia", emoji: "🏠", label: "Moradia", amount: "R$ 1.200" },
-  { id: "lazer", emoji: "🎬", label: "Lazer", amount: "R$ 340" },
-  { id: "assinaturas", emoji: "📱", label: "Assinaturas", amount: "R$ 280" },
-];
-
-interface Transaction {
-  account: string;
-  amount: string;
-  category: string;
-  csv?: boolean;
-  emoji: string;
-  id: string;
-  title: string;
+function getCategoryEmoji(name?: string): string {
+  if (!name) {
+    return "💰";
+  }
+  const lower = name.toLowerCase();
+  if (lower.includes("aliment") || lower.includes("comida")) {
+    return "🍔";
+  }
+  if (lower.includes("transport")) {
+    return "🚗";
+  }
+  if (lower.includes("moradia") || lower.includes("aluguel")) {
+    return "🏠";
+  }
+  if (lower.includes("lazer")) {
+    return "🎬";
+  }
+  if (lower.includes("assinatur")) {
+    return "📱";
+  }
+  if (lower.includes("saúde") || lower.includes("saude")) {
+    return "💊";
+  }
+  if (lower.includes("combust") || lower.includes("gasolina")) {
+    return "⛽";
+  }
+  if (lower.includes("supermerc")) {
+    return "🛒";
+  }
+  if (lower.includes("educação") || lower.includes("educacao")) {
+    return "📚";
+  }
+  return "💸";
 }
-
-interface TransactionGroup {
-  headerOpacity: number;
-  label: string;
-  total: string;
-  transactions: Transaction[];
-}
-
-const TRANSACTION_GROUPS: TransactionGroup[] = [
-  {
-    label: "Hoje — 27 Mar",
-    total: "R$ 247,40",
-    headerOpacity: 0.9,
-    transactions: [
-      {
-        id: "e1",
-        emoji: "🍔",
-        title: "iFood",
-        category: "Alimentação",
-        account: "Nubank",
-        amount: "-R$ 42,90",
-      },
-      {
-        id: "e2",
-        emoji: "⛽",
-        title: "Posto Shell",
-        category: "Combustível",
-        account: "Bradesco",
-        amount: "-R$ 180,00",
-      },
-      {
-        id: "e3",
-        emoji: "🚗",
-        title: "Uber",
-        category: "Transporte",
-        account: "Nubank",
-        amount: "-R$ 24,50",
-      },
-    ],
-  },
-  {
-    label: "Ontem — 26 Mar",
-    total: "R$ 436,10",
-    headerOpacity: 0.6,
-    transactions: [
-      {
-        id: "e4",
-        emoji: "🛒",
-        title: "Supermercado Extra",
-        category: "Alimentação",
-        account: "Santander",
-        amount: "-R$ 312,40",
-        csv: true,
-      },
-      {
-        id: "e5",
-        emoji: "📺",
-        title: "Netflix",
-        category: "Assinaturas",
-        account: "Nubank",
-        amount: "-R$ 55,90",
-      },
-      {
-        id: "e6",
-        emoji: "💊",
-        title: "Farmácia",
-        category: "Saúde",
-        account: "Bradesco",
-        amount: "-R$ 67,80",
-      },
-    ],
-  },
-];
-
-const ExpenseTransactionItem = ({ tx }: { tx: Transaction }) => (
-  <View
-    style={{
-      backgroundColor: "#131C28",
-      borderRadius: 12,
-      padding: 16,
-      flexDirection: "row",
-      alignItems: "center",
-    }}
-  >
-    <View
-      style={{
-        width: 48,
-        height: 48,
-        borderRadius: 16,
-        backgroundColor: "#2D3542",
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: 12,
-      }}
-    >
-      <Text style={{ fontSize: 20 }}>{tx.emoji}</Text>
-    </View>
-
-    <View style={{ flex: 1 }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <Text style={{ fontSize: 15, fontWeight: "500", color: "#F1F5F9" }}>
-          {tx.title}
-        </Text>
-        {tx.csv && (
-          <View
-            style={{
-              backgroundColor: "rgba(173,198,255,0.2)",
-              borderRadius: 9999,
-              paddingHorizontal: 6,
-              paddingVertical: 2,
-            }}
-          >
-            <Text style={{ fontSize: 9, fontWeight: "700", color: "#ADC6FF" }}>
-              CSV
-            </Text>
-          </View>
-        )}
-      </View>
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          marginTop: 2,
-        }}
-      >
-        <Text style={{ fontSize: 12, color: "#C2C6D6" }}>{tx.category}</Text>
-        <View
-          style={{
-            width: 4,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: "#424754",
-          }}
-        />
-        <Text style={{ fontSize: 12, color: "#C2C6D6" }}>{tx.account}</Text>
-      </View>
-    </View>
-
-    <Text
-      style={{
-        fontFamily: "monospace",
-        fontSize: 15,
-        fontWeight: "500",
-        color: "#F1F5F9",
-      }}
-    >
-      {tx.amount}
-    </Text>
-  </View>
-);
 
 export default function ExpensesScreen() {
-  const [activeCategory, setActiveCategory] =
-    useState<CategoryKey>("alimentacao");
+  const { data: txResult, isLoading } = useTransactions({
+    type: "expense",
+    limit: 50,
+  });
+  const { data: categories } = useCategories("expense");
+
+  const transactions = txResult?.data ?? [];
+
+  const totalExpenses = transactions.reduce((s, t) => s + t.amount, 0);
+
+  const grouped = transactions.reduce<Record<string, typeof transactions>>(
+    (acc, tx) => {
+      const dateKey = new Date(tx.date).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(tx);
+      return acc;
+    },
+    {}
+  );
+
+  const now = new Date();
+  const monthLabel = now.toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <Container>
@@ -229,15 +124,16 @@ export default function ExpensesScreen() {
           paddingVertical: 12,
         }}
       >
-        <Pressable>
-          <Ionicons color="#94A3B8" name="chevron-back" size={20} />
-        </Pressable>
-        <Text style={{ fontSize: 16, fontWeight: "600", color: "#F1F5F9" }}>
-          Março 2026
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: "600",
+            color: "#F1F5F9",
+            textTransform: "capitalize",
+          }}
+        >
+          {monthLabel}
         </Text>
-        <Pressable>
-          <Ionicons color="#94A3B8" name="chevron-forward" size={20} />
-        </Pressable>
       </View>
 
       <View
@@ -281,111 +177,186 @@ export default function ExpensesScreen() {
             color: "#F1F5F9",
           }}
         >
-          R$ 3.750,00
+          {formatMoney(totalExpenses)}
         </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            alignSelf: "flex-start",
-            backgroundColor: "rgba(239,68,68,0.15)",
-            borderRadius: 9999,
-            paddingHorizontal: 10,
-            paddingVertical: 4,
-            gap: 4,
-            marginTop: 12,
-          }}
-        >
-          <Ionicons color="#EF4444" name="trending-up" size={14} />
-          <Text style={{ fontSize: 12, fontWeight: "600", color: "#EF4444" }}>
-            8% vs fev
-          </Text>
-        </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={{ gap: 8, paddingHorizontal: 24 }}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginBottom: 20 }}
-      >
-        {CATEGORIES.map((cat) => {
-          const isActive = activeCategory === cat.id;
-          return (
-            <Pressable
+      {categories && categories.length > 0 ? (
+        <ScrollView
+          contentContainerStyle={{ gap: 8, paddingHorizontal: 24 }}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 20 }}
+        >
+          {categories.map((cat) => (
+            <View
               key={cat.id}
-              onPress={() => setActiveCategory(cat.id)}
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 gap: 6,
-                backgroundColor: isActive ? "#222A37" : "#131C28",
+                backgroundColor: "#131C28",
                 borderRadius: 9999,
                 paddingHorizontal: 14,
                 paddingVertical: 10,
-                borderBottomWidth: isActive ? 2 : 0,
-                borderBottomColor: "#EF4444",
               }}
             >
-              <Text style={{ fontSize: 14 }}>{cat.emoji}</Text>
+              <Text style={{ fontSize: 14 }}>{getCategoryEmoji(cat.name)}</Text>
               <Text
                 style={{
                   fontSize: 14,
                   fontWeight: "500",
-                  color: isActive ? "#F1F5F9" : "#C2C6D6",
+                  color: "#C2C6D6",
                 }}
               >
-                {cat.label}
+                {cat.name}
               </Text>
-              <Text
-                style={{
-                  fontFamily: "monospace",
-                  fontSize: 12,
-                  color: isActive ? "rgba(241,245,249,0.6)" : "#C2C6D6",
-                }}
-              >
-                {cat.amount}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
 
-      {TRANSACTION_GROUPS.map((group) => (
-        <View
-          key={group.label}
-          style={{ marginBottom: 16, paddingHorizontal: 24 }}
-        >
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
-              opacity: group.headerOpacity,
-            }}
-          >
-            <Text style={{ fontSize: 14, fontWeight: "600", color: "#F1F5F9" }}>
-              {group.label}
-            </Text>
-            <Text
-              style={{
-                fontFamily: "monospace",
-                fontSize: 12,
-                color: "#C2C6D6",
-              }}
-            >
-              {group.total}
-            </Text>
-          </View>
-
-          <View style={{ gap: 10 }}>
-            {group.transactions.map((tx) => (
-              <ExpenseTransactionItem key={tx.id} tx={tx} />
-            ))}
-          </View>
+      {isLoading ? (
+        <View style={{ paddingTop: 40, alignItems: "center" }}>
+          <ActivityIndicator color="#ADC6FF" size="large" />
         </View>
-      ))}
+      ) : null}
+
+      {!isLoading && transactions.length === 0 ? (
+        <View
+          style={{
+            paddingHorizontal: 24,
+            alignItems: "center",
+            paddingTop: 40,
+          }}
+        >
+          <Ionicons color="#475569" name="receipt-outline" size={48} />
+          <Text style={{ color: "#94A3B8", fontSize: 15, marginTop: 12 }}>
+            Nenhuma despesa registrada
+          </Text>
+        </View>
+      ) : null}
+
+      {!isLoading && transactions.length > 0
+        ? Object.entries(grouped).map(([date, txs]) => {
+            const dayTotal = txs.reduce((s, t) => s + t.amount, 0);
+            return (
+              <View
+                key={date}
+                style={{ marginBottom: 16, paddingHorizontal: 24 }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontWeight: "600",
+                      color: "#F1F5F9",
+                    }}
+                  >
+                    {date}
+                  </Text>
+                  <Text
+                    style={{
+                      fontFamily: "monospace",
+                      fontSize: 12,
+                      color: "#C2C6D6",
+                    }}
+                  >
+                    {formatMoney(dayTotal)}
+                  </Text>
+                </View>
+
+                <View style={{ gap: 10 }}>
+                  {txs.map((tx) => (
+                    <View
+                      key={tx.id}
+                      style={{
+                        backgroundColor: "#131C28",
+                        borderRadius: 12,
+                        padding: 16,
+                        flexDirection: "row",
+                        alignItems: "center",
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 16,
+                          backgroundColor: "#2D3542",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: 12,
+                        }}
+                      >
+                        <Text style={{ fontSize: 20 }}>
+                          {getCategoryEmoji(tx.category?.name)}
+                        </Text>
+                      </View>
+
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 15,
+                            fontWeight: "500",
+                            color: "#F1F5F9",
+                          }}
+                        >
+                          {tx.description}
+                        </Text>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                            marginTop: 2,
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, color: "#C2C6D6" }}>
+                            {tx.category?.name ?? "Despesa"}
+                          </Text>
+                          {tx.bankAccount ? (
+                            <>
+                              <View
+                                style={{
+                                  width: 4,
+                                  height: 4,
+                                  borderRadius: 2,
+                                  backgroundColor: "#424754",
+                                }}
+                              />
+                              <Text style={{ fontSize: 12, color: "#C2C6D6" }}>
+                                {tx.bankAccount.name}
+                              </Text>
+                            </>
+                          ) : null}
+                        </View>
+                      </View>
+
+                      <Text
+                        style={{
+                          fontFamily: "monospace",
+                          fontSize: 15,
+                          fontWeight: "500",
+                          color: "#F1F5F9",
+                        }}
+                      >
+                        -{formatMoney(tx.amount)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })
+        : null}
 
       <View style={{ height: 96 }} />
 

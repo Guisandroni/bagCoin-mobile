@@ -1,19 +1,44 @@
 import "@/polyfills";
 import "@/global.css";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider } from "heroui-native";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { AppThemeProvider } from "@/contexts/app-theme-context";
+import { authClient } from "@/lib/auth-client";
 import { queryClient } from "@/utils/trpc";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
+function useProtectedRoute() {
+  const { data: session, isPending } = authClient.useSession();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isPending) {
+      return;
+    }
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (!(session?.user || inAuthGroup)) {
+      router.replace("/sign-in");
+    } else if (session?.user && inAuthGroup) {
+      router.replace("/(tabs)");
+    }
+  }, [session, isPending, segments, router]);
+}
+
 function StackLayout() {
+  useProtectedRoute();
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
@@ -63,7 +88,7 @@ function StackLayout() {
       />
       <Stack.Screen
         name="ai"
-        options={{ presentation: "modal", title: "AI Chat" }}
+        options={{ presentation: "modal", headerShown: false }}
       />
       <Stack.Screen
         name="(auth)"
@@ -80,6 +105,7 @@ export default function Layout() {
         <KeyboardProvider>
           <AppThemeProvider>
             <HeroUINativeProvider>
+              <StatusBar style="light" />
               <StackLayout />
             </HeroUINativeProvider>
           </AppThemeProvider>

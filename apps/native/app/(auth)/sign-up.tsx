@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,6 +13,30 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { authClient } from "@/lib/auth-client";
+
+const MIN_PASSWORD_LENGTH = 8;
+
+function getAuthErrorMessage(err: unknown): string {
+  if (!err || typeof err !== "object") {
+    return "Erro ao criar conta";
+  }
+  const o = err as { message?: string; code?: string };
+  if (o.code === "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL") {
+    return "Este e-mail já está cadastrado. Faça login ou use outro e-mail.";
+  }
+  if (o.code === "PASSWORD_TOO_SHORT") {
+    return `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres`;
+  }
+  if (o.code === "INVALID_EMAIL") {
+    return "E-mail inválido";
+  }
+  if (typeof o.message === "string" && o.message.length > 0) {
+    return o.message;
+  }
+  return "Erro ao criar conta";
+}
+
 export default function SignUpScreen() {
   const insets = useSafeAreaInsets();
   const [name, setName] = useState("");
@@ -19,6 +44,65 @@ export default function SignUpScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleGoogle = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const { error: socialError } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/(tabs)",
+        newUserCallbackURL: "/(tabs)",
+        errorCallbackURL: "/sign-up",
+      });
+      if (socialError) {
+        setError(socialError.message ?? "Erro ao entrar com Google");
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao entrar com Google");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (!(name && email && password && confirmPassword)) {
+      setError("Preencha todos os campos");
+      return;
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres`);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem");
+      return;
+    }
+    if (!acceptTerms) {
+      setError("Aceite os termos de uso");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const result = await authClient.signUp.email({ name, email, password });
+      if (result.error) {
+        setError(getAuthErrorMessage(result.error));
+      } else {
+        router.replace("/(tabs)");
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message
+          ? e.message
+          : "Erro de conexão. Verifique se o servidor está acessível (mesma rede ou URL em EXPO_PUBLIC_SERVER_URL)."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0B1420" }}>
@@ -198,6 +282,15 @@ export default function SignUpScreen() {
               >
                 SENHA
               </Text>
+              <Text
+                style={{
+                  color: "rgba(148,163,184,0.85)",
+                  fontSize: 12,
+                  marginBottom: 4,
+                }}
+              >
+                Mínimo de {MIN_PASSWORD_LENGTH} caracteres
+              </Text>
               <View style={{ position: "relative" }}>
                 <View
                   style={{
@@ -321,8 +414,30 @@ export default function SignUpScreen() {
               </Text>
             </Pressable>
 
+            {error ? (
+              <View
+                style={{
+                  backgroundColor: "rgba(239,68,68,0.1)",
+                  borderRadius: 12,
+                  padding: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#EF4444",
+                    fontSize: 13,
+                    textAlign: "center",
+                  }}
+                >
+                  {error}
+                </Text>
+              </View>
+            ) : null}
+
             {/* CTA Button */}
             <Pressable
+              disabled={loading}
+              onPress={handleSignUp}
               style={({ pressed }) => ({
                 backgroundColor: "#ADC6FF",
                 borderRadius: 12,
@@ -331,20 +446,26 @@ export default function SignUpScreen() {
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-                opacity: pressed ? 0.85 : 1,
+                opacity: pressed || loading ? 0.7 : 1,
                 marginTop: 4,
               })}
             >
-              <Text
-                style={{
-                  color: "#002E6A",
-                  fontSize: 16,
-                  fontWeight: "700",
-                }}
-              >
-                Criar Conta
-              </Text>
-              <Ionicons color="#002E6A" name="arrow-forward" size={18} />
+              {loading ? (
+                <ActivityIndicator color="#002E6A" />
+              ) : (
+                <>
+                  <Text
+                    style={{
+                      color: "#002E6A",
+                      fontSize: 16,
+                      fontWeight: "700",
+                    }}
+                  >
+                    Criar Conta
+                  </Text>
+                  <Ionicons color="#002E6A" name="arrow-forward" size={18} />
+                </>
+              )}
             </Pressable>
           </View>
 
@@ -387,6 +508,8 @@ export default function SignUpScreen() {
           {/* Social Buttons */}
           <View style={{ flexDirection: "row", gap: 12 }}>
             <Pressable
+              disabled={loading}
+              onPress={handleGoogle}
               style={({ pressed }) => ({
                 flex: 1,
                 backgroundColor: "#131C28",
@@ -413,6 +536,7 @@ export default function SignUpScreen() {
               </Text>
             </Pressable>
             <Pressable
+              disabled={loading}
               style={({ pressed }) => ({
                 flex: 1,
                 backgroundColor: "#131C28",

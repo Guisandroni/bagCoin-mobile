@@ -14,8 +14,8 @@ export default function AuthLayout() {
         headerShadowVisible: false,
       }}
     >
-      <Stack.Screen name="sign-in" options={{ title: "Entrar" }} />
-      <Stack.Screen name="sign-up" options={{ title: "Criar Conta" }} />
+      <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+      <Stack.Screen name="sign-up" options={{ headerShown: false }} />
     </Stack>
   );
 }

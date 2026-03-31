@@ -25,9 +25,18 @@ import { transactionRoutes } from "./routes/transactions";
 new Elysia()
   .use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin:
+        env.CORS_ORIGIN === "*"
+          ? true
+          : env.CORS_ORIGIN.split(",").map((o) => o.trim()),
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
+      allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "Cookie",
+        "expo-origin",
+        "x-skip-oauth-proxy",
+      ],
       credentials: true,
     })
   )
@@ -39,7 +48,7 @@ new Elysia()
   .use(reportRoutes)
   .use(importRoutes)
   .use(profileRoutes)
-  .all("/api/auth/*", async (context) => {
+  .all("/api/auth/*", (context) => {
     const { request, status } = context;
     if (["POST", "GET"].includes(request.method)) {
       return auth.handler(request);

@@ -1,7 +1,7 @@
 {
   "expo": {
     "scheme": "bagcoin",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "orientation": "default",
     "web": {
       "bundler": "metro"

@@ -1,7 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+import { useBankAccounts, useCreditCards } from "@/hooks/use-api";
 
 interface Account {
   balance: number;
@@ -29,74 +37,6 @@ interface CreditCard {
   used: number;
   usedPercent: number;
 }
-
-const ACCOUNTS: Account[] = [
-  {
-    id: "1",
-    name: "Santander",
-    type: "CORRENTE",
-    logoBg: "#EC0000",
-    logoText: "S",
-    balance: 3000,
-    expenses: 2500,
-    expensePercent: 83,
-    income: 3500,
-    incomePercent: 117,
-  },
-  {
-    id: "2",
-    name: "Bradesco",
-    type: "INVESTIMENTOS",
-    logoBg: "#CC092F",
-    logoText: "B",
-    balance: 1800,
-    expenses: 1200,
-    expensePercent: 67,
-    income: 700,
-    incomePercent: 39,
-  },
-  {
-    id: "3",
-    name: "Nubank",
-    type: "DIGITAL",
-    logoBg: "#8A05BE",
-    logoText: "Nu",
-    balance: 3650,
-    expenses: 1650,
-    expensePercent: 45,
-    income: 4500,
-    incomePercent: 123,
-  },
-];
-
-const CREDIT_CARDS: CreditCard[] = [
-  {
-    id: "1",
-    name: "Nubank",
-    brandType: "mastercard",
-    logoBg: "#8A05BE",
-    lastDigits: "4521",
-    limit: 5000,
-    used: 2800,
-    available: 2200,
-    usedPercent: 56,
-    barColor: "#F59E0B",
-    availableColor: "#10B981",
-  },
-  {
-    id: "2",
-    name: "Bradesco",
-    brandType: "visa",
-    logoBg: "#1A1F71",
-    lastDigits: "7832",
-    limit: 4500,
-    used: 4100,
-    available: 400,
-    usedPercent: 91,
-    barColor: "#EF4444",
-    availableColor: "#EF4444",
-  },
-];
 
 const fmt = (v: number): string =>
   v.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
@@ -509,100 +449,181 @@ const CreditCardItem = ({ card }: { card: CreditCard }) => {
   );
 };
 
-const AccountsScreen = () => (
-  <View style={{ flex: 1, backgroundColor: "#0B1420" }}>
-    <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 }}
-        showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
-      >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingHorizontal: 20,
-            paddingTop: 16,
-            paddingBottom: 24,
-          }}
+const AccountsScreen = () => {
+  const { data: bankAccounts, isLoading: loadingAccounts } = useBankAccounts();
+  const { data: creditCards, isLoading: loadingCards } = useCreditCards();
+
+  const accounts = (bankAccounts ?? []).map((a) => ({
+    id: a.id,
+    name: a.name,
+    type: a.type.toUpperCase(),
+    logoBg: a.color ?? "#3B82F6",
+    logoText: a.name.charAt(0).toUpperCase(),
+    balance: a.balance,
+    expenses: 0,
+    expensePercent: 0,
+    income: 0,
+    incomePercent: 0,
+  }));
+
+  const cards = (creditCards ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    brandType: "mastercard" as const,
+    logoBg: c.color ?? "#8A05BE",
+    lastDigits: c.lastDigits,
+    limit: c.creditLimit,
+    used: c.usedAmount,
+    available: c.creditLimit - c.usedAmount,
+    usedPercent:
+      c.creditLimit > 0 ? Math.round((c.usedAmount / c.creditLimit) * 100) : 0,
+    barColor:
+      c.creditLimit > 0 && c.usedAmount / c.creditLimit > 0.8
+        ? "#EF4444"
+        : "#F59E0B",
+    availableColor:
+      c.creditLimit > 0 && c.usedAmount / c.creditLimit > 0.8
+        ? "#EF4444"
+        : "#10B981",
+  }));
+
+  const isLoading = loadingAccounts || loadingCards;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#0B1420" }}>
+      <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
         >
-          <Pressable
-            hitSlop={8}
-            onPress={() => router.back()}
+          <View
             style={{
-              width: 40,
-              height: 40,
+              flexDirection: "row",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: "space-between",
+              paddingHorizontal: 20,
+              paddingTop: 16,
+              paddingBottom: 24,
             }}
           >
-            <Ionicons color="#F1F5F9" name="arrow-back" size={24} />
-          </Pressable>
-          <Text style={{ color: "#ADC6FF", fontWeight: "700", fontSize: 20 }}>
-            Contas e Cartões
-          </Text>
-          <Pressable
-            hitSlop={4}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              backgroundColor: "rgba(173,198,255,0.1)",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons color="#ADC6FF" name="add" size={24} />
-          </Pressable>
-        </View>
+            <Pressable
+              hitSlop={8}
+              onPress={() => router.back()}
+              style={{
+                width: 40,
+                height: 40,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons color="#F1F5F9" name="arrow-back" size={24} />
+            </Pressable>
+            <Text style={{ color: "#ADC6FF", fontWeight: "700", fontSize: 20 }}>
+              Contas e Cartões
+            </Text>
+            <Pressable
+              hitSlop={4}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                backgroundColor: "rgba(173,198,255,0.1)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons color="#ADC6FF" name="add" size={24} />
+            </Pressable>
+          </View>
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            paddingHorizontal: 20,
-            marginBottom: 16,
-          }}
-        >
-          <Text style={{ color: "#F1F5F9", fontWeight: "600", fontSize: 18 }}>
-            Contas
-          </Text>
-          <SectionBadge count="3" />
-        </View>
+          {isLoading ? (
+            <View style={{ paddingTop: 60, alignItems: "center" }}>
+              <ActivityIndicator color="#ADC6FF" size="large" />
+            </View>
+          ) : (
+            <>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingHorizontal: 20,
+                  marginBottom: 16,
+                }}
+              >
+                <Text
+                  style={{ color: "#F1F5F9", fontWeight: "600", fontSize: 18 }}
+                >
+                  Contas
+                </Text>
+                <SectionBadge count={String(accounts.length)} />
+              </View>
 
-        <View style={{ paddingHorizontal: 20, gap: 12 }}>
-          {ACCOUNTS.map((account) => (
-            <AccountCard account={account} key={account.id} />
-          ))}
-        </View>
+              {accounts.length === 0 ? (
+                <View
+                  style={{
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                    paddingVertical: 32,
+                  }}
+                >
+                  <Text style={{ color: "#94A3B8", fontSize: 14 }}>
+                    Nenhuma conta cadastrada
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ paddingHorizontal: 20, gap: 12 }}>
+                  {accounts.map((account) => (
+                    <AccountCard account={account} key={account.id} />
+                  ))}
+                </View>
+              )}
 
-        <View style={{ height: 32 }} />
+              <View style={{ height: 32 }} />
 
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            paddingHorizontal: 20,
-            marginBottom: 16,
-          }}
-        >
-          <Text style={{ color: "#F1F5F9", fontWeight: "600", fontSize: 18 }}>
-            Cartões de Crédito
-          </Text>
-          <SectionBadge count="2" />
-        </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingHorizontal: 20,
+                  marginBottom: 16,
+                }}
+              >
+                <Text
+                  style={{ color: "#F1F5F9", fontWeight: "600", fontSize: 18 }}
+                >
+                  Cartões de Crédito
+                </Text>
+                <SectionBadge count={String(cards.length)} />
+              </View>
 
-        <View style={{ paddingHorizontal: 20, gap: 12 }}>
-          {CREDIT_CARDS.map((card) => (
-            <CreditCardItem card={card} key={card.id} />
-          ))}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  </View>
-);
+              {cards.length === 0 ? (
+                <View
+                  style={{
+                    paddingHorizontal: 20,
+                    alignItems: "center",
+                    paddingVertical: 32,
+                  }}
+                >
+                  <Text style={{ color: "#94A3B8", fontSize: 14 }}>
+                    Nenhum cartão cadastrado
+                  </Text>
+                </View>
+              ) : (
+                <View style={{ paddingHorizontal: 20, gap: 12 }}>
+                  {cards.map((card) => (
+                    <CreditCardItem card={card} key={card.id} />
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+};
 
 export default AccountsScreen;

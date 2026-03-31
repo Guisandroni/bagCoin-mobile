@@ -5,7 +5,7 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "dev": "expo start --clear",
+    "dev": "expo start --clear --tunnel",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
@@ -45,7 +45,7 @@
     "heroui-native": "^1.0.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "react-native": "0.83.2",
+    "react-native": "0.83.4",
     "react-native-gesture-handler": "~2.30.0",
     "react-native-keyboard-controller": "1.20.7",
     "react-native-reanimated": "4.2.1",

@@ -14,17 +14,11 @@ import {
 } from "react-native";
 
 import { Container } from "@/components/container";
-
-const CATEGORIES = [
-  { id: "food", label: "Alimentação", icon: "restaurant" as const },
-  { id: "transport", label: "Transporte", icon: "car" as const },
-  { id: "housing", label: "Moradia", icon: "home" as const },
-  { id: "leisure", label: "Lazer", icon: "bag-handle" as const },
-  { id: "health", label: "Saúde", icon: "medkit" as const },
-  { id: "education", label: "Educação", icon: "school" as const },
-  { id: "bills", label: "Contas", icon: "card" as const },
-  { id: "other", label: "Outros", icon: "ellipsis-horizontal" as const },
-];
+import {
+  useBankAccounts,
+  useCategories,
+  useCreateTransaction,
+} from "@/hooks/use-api";
 
 const ACCENT = "#EF4444";
 
@@ -32,25 +26,51 @@ const AddExpenseScreen = () => {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("food");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState("");
   const { toast } = useToast();
   const { width: screenWidth } = useWindowDimensions();
+
+  const { data: categories } = useCategories("expense");
+  const { data: accounts } = useBankAccounts();
+  const createTx = useCreateTransaction();
 
   const categorySize = (screenWidth - 48 - 36) / 4;
 
   const handleSave = () => {
-    if (!(amount && selectedCategory)) {
-      toast.show({
-        variant: "danger",
-        label: "Preencha o valor e selecione uma categoria",
-      });
+    const cents = Math.round(Number.parseFloat(amount.replace(",", ".")) * 100);
+    if (!cents || cents <= 0) {
+      toast.show({ variant: "danger", label: "Informe um valor válido" });
       return;
     }
-    toast.show({
-      variant: "success",
-      label: "Despesa adicionada com sucesso",
-    });
-    router.back();
+    if (!description.trim()) {
+      toast.show({ variant: "danger", label: "Informe uma descrição" });
+      return;
+    }
+
+    createTx.mutate(
+      {
+        type: "expense",
+        amount: cents,
+        description: description.trim(),
+        date: new Date().toISOString(),
+        categoryId: selectedCategory || undefined,
+        bankAccountId: selectedAccount || undefined,
+        notes: notes.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.show({ variant: "success", label: "Despesa adicionada!" });
+          router.back();
+        },
+        onError: (err) => {
+          toast.show({
+            variant: "danger",
+            label: err.message || "Erro ao salvar",
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -212,28 +232,43 @@ const AddExpenseScreen = () => {
               >
                 CONTA DE ORIGEM
               </Text>
-              <Pressable
-                className="flex-row items-center justify-between rounded-xl"
-                style={{
-                  backgroundColor: "#060F1A",
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                }}
-              >
-                <View className="flex-row items-center" style={{ gap: 12 }}>
-                  <Ionicons color="#ADC6FF" name="wallet" size={20} />
-                  <Text style={{ color: "#F1F5F9", fontSize: 15 }}>Nubank</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {(accounts ?? []).map((acc) => {
+                    const isActive = selectedAccount === acc.id;
+                    return (
+                      <Pressable
+                        key={acc.id}
+                        onPress={() => setSelectedAccount(acc.id)}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                          backgroundColor: isActive
+                            ? "rgba(239,68,68,0.1)"
+                            : "#060F1A",
+                          borderWidth: isActive ? 1 : 0,
+                          borderColor: isActive
+                            ? "rgba(239,68,68,0.3)"
+                            : "transparent",
+                          borderRadius: 12,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        }}
+                      >
+                        <Ionicons
+                          color={isActive ? ACCENT : "#ADC6FF"}
+                          name="wallet"
+                          size={18}
+                        />
+                        <Text style={{ color: "#F1F5F9", fontSize: 14 }}>
+                          {acc.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
-                <Text
-                  style={{
-                    color: "#C2C6D6",
-                    fontSize: 14,
-                    fontFamily: "monospace",
-                  }}
-                >
-                  R$ 3.200,00
-                </Text>
-              </Pressable>
+              </ScrollView>
             </View>
 
             {/* Data */}
@@ -288,7 +323,7 @@ const AddExpenseScreen = () => {
               CATEGORIA
             </Text>
             <View className="flex-row flex-wrap" style={{ gap: 12 }}>
-              {CATEGORIES.map((cat) => {
+              {(categories ?? []).map((cat) => {
                 const isActive = selectedCategory === cat.id;
                 return (
                   <Pressable
@@ -313,7 +348,9 @@ const AddExpenseScreen = () => {
                     >
                       <Ionicons
                         color={isActive ? ACCENT : "#C2C6D6"}
-                        name={cat.icon}
+                        name={
+                          (cat.icon as keyof typeof Ionicons.glyphMap) ?? "cash"
+                        }
                         size={22}
                       />
                     </View>
@@ -326,7 +363,7 @@ const AddExpenseScreen = () => {
                         textAlign: "center",
                       }}
                     >
-                      {cat.label}
+                      {cat.name}
                     </Text>
                   </Pressable>
                 );

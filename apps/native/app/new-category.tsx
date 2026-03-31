@@ -1,8 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useToast } from "heroui-native";
 import { useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useCreateCategory } from "@/hooks/use-api";
 
 type CategoryType = "expense" | "income";
 
@@ -38,8 +48,37 @@ const NewCategoryScreen = () => {
   const [selectedIcon, setSelectedIcon] =
     useState<keyof typeof Ionicons.glyphMap>("restaurant");
   const [selectedColor, setSelectedColor] = useState("#ADC6FF");
+  const { toast } = useToast();
+  const createCategory = useCreateCategory();
 
   const isExpense = selectedType === "expense";
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      toast.show({ variant: "danger", label: "Informe o nome da categoria" });
+      return;
+    }
+    createCategory.mutate(
+      {
+        name: name.trim(),
+        type: selectedType,
+        icon: selectedIcon,
+        color: selectedColor,
+      },
+      {
+        onSuccess: () => {
+          toast.show({ variant: "success", label: "Categoria criada!" });
+          router.back();
+        },
+        onError: (err) => {
+          toast.show({
+            variant: "danger",
+            label: err.message || "Erro ao criar",
+          });
+        },
+      }
+    );
+  };
 
   return (
     <View
@@ -63,11 +102,18 @@ const NewCategoryScreen = () => {
           </Text>
           <Pressable
             className="active:opacity-60"
-            onPress={() => router.back()}
+            disabled={createCategory.isPending}
+            onPress={handleSave}
           >
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#F1F5F9" }}>
-              Salvar
-            </Text>
+            {createCategory.isPending ? (
+              <ActivityIndicator color="#ADC6FF" size="small" />
+            ) : (
+              <Text
+                style={{ fontSize: 16, fontWeight: "600", color: "#F1F5F9" }}
+              >
+                Salvar
+              </Text>
+            )}
           </Pressable>
         </View>
 

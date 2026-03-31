@@ -1,122 +1,90 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 import { Container } from "@/components/container";
+import {
+  useDashboardCreditCards,
+  useDashboardRecent,
+  useDashboardSummary,
+  useMonthlySummary,
+} from "@/hooks/use-api";
 import { authClient } from "@/lib/auth-client";
 
-const ACCOUNTS = [
-  { id: "all", name: "Todas as contas", balance: 3200 },
-  {
-    id: "bradesco",
-    name: "Bradesco",
-    balance: 3200,
-    icon: "business-outline" as const,
-    iconColor: "#94A3B8",
-  },
-  {
-    id: "nubank",
-    name: "Nubank",
-    balance: 1500,
-    icon: "ellipse" as const,
-    iconColor: "#C084FC",
-  },
-  {
-    id: "santander",
-    name: "Santander",
-    balance: 700,
-    icon: "diamond-outline" as const,
-    iconColor: "#EF4444",
-  },
-];
-
-const CREDIT_CARDS = [
-  {
-    id: "1",
-    name: "Nubank Master",
-    lastDigits: "4821",
-    usedPercent: 56,
-    used: 2800,
-    limit: 5000,
-    brandColor: "#A855F7",
-    brandBg: "rgba(147,51,234,0.15)",
-  },
-  {
-    id: "2",
-    name: "Bradesco Visa",
-    lastDigits: "9902",
-    usedPercent: 91,
-    used: 4100,
-    limit: 4500,
-    brandColor: "#F87171",
-    brandBg: "rgba(239,68,68,0.15)",
-  },
-];
-
-const TRANSACTIONS = [
-  {
-    id: "1",
-    title: "iFood",
-    category: "Alimentação",
-    time: "18:42",
-    amount: -42.9,
-    icon: "restaurant" as const,
-    iconColor: "#EF4444",
-    iconBg: "rgba(239,68,68,0.12)",
-  },
-  {
-    id: "2",
-    title: "Uber",
-    category: "Transporte",
-    time: "15:10",
-    amount: -18.5,
-    icon: "car" as const,
-    iconColor: "#3B82F6",
-    iconBg: "rgba(59,130,246,0.15)",
-  },
-  {
-    id: "3",
-    title: "Salário Bag Coin",
-    category: "Renda",
-    time: "05 Mar",
-    amount: 4500,
-    icon: "wallet" as const,
-    iconColor: "#EEC05C",
-    iconBg: "rgba(238,192,92,0.15)",
-  },
-  {
-    id: "4",
-    title: "Netflix",
-    category: "Assinaturas",
-    time: "02 Mar",
-    amount: -55.9,
-    icon: "tv" as const,
-    iconColor: "#EF4444",
-    iconBg: "rgba(239,68,68,0.12)",
-  },
-  {
-    id: "5",
-    title: "Freelance UI",
-    category: "Renda Extra",
-    time: "01 Mar",
-    amount: 700,
-    icon: "briefcase" as const,
-    iconColor: "#3B82F6",
-    iconBg: "rgba(59,130,246,0.15)",
-  },
-];
-
-const MONTH_INCOME = 5200;
-const MONTH_EXPENSE = 3750;
-const MONTH_TOTAL = MONTH_INCOME + MONTH_EXPENSE;
-const INCOME_PERCENT = (MONTH_INCOME / MONTH_TOTAL) * 100;
-
 const formatMoney = (value: number): string =>
-  `R$ ${Math.abs(value).toLocaleString("pt-BR", {
-    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+  `R$ ${Math.abs(value / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+
+const QUICK_ACTIONS = [
+  {
+    label: "Despesa",
+    icon: "remove-circle" as const,
+    color: "#EF4444",
+    route: "/add-expense",
+  },
+  {
+    label: "Receita",
+    icon: "add-circle" as const,
+    color: "#10B981",
+    route: "/add-receipt",
+  },
+  {
+    label: "Importar",
+    icon: "cloud-upload" as const,
+    color: "#3B82F6",
+    route: "/import-statement",
+  },
+  {
+    label: "Transferir",
+    icon: "swap-horizontal" as const,
+    color: "#D4A847",
+    route: undefined,
+  },
+] as const;
+
+function getCategoryIcon(name?: string): keyof typeof Ionicons.glyphMap {
+  if (!name) {
+    return "cash";
+  }
+  const lower = name.toLowerCase();
+  if (lower.includes("aliment") || lower.includes("comida")) {
+    return "restaurant";
+  }
+  if (lower.includes("transport")) {
+    return "car";
+  }
+  if (lower.includes("moradia") || lower.includes("aluguel")) {
+    return "home";
+  }
+  if (lower.includes("salário") || lower.includes("salario")) {
+    return "wallet";
+  }
+  if (lower.includes("invest")) {
+    return "trending-up";
+  }
+  if (lower.includes("freelance")) {
+    return "briefcase";
+  }
+  if (lower.includes("supermerc")) {
+    return "cart";
+  }
+  if (lower.includes("assinatur") || lower.includes("netflix")) {
+    return "tv";
+  }
+  if (lower.includes("saúde") || lower.includes("saude")) {
+    return "medkit";
+  }
+  return "cash";
+}
 
 const Header = ({ userName }: { userName: string }) => (
   <View
@@ -150,87 +118,56 @@ const Header = ({ userName }: { userName: string }) => (
       <Text style={{ color: "#94A3B8", fontSize: 14, fontWeight: "500" }}>
         Olá, {userName}
       </Text>
-      <Text style={{ color: "#475569", fontSize: 12 }}>Março 2026</Text>
+      <Text style={{ color: "#475569", fontSize: 12 }}>
+        {new Date().toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        })}
+      </Text>
     </View>
 
     <Pressable style={{ padding: 8, borderRadius: 20 }}>
       <Ionicons color="#ADC6FF" name="notifications-outline" size={24} />
-      <View
-        style={{
-          position: "absolute",
-          top: 4,
-          right: 4,
-          backgroundColor: "#EF4444",
-          borderRadius: 8,
-          minWidth: 16,
-          height: 16,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingHorizontal: 4,
-        }}
-      >
-        <Text style={{ color: "#FFFFFF", fontSize: 10, fontWeight: "700" }}>
-          3
-        </Text>
-      </View>
     </Pressable>
   </View>
 );
 
 const AccountSelector = ({
+  accounts,
   selected,
   onSelect,
 }: {
+  accounts: Array<{ id: string; name: string; balance: number; type: string }>;
   selected: string;
   onSelect: (id: string) => void;
-}) => (
-  <ScrollView
-    contentContainerStyle={{ gap: 10, paddingHorizontal: 24 }}
-    horizontal
-    showsHorizontalScrollIndicator={false}
-    style={{ marginTop: 16 }}
-  >
-    {ACCOUNTS.map((account) => {
-      const isActive = selected === account.id;
-      const hasIcon = "icon" in account;
+}) => {
+  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
+  const allAccounts = [
+    { id: "all", name: "Todas as contas", balance: totalBalance, type: "all" },
+    ...accounts,
+  ];
 
-      return (
-        <Pressable
-          key={account.id}
-          onPress={() => onSelect(account.id)}
-          style={{
-            backgroundColor: isActive ? "#3B82F6" : "#1E2D3D",
-            borderRadius: 16,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            minWidth: 90,
-          }}
-        >
-          {hasIcon && "iconColor" in account ? (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 5,
-                marginBottom: 4,
-              }}
-            >
-              <Ionicons
-                color={isActive ? "#FFFFFF" : (account.iconColor as string)}
-                name={account.icon as keyof typeof Ionicons.glyphMap}
-                size={14}
-              />
-              <Text
-                style={{
-                  color: isActive ? "#FFFFFF" : "#94A3B8",
-                  fontSize: 12,
-                  fontWeight: "500",
-                }}
-              >
-                {account.name}
-              </Text>
-            </View>
-          ) : (
+  return (
+    <ScrollView
+      contentContainerStyle={{ gap: 10, paddingHorizontal: 24 }}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ marginTop: 16 }}
+    >
+      {allAccounts.map((account) => {
+        const isActive = selected === account.id;
+        return (
+          <Pressable
+            key={account.id}
+            onPress={() => onSelect(account.id)}
+            style={{
+              backgroundColor: isActive ? "#3B82F6" : "#1E2D3D",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              minWidth: 90,
+            }}
+          >
             <Text
               style={{
                 color: isActive ? "#FFFFFF" : "#94A3B8",
@@ -241,24 +178,31 @@ const AccountSelector = ({
             >
               {account.name}
             </Text>
-          )}
-          <Text
-            style={{
-              color: isActive ? "#FFFFFF" : "#94A3B8",
-              fontSize: 10,
-              fontFamily: "monospace",
-            }}
-          >
-            R$ {account.balance.toLocaleString("pt-BR")}
-          </Text>
-        </Pressable>
-      );
-    })}
-  </ScrollView>
-);
+            <Text
+              style={{
+                color: isActive ? "#FFFFFF" : "#94A3B8",
+                fontSize: 10,
+                fontFamily: "monospace",
+              }}
+            >
+              {formatMoney(account.balance)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+};
 
-const HeroBalanceCard = () => {
+const HeroBalanceCard = ({
+  totalBalance,
+  changePercent,
+}: {
+  totalBalance: number;
+  changePercent: number;
+}) => {
   const [visible, setVisible] = useState(true);
+  const isPositive = changePercent >= 0;
 
   return (
     <View
@@ -314,46 +258,25 @@ const HeroBalanceCard = () => {
             marginBottom: 8,
           }}
         >
-          {visible ? "R$ 8.450,00" : "••••••"}
+          {visible ? formatMoney(totalBalance) : "••••••"}
         </Text>
 
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Ionicons color="#10B981" name="trending-up" size={16} />
-          <Text style={{ color: "#10B981", fontSize: 12 }}>
-            12% vs mês anterior
+          <Ionicons
+            color={isPositive ? "#10B981" : "#EF4444"}
+            name={isPositive ? "trending-up" : "trending-down"}
+            size={16}
+          />
+          <Text
+            style={{ color: isPositive ? "#10B981" : "#EF4444", fontSize: 12 }}
+          >
+            {Math.abs(changePercent)}% vs mês anterior
           </Text>
         </View>
       </View>
     </View>
   );
 };
-
-const QUICK_ACTIONS = [
-  {
-    label: "Despesa",
-    icon: "remove-circle" as const,
-    color: "#EF4444",
-    route: "/add-expense",
-  },
-  {
-    label: "Receita",
-    icon: "add-circle" as const,
-    color: "#10B981",
-    route: "/add-receipt",
-  },
-  {
-    label: "Importar",
-    icon: "cloud-upload" as const,
-    color: "#3B82F6",
-    route: "/import-statement",
-  },
-  {
-    label: "Transferir",
-    icon: "swap-horizontal" as const,
-    color: "#D4A847",
-    route: undefined,
-  },
-] as const;
 
 const QuickActions = () => (
   <View
@@ -390,7 +313,15 @@ const QuickActions = () => (
   </View>
 );
 
-const MonthSummary = () => (
+const MonthSummary = ({
+  income,
+  expenses,
+  incomePercent,
+}: {
+  income: number;
+  expenses: number;
+  incomePercent: number;
+}) => (
   <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
     <Text
       style={{
@@ -423,12 +354,12 @@ const MonthSummary = () => (
         <Text
           style={{ color: "#10B981", fontSize: 13, fontFamily: "monospace" }}
         >
-          R$ 5.200
+          {formatMoney(income)}
         </Text>
         <Text
           style={{ color: "#EF4444", fontSize: 13, fontFamily: "monospace" }}
         >
-          R$ 3.750
+          {formatMoney(expenses)}
         </Text>
       </View>
 
@@ -443,7 +374,7 @@ const MonthSummary = () => (
       >
         <View
           style={{
-            width: `${INCOME_PERCENT}%`,
+            width: `${incomePercent || 50}%`,
             backgroundColor: "#10B981",
             borderTopLeftRadius: 999,
             borderBottomLeftRadius: 999,
@@ -474,42 +405,51 @@ const MonthSummary = () => (
   </View>
 );
 
-const CreditCardsSection = () => (
-  <View style={{ paddingHorizontal: 24, marginTop: 28 }}>
-    <Text
-      style={{
-        color: "#F1F5F9",
-        fontSize: 16,
-        fontWeight: "600",
-        marginBottom: 16,
-      }}
-    >
-      Meus Cartões
-    </Text>
+const CreditCardsSection = ({
+  cards,
+}: {
+  cards: Array<{
+    id: string;
+    name: string;
+    lastDigits: string;
+    creditLimit: number;
+    usedAmount: number;
+    usagePercent: number;
+    color: string | null;
+  }>;
+}) => {
+  if (cards.length === 0) {
+    return null;
+  }
 
-    <ScrollView
-      contentContainerStyle={{ gap: 12 }}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-    >
-      {CREDIT_CARDS.map(
-        ({
-          id,
-          name,
-          lastDigits,
-          usedPercent,
-          used,
-          limit,
-          brandColor,
-          brandBg,
-        }) => {
-          const isHigh = usedPercent > 80;
+  return (
+    <View style={{ paddingHorizontal: 24, marginTop: 28 }}>
+      <Text
+        style={{
+          color: "#F1F5F9",
+          fontSize: 16,
+          fontWeight: "600",
+          marginBottom: 16,
+        }}
+      >
+        Meus Cartões
+      </Text>
+
+      <ScrollView
+        contentContainerStyle={{ gap: 12 }}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+      >
+        {cards.map((card) => {
+          const isHigh = card.usagePercent > 80;
           const barColor = isHigh ? "#EF4444" : "#ADC6FF";
           const percentColor = isHigh ? "#EF4444" : "#94A3B8";
+          const brandColor = card.color ?? "#A855F7";
+          const brandBg = `${brandColor}26`;
 
           return (
             <View
-              key={id}
+              key={card.id}
               style={{
                 minWidth: 280,
                 backgroundColor: "#17202D",
@@ -553,7 +493,7 @@ const CreditCardsSection = () => (
                       fontWeight: "500",
                     }}
                   >
-                    {name}
+                    {card.name}
                   </Text>
                 </View>
                 <Text
@@ -563,7 +503,7 @@ const CreditCardsSection = () => (
                     fontFamily: "monospace",
                   }}
                 >
-                  •• {lastDigits}
+                  •• {card.lastDigits}
                 </Text>
               </View>
 
@@ -576,7 +516,7 @@ const CreditCardsSection = () => (
                   }}
                 >
                   <Text style={{ color: percentColor, fontSize: 12 }}>
-                    Limite usado: {usedPercent}%
+                    Limite usado: {card.usagePercent}%
                   </Text>
                   <Text
                     style={{
@@ -585,7 +525,7 @@ const CreditCardsSection = () => (
                       fontFamily: "monospace",
                     }}
                   >
-                    R$ {used.toLocaleString("pt-BR")}
+                    {formatMoney(card.usedAmount)}
                   </Text>
                 </View>
 
@@ -598,7 +538,7 @@ const CreditCardsSection = () => (
                 >
                   <View
                     style={{
-                      width: `${usedPercent}%`,
+                      width: `${card.usagePercent}%`,
                       height: 6,
                       borderRadius: 999,
                       backgroundColor: barColor,
@@ -614,83 +554,29 @@ const CreditCardsSection = () => (
                     textAlign: "right",
                   }}
                 >
-                  Total R$ {limit.toLocaleString("pt-BR")}
+                  Total {formatMoney(card.creditLimit)}
                 </Text>
               </View>
             </View>
           );
-        }
-      )}
-    </ScrollView>
-  </View>
-);
-
-const TransactionItem = ({
-  title,
-  category,
-  time,
-  amount,
-  icon,
-  iconColor,
-  iconBg,
-}: {
-  title: string;
-  category: string;
-  time: string;
-  amount: number;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  iconBg: string;
-}) => {
-  const isIncome = amount > 0;
-
-  return (
-    <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        backgroundColor: "#17202D",
-        borderRadius: 16,
-        padding: 16,
-      }}
-    >
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 20,
-          backgroundColor: iconBg,
-          alignItems: "center",
-          justifyContent: "center",
-          marginRight: 12,
-        }}
-      >
-        <Ionicons color={iconColor} name={icon} size={20} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: "#F1F5F9", fontSize: 14, fontWeight: "500" }}>
-          {title}
-        </Text>
-        <Text style={{ color: "#475569", fontSize: 11, marginTop: 2 }}>
-          {time} • {category}
-        </Text>
-      </View>
-      <Text
-        style={{
-          color: isIncome ? "#10B981" : "#EF4444",
-          fontSize: 14,
-          fontFamily: "monospace",
-          fontWeight: "700",
-        }}
-      >
-        {isIncome ? "+" : "-"}
-        {formatMoney(amount)}
-      </Text>
+        })}
+      </ScrollView>
     </View>
   );
 };
 
-const TransactionsSection = () => (
+const TransactionsSection = ({
+  transactions,
+}: {
+  transactions: Array<{
+    id: string;
+    description: string;
+    amount: number;
+    type: string;
+    date: string;
+    category?: { name: string; icon: string; color: string } | null;
+  }>;
+}) => (
   <View style={{ paddingHorizontal: 24, marginTop: 28, marginBottom: 16 }}>
     <View
       style={{
@@ -713,20 +599,84 @@ const TransactionsSection = () => (
       </Pressable>
     </View>
 
-    <View style={{ gap: 12 }}>
-      {TRANSACTIONS.map((tx) => (
-        <TransactionItem
-          amount={tx.amount}
-          category={tx.category}
-          icon={tx.icon}
-          iconBg={tx.iconBg}
-          iconColor={tx.iconColor}
-          key={tx.id}
-          time={tx.time}
-          title={tx.title}
-        />
-      ))}
-    </View>
+    {transactions.length === 0 ? (
+      <View
+        style={{
+          backgroundColor: "#17202D",
+          borderRadius: 16,
+          padding: 32,
+          alignItems: "center",
+        }}
+      >
+        <Ionicons color="#475569" name="receipt-outline" size={40} />
+        <Text style={{ color: "#94A3B8", fontSize: 14, marginTop: 12 }}>
+          Nenhuma transação ainda
+        </Text>
+      </View>
+    ) : (
+      <View style={{ gap: 12 }}>
+        {transactions.map((tx) => {
+          const isIncome = tx.type === "income";
+          const iconName = getCategoryIcon(tx.category?.name ?? tx.description);
+          const iconColor = isIncome ? "#10B981" : "#EF4444";
+          const iconBg = isIncome
+            ? "rgba(16,185,129,0.15)"
+            : "rgba(239,68,68,0.12)";
+
+          return (
+            <View
+              key={tx.id}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#17202D",
+                borderRadius: 16,
+                padding: 16,
+              }}
+            >
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: iconBg,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: 12,
+                }}
+              >
+                <Ionicons color={iconColor} name={iconName} size={20} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{ color: "#F1F5F9", fontSize: 14, fontWeight: "500" }}
+                >
+                  {tx.description}
+                </Text>
+                <Text style={{ color: "#475569", fontSize: 11, marginTop: 2 }}>
+                  {new Date(tx.date).toLocaleDateString("pt-BR", {
+                    day: "2-digit",
+                    month: "short",
+                  })}{" "}
+                  • {tx.category?.name ?? (isIncome ? "Receita" : "Despesa")}
+                </Text>
+              </View>
+              <Text
+                style={{
+                  color: isIncome ? "#10B981" : "#EF4444",
+                  fontSize: 14,
+                  fontFamily: "monospace",
+                  fontWeight: "700",
+                }}
+              >
+                {isIncome ? "+" : "-"}
+                {formatMoney(tx.amount)}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    )}
   </View>
 );
 
@@ -734,20 +684,45 @@ export default function HomeScreen() {
   const { data: session } = authClient.useSession();
   const [selectedAccount, setSelectedAccount] = useState("all");
 
-  const userName = session?.user?.name ?? "Guilherme";
+  const { data: summary, isLoading: summaryLoading } = useDashboardSummary();
+  const { data: recentTx } = useDashboardRecent();
+  const { data: monthlySummary } = useMonthlySummary();
+  const { data: creditCards } = useDashboardCreditCards();
+
+  const userName = session?.user?.name ?? "Usuário";
+
+  if (summaryLoading) {
+    return (
+      <Container>
+        <View
+          style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        >
+          <ActivityIndicator color="#ADC6FF" size="large" />
+        </View>
+      </Container>
+    );
+  }
 
   return (
     <Container>
       <Header userName={userName} />
       <AccountSelector
+        accounts={summary?.accounts ?? []}
         onSelect={setSelectedAccount}
         selected={selectedAccount}
       />
-      <HeroBalanceCard />
+      <HeroBalanceCard
+        changePercent={summary?.changePercent ?? 0}
+        totalBalance={summary?.totalBalance ?? 0}
+      />
       <QuickActions />
-      <MonthSummary />
-      <CreditCardsSection />
-      <TransactionsSection />
+      <MonthSummary
+        expenses={monthlySummary?.expenses ?? 0}
+        income={monthlySummary?.income ?? 0}
+        incomePercent={monthlySummary?.incomePercent ?? 50}
+      />
+      <CreditCardsSection cards={creditCards ?? []} />
+      <TransactionsSection transactions={recentTx ?? []} />
       <View style={{ height: 32 }} />
     </Container>
   );

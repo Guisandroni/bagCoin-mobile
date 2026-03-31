@@ -22,18 +22,14 @@ export default function TabLayout() {
           borderTopColor: "rgba(66,71,84,0.15)",
           borderTopWidth: 0.5,
         },
+        tabBarShowLabel: false,
         tabBarActiveTintColor: "#ADC6FF",
         tabBarInactiveTintColor: "rgba(241,245,249,0.4)",
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: "500",
-        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons color={color} name="home" size={size} />
@@ -43,7 +39,6 @@ export default function TabLayout() {
       <Tabs.Screen
         name="expenses"
         options={{
-          title: "Despesas",
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons color={color} name="arrow-down-circle" size={size} />
@@ -53,7 +48,6 @@ export default function TabLayout() {
       <Tabs.Screen
         name="income"
         options={{
-          title: "Receitas",
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons color={color} name="arrow-up-circle" size={size} />
@@ -63,7 +57,6 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: "Relatórios",
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons color={color} name="pie-chart" size={size} />
@@ -73,7 +66,6 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Perfil",
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons color={color} name="person-circle" size={size} />

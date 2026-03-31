@@ -1,8 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useCategories } from "@/hooks/use-api";
 
 type TabType = "expenses" | "income";
 
@@ -12,28 +20,6 @@ interface Category {
   id: string;
   name: string;
 }
-
-const EXPENSE_CATEGORIES: Category[] = [
-  { id: "1", name: "Alimentação", color: "#D4A847", iconName: "restaurant" },
-  { id: "2", name: "Transporte", color: "#A78BFA", iconName: "car" },
-  { id: "3", name: "Moradia", color: "#3B82F6", iconName: "home" },
-  { id: "4", name: "Saúde", color: "#EF4444", iconName: "medkit" },
-  { id: "5", name: "Lazer", color: "#F97316", iconName: "sparkles" },
-  { id: "6", name: "Supermercado", color: "#8B4513", iconName: "cart" },
-  { id: "7", name: "Assinaturas", color: "#EC4899", iconName: "document" },
-];
-
-const INCOME_CATEGORIES: Category[] = [
-  { id: "8", name: "Salário", color: "#10B981", iconName: "wallet" },
-  { id: "9", name: "Freelance", color: "#D4A847", iconName: "briefcase" },
-  {
-    id: "10",
-    name: "Investimentos",
-    color: "#3B82F6",
-    iconName: "trending-up",
-  },
-  { id: "11", name: "Vendas", color: "#EC4899", iconName: "pricetag" },
-];
 
 const CategoryRow = ({ category }: { category: Category }) => (
   <View
@@ -71,8 +57,17 @@ const CategoriesScreen = () => {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>("expenses");
 
-  const categories =
-    activeTab === "expenses" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const type = activeTab === "expenses" ? "expense" : "income";
+  const { data: apiCategories, isLoading } = useCategories(
+    type as "expense" | "income"
+  );
+
+  const categories = (apiCategories ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    color: c.color,
+    iconName: (c.icon || "cash") as keyof typeof Ionicons.glyphMap,
+  }));
 
   return (
     <View
@@ -165,9 +160,23 @@ const CategoriesScreen = () => {
         </View>
 
         <View className="px-5" style={{ gap: 10 }}>
-          {categories.map((cat) => (
-            <CategoryRow category={cat} key={cat.id} />
-          ))}
+          {isLoading ? (
+            <View style={{ paddingTop: 20, alignItems: "center" }}>
+              <ActivityIndicator color="#ADC6FF" size="large" />
+            </View>
+          ) : null}
+          {!isLoading && categories.length === 0 ? (
+            <View style={{ alignItems: "center", paddingVertical: 32 }}>
+              <Text style={{ color: "#94A3B8", fontSize: 14 }}>
+                Nenhuma categoria cadastrada
+              </Text>
+            </View>
+          ) : null}
+          {!isLoading && categories.length > 0
+            ? categories.map((cat) => (
+                <CategoryRow category={cat} key={cat.id} />
+              ))
+            : null}
         </View>
 
         <Text

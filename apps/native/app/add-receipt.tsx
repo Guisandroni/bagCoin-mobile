@@ -14,14 +14,11 @@ import {
 } from "react-native";
 
 import { Container } from "@/components/container";
-
-const CATEGORIES = [
-  { id: "salary", label: "Salário", icon: "wallet" as const },
-  { id: "freelance", label: "Freelance", icon: "code-slash" as const },
-  { id: "investments", label: "Invest.", icon: "trending-up" as const },
-  { id: "sales", label: "Vendas", icon: "pricetag" as const },
-  { id: "rent", label: "Aluguel", icon: "home" as const },
-];
+import {
+  useBankAccounts,
+  useCategories,
+  useCreateTransaction,
+} from "@/hooks/use-api";
 
 const ACCENT = "#10B981";
 
@@ -29,25 +26,51 @@ const AddReceiptScreen = () => {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("salary");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedAccount, setSelectedAccount] = useState("");
   const { toast } = useToast();
   const { width: screenWidth } = useWindowDimensions();
+
+  const { data: categories } = useCategories("income");
+  const { data: accounts } = useBankAccounts();
+  const createTx = useCreateTransaction();
 
   const categorySize = (screenWidth - 48 - 48) / 5;
 
   const handleSave = () => {
-    if (!(amount && selectedCategory)) {
-      toast.show({
-        variant: "danger",
-        label: "Preencha o valor e selecione uma categoria",
-      });
+    const cents = Math.round(Number.parseFloat(amount.replace(",", ".")) * 100);
+    if (!cents || cents <= 0) {
+      toast.show({ variant: "danger", label: "Informe um valor válido" });
       return;
     }
-    toast.show({
-      variant: "success",
-      label: "Receita adicionada com sucesso",
-    });
-    router.back();
+    if (!description.trim()) {
+      toast.show({ variant: "danger", label: "Informe uma descrição" });
+      return;
+    }
+
+    createTx.mutate(
+      {
+        type: "income",
+        amount: cents,
+        description: description.trim(),
+        date: new Date().toISOString(),
+        categoryId: selectedCategory || undefined,
+        bankAccountId: selectedAccount || undefined,
+        notes: notes.trim() || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.show({ variant: "success", label: "Receita adicionada!" });
+          router.back();
+        },
+        onError: (err) => {
+          toast.show({
+            variant: "danger",
+            label: err.message || "Erro ao salvar",
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -209,7 +232,7 @@ const AddReceiptScreen = () => {
               </View>
             </View>
 
-            {/* Conta de Origem */}
+            {/* Conta */}
             <View style={{ gap: 6 }}>
               <Text
                 style={{
@@ -222,31 +245,43 @@ const AddReceiptScreen = () => {
               >
                 CONTA
               </Text>
-              <Pressable
-                className="flex-row items-center justify-between rounded-xl"
-                style={{
-                  backgroundColor: "#060F1A",
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                }}
-              >
-                <View className="flex-row items-center" style={{ gap: 12 }}>
-                  <Ionicons color="#ADC6FF" name="wallet" size={20} />
-                  <Text style={{ color: "#F1F5F9", fontSize: 15 }}>Nubank</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {(accounts ?? []).map((acc) => {
+                    const isActive = selectedAccount === acc.id;
+                    return (
+                      <Pressable
+                        key={acc.id}
+                        onPress={() => setSelectedAccount(acc.id)}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                          backgroundColor: isActive
+                            ? "rgba(16,185,129,0.1)"
+                            : "#060F1A",
+                          borderWidth: isActive ? 1 : 0,
+                          borderColor: isActive
+                            ? "rgba(16,185,129,0.3)"
+                            : "transparent",
+                          borderRadius: 12,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        }}
+                      >
+                        <Ionicons
+                          color={isActive ? ACCENT : "#ADC6FF"}
+                          name="wallet"
+                          size={18}
+                        />
+                        <Text style={{ color: "#F1F5F9", fontSize: 14 }}>
+                          {acc.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </View>
-                <View className="flex-row items-center" style={{ gap: 8 }}>
-                  <Text
-                    style={{
-                      color: "#C2C6D6",
-                      fontSize: 14,
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    Saldo: R$ 4.250,00
-                  </Text>
-                  <Ionicons color="#475569" name="chevron-forward" size={16} />
-                </View>
-              </Pressable>
+              </ScrollView>
             </View>
 
             {/* Data */}
@@ -317,8 +352,8 @@ const AddReceiptScreen = () => {
                 </Text>
               </Pressable>
             </View>
-            <View className="flex-row" style={{ gap: 12 }}>
-              {CATEGORIES.map((cat) => {
+            <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+              {(categories ?? []).map((cat) => {
                 const isActive = selectedCategory === cat.id;
                 return (
                   <Pressable
@@ -338,7 +373,9 @@ const AddReceiptScreen = () => {
                     >
                       <Ionicons
                         color={isActive ? "#FFFFFF" : "#8C909F"}
-                        name={cat.icon}
+                        name={
+                          (cat.icon as keyof typeof Ionicons.glyphMap) ?? "cash"
+                        }
                         size={22}
                       />
                     </View>
@@ -351,7 +388,7 @@ const AddReceiptScreen = () => {
                         textAlign: "center",
                       }}
                     >
-                      {cat.label}
+                      {cat.name}
                     </Text>
                   </Pressable>
                 );

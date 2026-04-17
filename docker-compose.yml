@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: finance_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  server:
+    build:
+      context: ./apps/server
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/finance_db
+    env_file:
+      - ./apps/server/.env
+    ports:
+      - "8001:8000"
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: ./apps/web
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+
+volumes:
+  postgres_data:

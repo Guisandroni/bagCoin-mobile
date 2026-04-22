@@ -1,16 +1,30 @@
+import asyncio
+import os
+import base64
+import secrets
+import string
+from datetime import datetime
 from fastapi import FastAPI, Request, HTTPException, BackgroundTasks, Form
 from fastapi.middleware.cors import CORSMiddleware
-from whatsapp_api_client_python import API
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from langchain_core.messages import HumanMessage
+from sqlmodel import Session, select
 from .config import settings
 from .database import init_db, engine
 from .agents.graph import graph
 from .models import User
-from sqlmodel import Session, select
-import os
-from datetime import datetime
+from .services.whatsapp_service import send_whatsapp_message, send_whatsapp_file
+from .tasks.agent_tasks import process_agent_message_task
+from .logging_config import logger
 
-app = FastAPI(title="Agent Financeiro Multi-Platform (Green API)")
+# Rate limiter: 10 requests per minute per IP
+limiter = Limiter(key_func=get_remote_address)
+app = FastAPI(title="Agent Financeiro Multi-Platform")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,29 +37,65 @@ app.add_middleware(
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    print(f"Incoming request: {request.method} {request.url.path}")
+    logger.info(
+        "incoming_request",
+        method=request.method,
+        path=request.url.path,
+        client=get_remote_address(request),
+    )
     response = await call_next(request)
-    print(f"Response status: {response.status_code}")
+    logger.info(
+        "request_completed",
+        method=request.method,
+        path=request.url.path,
+        status=response.status_code,
+    )
     return response
 
-green_api = API.GreenAPI(
-    settings.GREEN_API_ID_INSTANCE, 
-    settings.GREEN_API_TOKEN_INSTANCE
-)
+# Optional Green API clients (legacy)
+green_api = None
+try:
+    from whatsapp_api_client_python import API
+    if settings.GREEN_API_ID_INSTANCE and settings.GREEN_API_TOKEN_INSTANCE:
+        green_api = API.GreenAPI(
+            settings.GREEN_API_ID_INSTANCE,
+            settings.GREEN_API_TOKEN_INSTANCE
+        )
+except Exception:
+    pass
 
 telegram_api = None
 if settings.TELEGRAM_ID_INSTANCE and settings.TELEGRAM_TOKEN_INSTANCE:
-    telegram_api = API.GreenAPI(
-        settings.TELEGRAM_ID_INSTANCE,
-        settings.TELEGRAM_TOKEN_INSTANCE
-    )
+    try:
+        from whatsapp_api_client_python import API
+        telegram_api = API.GreenAPI(
+            settings.TELEGRAM_ID_INSTANCE,
+            settings.TELEGRAM_TOKEN_INSTANCE
+        )
+    except Exception:
+        pass
+
+# Redis cache client
+redis_cache = None
+try:
+    import redis
+    redis_cache = redis.from_url(settings.REDIS_URL, decode_responses=True)
+    redis_cache.ping()
+    logger.info("redis_cache_connected")
+except Exception as e:
+    logger.warning("redis_cache_not_available", error=str(e))
 
 @app.on_event("startup")
 def on_startup():
     init_db()
 
 async def process_agent_message(chat_id: str, platform: str, message_text: str = None, file_bytes: bytes = None, file_type: str = None):
-    print(f"Processing {platform} {file_type or 'text'} message for {chat_id}")
+    logger.info(
+        "processing_agent_message",
+        platform=platform,
+        chat_id=chat_id,
+        message_type=file_type or "text",
+    )
     config = {"configurable": {"thread_id": f"{platform}:{chat_id}"}}
     
     content = message_text or f"[Anexo {file_type}]"
@@ -58,7 +108,8 @@ async def process_agent_message(chat_id: str, platform: str, message_text: str =
     }
     
     try:
-        final_state = graph.invoke(initial_state, config=config)
+        # Run graph.invoke in a separate thread to avoid blocking the event loop
+        final_state = await asyncio.to_thread(graph.invoke, initial_state, config)
         
         pdf_bytes = final_state.get("report_pdf_bytes")
         api_client = green_api if platform == "whatsapp" else telegram_api
@@ -67,24 +118,40 @@ async def process_agent_message(chat_id: str, platform: str, message_text: str =
             filename = f"Relatorio_{datetime.now().strftime('%Y%m%d')}.pdf"
             with open(filename, "wb") as f:
                 f.write(pdf_bytes)
-            if api_client:
+            if platform == "whatsapp":
+                try:
+                    base64_file = base64.b64encode(pdf_bytes).decode("utf-8")
+                    await send_whatsapp_file(chat_id, base64_file, filename, "Aqui está seu relatório financeiro.")
+                except Exception as ex:
+                    logger.error("error_sending_pdf", error=str(ex), chat_id=chat_id)
+                    if api_client:
+                        api_client.sending.sendFileByUpload(chat_id, filename, filename, "Aqui está seu relatório financeiro.")
+            elif api_client:
                 api_client.sending.sendFileByUpload(chat_id, filename, filename, "Aqui está seu relatório financeiro.")
             os.remove(filename)
         else:
             response_text = final_state["messages"][-1].content
-            if api_client:
+            if platform == "whatsapp":
+                try:
+                    await send_whatsapp_message(chat_id, response_text)
+                except Exception as ex:
+                    logger.error("error_sending_message", error=str(ex), chat_id=chat_id)
+                    if api_client:
+                        api_client.sending.sendMessage(chat_id, response_text)
+            elif api_client:
                 api_client.sending.sendMessage(chat_id, response_text)
         
     except Exception as e:
-        print(f"Error processing agent: {e}")
-        import traceback
-        traceback.print_exc()
-        api_client = green_api if platform == "whatsapp" else telegram_api
-        if api_client:
-            api_client.sending.sendMessage(chat_id, "Desculpe, tive um problema ao processar seu pedido.")
-
-import secrets
-import string
+        logger.error("error_processing_agent", error=str(e), chat_id=chat_id, exc_info=True)
+        error_msg = "Desculpe, tive um problema ao processar seu pedido."
+        if platform == "whatsapp":
+            try:
+                await send_whatsapp_message(chat_id, error_msg)
+            except Exception:
+                if green_api:
+                    green_api.sending.sendMessage(chat_id, error_msg)
+        elif green_api:
+            green_api.sending.sendMessage(chat_id, error_msg)
 
 def generate_random_token(length=8):
     prefix = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(3))
@@ -93,7 +160,8 @@ def generate_random_token(length=8):
 
 @app.post("/users/pre-register/")
 @app.post("/users/pre-register")
-async def pre_register_user(data: dict = None):
+@limiter.limit("5/minute")
+async def pre_register_user(request: Request, data: dict = None):
     name = (data or {}).get("name", "Usuário")
     
     token = generate_random_token()
@@ -108,8 +176,10 @@ async def pre_register_user(data: dict = None):
         try:
             session.commit()
             session.refresh(new_user)
+            logger.info("user_pre_registered", user_id=new_user.id, name=name)
         except Exception as e:
             session.rollback()
+            logger.error("error_pre_registering_user", error=str(e))
             token = generate_random_token()
             new_user.activation_token = token
             session.add(new_user)
@@ -119,7 +189,8 @@ async def pre_register_user(data: dict = None):
     return {"status": "success", "token": token, "id": new_user.id}
 
 @app.post("/webhook/telegram")
-async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
+@limiter.limit("30/minute")
+async def telegram_webhook(request: Request):
     if not telegram_api:
         return {"status": "telegram_not_configured"}
 
@@ -161,12 +232,14 @@ async def telegram_webhook(request: Request, background_tasks: BackgroundTasks):
                             if file_name.endswith(".pdf"): file_type = "pdf"
 
         if message_text or file_bytes:
-            background_tasks.add_task(process_agent_message, chat_id, "telegram", message_text, file_bytes, file_type)
+            file_bytes_b64 = base64.b64encode(file_bytes).decode("utf-8") if file_bytes else None
+            process_agent_message_task.delay(chat_id, "telegram", message_text, file_bytes_b64, file_type)
             
-    return {"status": "success"}
+    return {"status": "queued"}
 
 @app.post("/webhook/green-api")
-async def green_api_webhook(request: Request, background_tasks: BackgroundTasks):
+@limiter.limit("30/minute")
+async def green_api_webhook(request: Request):
     body = await request.json()
     type_webhook = body.get("typeWebhook")
     
@@ -205,10 +278,80 @@ async def green_api_webhook(request: Request, background_tasks: BackgroundTasks)
                             if file_name.endswith(".pdf"): file_type = "pdf"
 
         if message_text or file_bytes:
-            background_tasks.add_task(process_agent_message, chat_id, "whatsapp", message_text, file_bytes, file_type)
+            file_bytes_b64 = base64.b64encode(file_bytes).decode("utf-8") if file_bytes else None
+            process_agent_message_task.delay(chat_id, "whatsapp", message_text, file_bytes_b64, file_type)
             
-    return {"status": "success"}
+    return {"status": "queued"}
+
+@app.post("/webhook/whatsapp")
+@limiter.limit("30/minute")
+async def whatsapp_web_webhook(request: Request):
+    """Webhook for whatsapp-web.js bridge."""
+    body = await request.json()
+    
+    chat_id = body.get("chatId")
+    if not chat_id:
+        return {"status": "ignored"}
+
+    message_text = body.get("messageText")
+    file_bytes = None
+    file_type = body.get("fileType")
+    
+    raw_file = body.get("fileBytes")
+    if raw_file:
+        if isinstance(raw_file, str):
+            file_bytes = raw_file  # Already base64 from bridge
+        else:
+            file_bytes = base64.b64encode(bytes(raw_file)).decode("utf-8")
+
+    if message_text or file_bytes:
+        process_agent_message_task.delay(chat_id, "whatsapp", message_text, file_bytes, file_type)
+        
+    return {"status": "queued"}
 
 @app.get("/health")
-def health_check():
-    return {"status": "ok"}
+async def health_check():
+    """Real health check: verifies DB, Redis, and WhatsApp bridge connectivity."""
+    checks = {
+        "server": "ok",
+        "database": "unknown",
+        "redis": "unknown",
+        "whatsapp_bridge": "unknown",
+    }
+    status_code = 200
+
+    # Check database
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        checks["database"] = "ok"
+    except Exception as e:
+        checks["database"] = f"error: {str(e)}"
+        status_code = 503
+
+    # Check redis
+    try:
+        import redis as redis_lib
+        r = redis_lib.from_url(settings.REDIS_URL, socket_timeout=2)
+        r.ping()
+        checks["redis"] = "ok"
+    except Exception as e:
+        checks["redis"] = f"error: {str(e)}"
+        status_code = 503
+
+    # Check whatsapp bridge
+    try:
+        import httpx
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{settings.WHATSAPP_BRIDGE_URL}/health", timeout=5.0)
+            if resp.status_code == 200:
+                checks["whatsapp_bridge"] = "ok"
+            else:
+                checks["whatsapp_bridge"] = f"error: status {resp.status_code}"
+                status_code = 503
+    except Exception as e:
+        checks["whatsapp_bridge"] = f"error: {str(e)}"
+        status_code = 503
+
+    return JSONResponse(content=checks, status_code=status_code)

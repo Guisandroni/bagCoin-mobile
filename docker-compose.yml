@@ -50,7 +50,7 @@ services:
   worker:
     build:
       context: ./apps/server
-    command: uv run celery -A src.celery_app worker --loglevel=info --concurrency=2
+    command: .venv/bin/python -m celery -A src.celery_app worker --loglevel=info --concurrency=2
     restart: always
     environment:
       - DATABASE_URL=postgresql://user:password@db:5432/finance_db

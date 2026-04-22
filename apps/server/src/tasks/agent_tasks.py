@@ -2,6 +2,7 @@ import os
 import base64
 import json
 import hashlib
+import time
 from datetime import datetime
 from celery import shared_task
 from celery.exceptions import MaxRetriesExceededError
@@ -11,6 +12,7 @@ from ..config import settings
 from ..database import init_db, engine
 from ..agents.graph import graph
 from ..logging_config import logger
+from ..metrics import agent_messages_processed_total, agent_processing_duration_seconds
 
 # Initialize Redis cache if available
 redis_cache = None
@@ -118,8 +120,10 @@ def process_agent_message_task(
         "file_type": file_type,
     }
 
+    start = time.time()
     try:
         final_state = graph.invoke(initial_state, config=config)
+        agent_processing_duration_seconds.observe(time.time() - start)
         pdf_bytes = final_state.get("report_pdf_bytes")
 
         if pdf_bytes:
@@ -150,9 +154,12 @@ def process_agent_message_task(
                 except Exception as ex:
                     logger.error("error_sending_message", error=str(ex), chat_id=chat_id)
 
+        agent_messages_processed_total.labels(platform=platform, status="success").inc()
         return {"status": "success", "chat_id": chat_id}
 
     except Exception as e:
+        agent_processing_duration_seconds.observe(time.time() - start)
+        agent_messages_processed_total.labels(platform=platform, status="error").inc()
         logger.error("error_processing_agent", error=str(e), chat_id=chat_id, exc_info=True)
 
         error_msg = "Desculpe, tive um problema ao processar seu pedido."

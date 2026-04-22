@@ -3,8 +3,9 @@ import os
 import base64
 import secrets
 import string
+import time
 from datetime import datetime
-from fastapi import FastAPI, Request, HTTPException, BackgroundTasks, Form
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks, Form, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -13,12 +14,19 @@ from slowapi.errors import RateLimitExceeded
 from langchain_core.messages import HumanMessage
 from sqlmodel import Session, select
 from .config import settings
-from .database import init_db, engine
+from .database import engine
 from .agents.graph import graph
 from .models import User
 from .services.whatsapp_service import send_whatsapp_message, send_whatsapp_file
 from .tasks.agent_tasks import process_agent_message_task
 from .logging_config import logger
+from .metrics import (
+    webhook_requests_total,
+    agent_messages_processed_total,
+    pre_register_total,
+    webhook_latency_seconds,
+    metrics_response,
+)
 
 # Rate limiter: 10 requests per minute per IP
 limiter = Limiter(key_func=get_remote_address)
@@ -85,9 +93,19 @@ try:
 except Exception as e:
     logger.warning("redis_cache_not_available", error=str(e))
 
+
+def run_migrations():
+    """Run Alembic migrations on startup."""
+    import alembic.config
+    import alembic.command
+    alembic_cfg = alembic.config.Config("alembic.ini")
+    alembic_cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+    alembic.command.upgrade(alembic_cfg, "head")
+
+
 @app.on_event("startup")
 def on_startup():
-    init_db()
+    run_migrations()
 
 async def process_agent_message(chat_id: str, platform: str, message_text: str = None, file_bytes: bytes = None, file_type: str = None):
     logger.info(
@@ -158,6 +176,11 @@ def generate_random_token(length=8):
     suffix = ''.join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(length))
     return f"{prefix}-{suffix}"
 
+@app.get("/metrics")
+async def metrics_endpoint():
+    data, content_type = metrics_response()
+    return Response(content=data, media_type=content_type)
+
 @app.post("/users/pre-register/")
 @app.post("/users/pre-register")
 @limiter.limit("5/minute")
@@ -177,9 +200,11 @@ async def pre_register_user(request: Request, data: dict = None):
             session.commit()
             session.refresh(new_user)
             logger.info("user_pre_registered", user_id=new_user.id, name=name)
+            pre_register_total.labels(status="success").inc()
         except Exception as e:
             session.rollback()
             logger.error("error_pre_registering_user", error=str(e))
+            pre_register_total.labels(status="error").inc()
             token = generate_random_token()
             new_user.activation_token = token
             session.add(new_user)
@@ -191,7 +216,9 @@ async def pre_register_user(request: Request, data: dict = None):
 @app.post("/webhook/telegram")
 @limiter.limit("30/minute")
 async def telegram_webhook(request: Request):
+    start = time.time()
     if not telegram_api:
+        webhook_requests_total.labels(platform="telegram", status="not_configured").inc()
         return {"status": "telegram_not_configured"}
 
     body = await request.json()
@@ -199,6 +226,7 @@ async def telegram_webhook(request: Request):
     
     chat_id = body.get("senderData", {}).get("chatId")
     if not chat_id:
+        webhook_requests_total.labels(platform="telegram", status="ignored").inc()
         return {"status": "ignored"}
 
     message_text = None
@@ -234,17 +262,21 @@ async def telegram_webhook(request: Request):
         if message_text or file_bytes:
             file_bytes_b64 = base64.b64encode(file_bytes).decode("utf-8") if file_bytes else None
             process_agent_message_task.delay(chat_id, "telegram", message_text, file_bytes_b64, file_type)
-            
+            webhook_requests_total.labels(platform="telegram", status="queued").inc()
+    
+    webhook_latency_seconds.labels(platform="telegram").observe(time.time() - start)
     return {"status": "queued"}
 
 @app.post("/webhook/green-api")
 @limiter.limit("30/minute")
 async def green_api_webhook(request: Request):
+    start = time.time()
     body = await request.json()
     type_webhook = body.get("typeWebhook")
     
     chat_id = body.get("senderData", {}).get("chatId")
     if not chat_id:
+        webhook_requests_total.labels(platform="green_api", status="ignored").inc()
         return {"status": "ignored"}
 
     message_text = None
@@ -280,17 +312,21 @@ async def green_api_webhook(request: Request):
         if message_text or file_bytes:
             file_bytes_b64 = base64.b64encode(file_bytes).decode("utf-8") if file_bytes else None
             process_agent_message_task.delay(chat_id, "whatsapp", message_text, file_bytes_b64, file_type)
-            
+            webhook_requests_total.labels(platform="green_api", status="queued").inc()
+    
+    webhook_latency_seconds.labels(platform="green_api").observe(time.time() - start)
     return {"status": "queued"}
 
 @app.post("/webhook/whatsapp")
 @limiter.limit("30/minute")
 async def whatsapp_web_webhook(request: Request):
     """Webhook for whatsapp-web.js bridge."""
+    start = time.time()
     body = await request.json()
     
     chat_id = body.get("chatId")
     if not chat_id:
+        webhook_requests_total.labels(platform="whatsapp_bridge", status="ignored").inc()
         return {"status": "ignored"}
 
     message_text = body.get("messageText")
@@ -306,7 +342,9 @@ async def whatsapp_web_webhook(request: Request):
 
     if message_text or file_bytes:
         process_agent_message_task.delay(chat_id, "whatsapp", message_text, file_bytes, file_type)
-        
+        webhook_requests_total.labels(platform="whatsapp_bridge", status="queued").inc()
+    
+    webhook_latency_seconds.labels(platform="whatsapp_bridge").observe(time.time() - start)
     return {"status": "queued"}
 
 @app.get("/health")

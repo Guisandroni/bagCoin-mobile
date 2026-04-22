@@ -17,6 +17,8 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-cache
 
 COPY src ./src
+COPY alembic.ini ./
+COPY alembic ./alembic
 COPY .env ./
 
 # Expose port

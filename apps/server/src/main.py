@@ -122,8 +122,7 @@ async def process_agent_message(chat_id: str, platform: str, message_text: str =
     }
     
     try:
-            final_state = await asyncio.to_thread(graph.invoke, initial_state, config)
-        
+        final_state = await asyncio.to_thread(graph.invoke, initial_state, config)
         pdf_bytes = final_state.get("report_pdf_bytes")
         api_client = green_api if platform == "whatsapp" else telegram_api
 

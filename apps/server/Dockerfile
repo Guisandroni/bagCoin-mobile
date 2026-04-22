@@ -21,8 +21,9 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 COPY .env ./
 
-# Expose port
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv
+ENV UV_NO_SYNC=1
+
 EXPOSE 8000
 
-# Run with uvicorn
 CMD ["uv", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -238,3 +238,9 @@ extracted_data_final.txt
 GEMINI.md
 KIMI.md
 DEPLOY.md
+README.md
+apps/server/README.md
+apps/web/AGENTS.md
+apps/web/CLAUDE.md
+apps/web/README.md
+apps/whatsapp/README.md

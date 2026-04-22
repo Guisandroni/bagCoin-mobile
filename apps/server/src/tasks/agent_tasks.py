@@ -13,6 +13,7 @@ from ..database import init_db, engine
 from ..agents.graph import graph
 from ..logging_config import logger
 from ..metrics import agent_messages_processed_total, agent_processing_duration_seconds
+from ..celery_app import celery_app
 
 redis_cache = None
 try:
@@ -54,7 +55,7 @@ def _set_cached_response(cache_key: str, response_text: str, ttl: int = 300):
         pass
 
 
-@shared_task(
+@celery_app.task(
     bind=True,
     max_retries=3,
     default_retry_delay=5,

@@ -62,7 +62,9 @@ services:
       - db
       - redis
     volumes:
-      - ./apps/server:/app
+      - ./apps/server/src:/app/src:ro
+      - ./apps/server/alembic:/app/alembic:ro
+      - ./apps/server/alembic.ini:/app/alembic.ini:ro
 
   web:
     build:

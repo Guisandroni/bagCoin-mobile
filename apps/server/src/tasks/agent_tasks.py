@@ -73,11 +73,16 @@ def process_agent_message_task(
     message_text: str = None,
     file_bytes_b64: str = None,
     file_type: str = None,
+    pushname: str = None,
 ):
     """Process an incoming message through the AI agent.
 
     This runs in a Celery worker to avoid blocking the FastAPI event loop.
+    Auto-creates or updates the user based on pushname from WhatsApp.
     """
+    from sqlmodel import Session, select
+    from ..models import User
+
     # Lazy init DB on first task run
     try:
         init_db()
@@ -89,7 +94,39 @@ def process_agent_message_task(
         platform=platform,
         chat_id=chat_id,
         message_type=file_type or "text",
+        pushname=pushname,
     )
+
+    # --- Auto-create or update user ---
+    user_id = None
+    user_name = pushname or "Usuário"
+    is_new_user = False
+
+    with Session(engine) as session:
+        statement = select(User).where(User.whatsapp_number == chat_id)
+        user = session.exec(statement).first()
+
+        if not user:
+            # Create new user automatically
+            user = User(
+                whatsapp_number=chat_id,
+                name=user_name,
+                is_active=True,
+            )
+            session.add(user)
+            session.commit()
+            session.refresh(user)
+            user_id = user.id
+            is_new_user = True
+            logger.info("user_auto_created", user_id=user_id, name=user_name, chat_id=chat_id)
+        else:
+            user_id = user.id
+            # Update name if pushname is available and current name is generic
+            if pushname and (not user.name or user.name == "Usuário"):
+                user.name = pushname
+                session.add(user)
+                session.commit()
+                logger.info("user_name_updated", user_id=user_id, name=pushname)
 
     config = {"configurable": {"thread_id": f"{platform}:{chat_id}"}}
     content = message_text or f"[Anexo {file_type}]"
@@ -118,6 +155,9 @@ def process_agent_message_task(
         "whatsapp_number": chat_id,
         "file_bytes": file_bytes,
         "file_type": file_type,
+        "user_id": user_id,
+        "pushname": pushname,
+        "is_group": False,
     }
 
     start = time.time()

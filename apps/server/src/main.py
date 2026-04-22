@@ -340,8 +340,17 @@ async def whatsapp_web_webhook(request: Request):
         else:
             file_bytes = base64.b64encode(bytes(raw_file)).decode("utf-8")
 
+    pushname = body.get("pushname")
+    is_group = body.get("isGroup", False)
+
+    if is_group:
+        webhook_requests_total.labels(platform="whatsapp_bridge", status="ignored_group").inc()
+        return {"status": "ignored_group"}
+
     if message_text or file_bytes:
-        process_agent_message_task.delay(chat_id, "whatsapp", message_text, file_bytes, file_type)
+        process_agent_message_task.delay(
+            chat_id, "whatsapp", message_text, file_bytes, file_type, pushname
+        )
         webhook_requests_total.labels(platform="whatsapp_bridge", status="queued").inc()
     
     webhook_latency_seconds.labels(platform="whatsapp_bridge").observe(time.time() - start)

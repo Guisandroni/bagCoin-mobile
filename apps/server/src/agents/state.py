@@ -21,3 +21,5 @@ class AgentState(TypedDict):
     report_pdf_bytes: Optional[bytes]
     sources: Optional[List[str]]
     processed_transactions: Optional[List[TransactionExtraction]]
+    pushname: Optional[str]
+    is_group: bool

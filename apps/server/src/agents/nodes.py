@@ -43,10 +43,52 @@ def router_node(state: AgentState) -> Dict[str, Any]:
     whatsapp_number = state["whatsapp_number"]
     last_message = state["messages"][-1].content
     
+    # Check if user was auto-created in the task (user_id already in state)
+    user_id_from_state = state.get("user_id")
+    if user_id_from_state:
+        user = get_active_user(whatsapp_number)
+        if user:
+            file_type = state.get("file_type")
+            
+            is_statement = False
+            if file_type in ["pdf", "csv", "ofx"]:
+                keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau"]
+                if any(kw in last_message.lower() for kw in keywords):
+                    is_statement = True
+                    
+            if is_statement:
+                return {"intent": "statement", "user_id": user.id}
+            
+            if file_type == "audio": return {"intent": "audio", "user_id": user.id}
+            elif file_type == "image": return {"intent": "image", "user_id": user.id}
+            elif file_type == "pdf": return {"intent": "pdf", "user_id": user.id}
+
+            system_prompt = """You are a financial assistant router. 
+            Classify the user intent into one of:
+            - 'record': User wants to log a new expense or income.
+            - 'query': User wants to know their balance, spending history, or financial summary.
+            - 'report': User wants a PDF report or complete statement.
+            - 'recommendation': User wants financial advice, investment tips, or ways to save money.
+            - 'chat': General conversation or unclear intent.
+            
+            Return ONLY the intent name in lowercase."""
+            
+            response = llm.invoke([
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=last_message)
+            ])
+            
+            intent = response.content.strip().lower()
+            if intent not in ["record", "query", "report", "recommendation", "chat"]:
+                intent = "chat"
+                
+            return {"intent": intent, "user_id": user.id}
+    
+    # Legacy flow: check for activation code (web pre-registration)
     user = get_active_user(whatsapp_number)
     
     if not user:
-        if "Activation code:" in last_message:
+        if "Activation code:" in last_message or re.search(r"/start\s*([\w-]+)", last_message):
             return {"intent": "auth"}
         else:
             return {"intent": "unauthorized"}
@@ -110,16 +152,25 @@ def auth_node(state: AgentState) -> Dict[str, Any]:
             session.add(user)
             session.commit()
             
+            user_name = user.name or state.get("pushname") or "usuário"
             return {
                 "user_id": user.id,
-                "messages": [AIMessage(content=f"🎉 Conexão estabelecida com sucesso! Olá {user.name or 'usuário'}, agora você pode registrar seus gastos e consultar suas finanças por aqui.")]
+                "messages": [AIMessage(content=f"🎉 Conexão estabelecida com sucesso! Olá {user_name}, agora você pode registrar seus gastos e consultar suas finanças por aqui.")]
             }
         else:
             return {"messages": [AIMessage(content="Código de ativação inválido. Verifique o código na página web e tente novamente.")]}
 
 def unauthorized_node(state: AgentState) -> Dict[str, Any]:
-    msg = ("Olá! Para começar a usar o assistente financeiro, você precisa se conectar através do nosso site.\n\n"
-           "Clique no botão de WhatsApp lá para gerar seu código de ativação automático!")
+    pushname = state.get("pushname")
+    name = pushname or "there"
+    msg = (f"Olá {name}! 👋\n\n"
+           "Sou seu assistente financeiro pessoal. Para começar, é só me enviar seus gastos que eu registro tudo pra você!\n\n"
+           "*Exemplos do que você pode fazer:*\n"
+           "• *Gastei R$ 45 no mercado* → Eu registro\n"
+           "• *Quanto gastei esse mês?* → Eu consulto\n"
+           "• *Mande um extrato em PDF* → Eu importo automaticamente\n"
+           "• *Me dê dicas de economia* → Eu pesquiso e recomendo\n\n"
+           "Vamos começar? 😊")
     return {"messages": [AIMessage(content=msg)]}
 
 def parse_flexible_date(date_str: str) -> date:
@@ -273,7 +324,8 @@ def report_node(state: AgentState) -> Dict[str, Any]:
     if not transactions:
         return {"messages": [AIMessage(content="Você não possui transações para gerar um relatório.")]}
         
-    pdf_bytes = generate_financial_report(user.name or state["whatsapp_number"], transactions)
+    user_name = user.name or state.get("pushname") or state["whatsapp_number"]
+    pdf_bytes = generate_financial_report(user_name, transactions)
     
     return {
         "report_pdf_bytes": pdf_bytes,

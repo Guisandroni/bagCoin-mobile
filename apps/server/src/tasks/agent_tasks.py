@@ -1,0 +1,207 @@
+import os
+import base64
+import json
+import hashlib
+from datetime import datetime
+from celery import shared_task
+from celery.exceptions import MaxRetriesExceededError
+from langchain_core.messages import HumanMessage
+
+from ..config import settings
+from ..database import init_db, engine
+from ..agents.graph import graph
+from ..logging_config import logger
+
+# Initialize Redis cache if available
+redis_cache = None
+try:
+    import redis
+    redis_cache = redis.from_url(settings.REDIS_URL, decode_responses=True)
+    redis_cache.ping()
+    logger.info("redis_cache_connected_in_worker")
+except Exception:
+    logger.warning("redis_cache_not_available_in_worker")
+
+
+def _get_cache_key(chat_id: str, message_text: str) -> str:
+    """Generate a cache key for agent responses."""
+    content = f"{chat_id}:{message_text}"
+    return f"agent:response:{hashlib.md5(content.encode()).hexdigest()}"
+
+
+def _get_cached_response(cache_key: str):
+    """Get cached response from Redis if available."""
+    if not redis_cache:
+        return None
+    try:
+        cached = redis_cache.get(cache_key)
+        if cached:
+            return json.loads(cached)
+    except Exception:
+        pass
+    return None
+
+
+def _set_cached_response(cache_key: str, response_text: str, ttl: int = 300):
+    """Cache agent response for 5 minutes."""
+    if not redis_cache:
+        return
+    try:
+        redis_cache.setex(
+            cache_key,
+            ttl,
+            json.dumps({"response": response_text, "cached_at": datetime.utcnow().isoformat()}),
+        )
+    except Exception:
+        pass
+
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    default_retry_delay=5,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=60,
+)
+def process_agent_message_task(
+    self,
+    chat_id: str,
+    platform: str,
+    message_text: str = None,
+    file_bytes_b64: str = None,
+    file_type: str = None,
+):
+    """Process an incoming message through the AI agent.
+
+    This runs in a Celery worker to avoid blocking the FastAPI event loop.
+    """
+    # Lazy init DB on first task run
+    try:
+        init_db()
+    except Exception:
+        pass
+
+    logger.info(
+        "processing_agent_message",
+        platform=platform,
+        chat_id=chat_id,
+        message_type=file_type or "text",
+    )
+
+    config = {"configurable": {"thread_id": f"{platform}:{chat_id}"}}
+    content = message_text or f"[Anexo {file_type}]"
+
+    # Check cache for text-only messages (no files)
+    cache_key = None
+    if message_text and not file_bytes_b64:
+        cache_key = _get_cache_key(chat_id, message_text)
+        cached = _get_cached_response(cache_key)
+        if cached:
+            logger.info("cache_hit", chat_id=chat_id)
+            response_text = cached["response"]
+            if platform == "whatsapp":
+                try:
+                    send_whatsapp_message_sync(chat_id, response_text)
+                except Exception as ex:
+                    logger.error("error_sending_cached_message", error=str(ex), chat_id=chat_id)
+            return {"status": "success", "chat_id": chat_id, "cached": True}
+
+    file_bytes = None
+    if file_bytes_b64:
+        file_bytes = base64.b64decode(file_bytes_b64)
+
+    initial_state = {
+        "messages": [HumanMessage(content=content)],
+        "whatsapp_number": chat_id,
+        "file_bytes": file_bytes,
+        "file_type": file_type,
+    }
+
+    try:
+        final_state = graph.invoke(initial_state, config=config)
+        pdf_bytes = final_state.get("report_pdf_bytes")
+
+        if pdf_bytes:
+            filename = f"Relatorio_{datetime.now().strftime('%Y%m%d')}.pdf"
+            with open(filename, "wb") as f:
+                f.write(pdf_bytes)
+
+            if platform == "whatsapp":
+                try:
+                    base64_file = base64.b64encode(pdf_bytes).decode("utf-8")
+                    send_whatsapp_file_sync(chat_id, base64_file, filename, "Aqui está seu relatório financeiro.")
+                    logger.info("pdf_sent", chat_id=chat_id)
+                except Exception as ex:
+                    logger.error("error_sending_pdf", error=str(ex), chat_id=chat_id)
+            os.remove(filename)
+        else:
+            response_text = final_state["messages"][-1].content
+
+            # Cache the response
+            if cache_key:
+                _set_cached_response(cache_key, response_text)
+                logger.info("response_cached", chat_id=chat_id, cache_key=cache_key)
+
+            if platform == "whatsapp":
+                try:
+                    send_whatsapp_message_sync(chat_id, response_text)
+                    logger.info("message_sent", chat_id=chat_id)
+                except Exception as ex:
+                    logger.error("error_sending_message", error=str(ex), chat_id=chat_id)
+
+        return {"status": "success", "chat_id": chat_id}
+
+    except Exception as e:
+        logger.error("error_processing_agent", error=str(e), chat_id=chat_id, exc_info=True)
+
+        error_msg = "Desculpe, tive um problema ao processar seu pedido."
+        if platform == "whatsapp":
+            try:
+                send_whatsapp_message_sync(chat_id, error_msg)
+            except Exception:
+                pass
+
+        # Retry if not max retries
+        try:
+            raise self.retry(exc=e)
+        except MaxRetriesExceededError:
+            logger.error("max_retries_exceeded", chat_id=chat_id)
+            return {"status": "failed", "error": str(e)}
+
+
+def send_whatsapp_message_sync(chat_id: str, text: str):
+    """Synchronous wrapper for sending WhatsApp messages from Celery task."""
+    import urllib.request
+    import urllib.error
+
+    bridge_url = getattr(settings, "WHATSAPP_BRIDGE_URL", "http://localhost:3002")
+    url = f"{bridge_url}/send-message"
+    data = json.dumps({"chatId": chat_id, "text": text}).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        if resp.status != 200:
+            raise Exception(f"Failed to send message: {resp.status}")
+
+
+def send_whatsapp_file_sync(chat_id: str, base64_file: str, filename: str, caption: str = None):
+    """Synchronous wrapper for sending WhatsApp files from Celery task."""
+    import urllib.request
+    import urllib.error
+
+    bridge_url = getattr(settings, "WHATSAPP_BRIDGE_URL", "http://localhost:3002")
+    url = f"{bridge_url}/send-file"
+    data = json.dumps({
+        "chatId": chat_id,
+        "base64File": base64_file,
+        "filename": filename,
+        "caption": caption or "",
+    }).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        if resp.status != 200:
+            raise Exception(f"Failed to send file: {resp.status}")

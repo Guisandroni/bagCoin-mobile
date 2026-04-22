@@ -93,7 +93,7 @@ def auth_node(state: AgentState) -> Dict[str, Any]:
     
     match = re.search(r"(?:Activation code:|/start)\s*([\w-]+)", last_message)
     if not match:
-        return {"messages": [AIMessage(content="Código de ativação não encontrado. Por favor, envie o código gerado na nossa página web.")]}
+        return {"messages": [AIMessage(content="Código de ativação não encontrado. Por favor, envie o código de ativação, referente ao seu número de WhatsApp, na nossa página web.")]}
     
     token = match.group(1).strip()
     
@@ -103,7 +103,7 @@ def auth_node(state: AgentState) -> Dict[str, Any]:
         
         if user:
             if user.is_active:
-                return {"messages": [AIMessage(content="Este código de ativação já foi utilizado.")]}
+                return {"messages": [AIMessage(content="Este código de ativação é inválido ou já foi utilizado.")]}
             
             user.whatsapp_number = whatsapp_number
             user.is_active = True

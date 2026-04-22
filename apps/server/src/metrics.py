@@ -1,7 +1,6 @@
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 import time
 
-# Counters
 webhook_requests_total = Counter(
     "webhook_requests_total",
     "Total webhook requests",
@@ -20,7 +19,6 @@ pre_register_total = Counter(
     ["status"]
 )
 
-# Histograms
 webhook_latency_seconds = Histogram(
     "webhook_latency_seconds",
     "Webhook request latency",

@@ -5,7 +5,6 @@ from ..config import settings
 WHATSAPP_BRIDGE_URL = settings.WHATSAPP_BRIDGE_URL
 
 async def send_whatsapp_message(chat_id: str, text: str):
-    """Send a text message via the WhatsApp Web bridge."""
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{WHATSAPP_BRIDGE_URL}/send-message",
@@ -16,7 +15,6 @@ async def send_whatsapp_message(chat_id: str, text: str):
         return resp.json()
 
 async def send_whatsapp_file(chat_id: str, base64_file: str, filename: str, caption: Optional[str] = None):
-    """Send a file via the WhatsApp Web bridge."""
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"{WHATSAPP_BRIDGE_URL}/send-file",

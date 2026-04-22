@@ -14,7 +14,6 @@ from ..agents.graph import graph
 from ..logging_config import logger
 from ..metrics import agent_messages_processed_total, agent_processing_duration_seconds
 
-# Initialize Redis cache if available
 redis_cache = None
 try:
     import redis
@@ -26,13 +25,11 @@ except Exception:
 
 
 def _get_cache_key(chat_id: str, message_text: str) -> str:
-    """Generate a cache key for agent responses."""
     content = f"{chat_id}:{message_text}"
     return f"agent:response:{hashlib.md5(content.encode()).hexdigest()}"
 
 
 def _get_cached_response(cache_key: str):
-    """Get cached response from Redis if available."""
     if not redis_cache:
         return None
     try:
@@ -45,7 +42,6 @@ def _get_cached_response(cache_key: str):
 
 
 def _set_cached_response(cache_key: str, response_text: str, ttl: int = 300):
-    """Cache agent response for 5 minutes."""
     if not redis_cache:
         return
     try:
@@ -75,15 +71,9 @@ def process_agent_message_task(
     file_type: str = None,
     pushname: str = None,
 ):
-    """Process an incoming message through the AI agent.
-
-    This runs in a Celery worker to avoid blocking the FastAPI event loop.
-    Auto-creates or updates the user based on pushname from WhatsApp.
-    """
     from sqlmodel import Session, select
     from ..models import User
 
-    # Lazy init DB on first task run
     try:
         init_db()
     except Exception:
@@ -97,7 +87,6 @@ def process_agent_message_task(
         pushname=pushname,
     )
 
-    # --- Auto-create or update user ---
     user_id = None
     user_name = pushname or "Usuário"
     is_new_user = False
@@ -107,7 +96,6 @@ def process_agent_message_task(
         user = session.exec(statement).first()
 
         if not user:
-            # Create new user automatically
             user = User(
                 whatsapp_number=chat_id,
                 name=user_name,
@@ -121,7 +109,6 @@ def process_agent_message_task(
             logger.info("user_auto_created", user_id=user_id, name=user_name, chat_id=chat_id)
         else:
             user_id = user.id
-            # Update name if pushname is available and current name is generic
             if pushname and (not user.name or user.name == "Usuário"):
                 user.name = pushname
                 session.add(user)
@@ -131,7 +118,6 @@ def process_agent_message_task(
     config = {"configurable": {"thread_id": f"{platform}:{chat_id}"}}
     content = message_text or f"[Anexo {file_type}]"
 
-    # Check cache for text-only messages (no files)
     cache_key = None
     if message_text and not file_bytes_b64:
         cache_key = _get_cache_key(chat_id, message_text)
@@ -182,7 +168,6 @@ def process_agent_message_task(
         else:
             response_text = final_state["messages"][-1].content
 
-            # Cache the response
             if cache_key:
                 _set_cached_response(cache_key, response_text)
                 logger.info("response_cached", chat_id=chat_id, cache_key=cache_key)
@@ -209,7 +194,6 @@ def process_agent_message_task(
             except Exception:
                 pass
 
-        # Retry if not max retries
         try:
             raise self.retry(exc=e)
         except MaxRetriesExceededError:
@@ -218,7 +202,6 @@ def process_agent_message_task(
 
 
 def send_whatsapp_message_sync(chat_id: str, text: str):
-    """Synchronous wrapper for sending WhatsApp messages from Celery task."""
     import urllib.request
     import urllib.error
 
@@ -234,7 +217,6 @@ def send_whatsapp_message_sync(chat_id: str, text: str):
 
 
 def send_whatsapp_file_sync(chat_id: str, base64_file: str, filename: str, caption: str = None):
-    """Synchronous wrapper for sending WhatsApp files from Celery task."""
     import urllib.request
     import urllib.error
 

@@ -27,32 +27,25 @@ export class MongoAuth {
   }
 
   async setup(clientInstance: any): Promise<void> {
-    // Called during Client construction
     console.log('[MongoAuth] Setup');
   }
 
-  async beforeBrowserInitialized(): Promise<void> {
-    // No setup needed before browser
-  }
+  async beforeBrowserInitialized(): Promise<void> {}
 
-  async afterBrowserInitialized(): Promise<void> {
-    // No setup needed after browser
-  }
+  async afterBrowserInitialized(): Promise<void> {}
 
   async onAuthenticationNeeded(): Promise<boolean> {
-    // Check if session exists
     try {
       const collection = await getCollection();
       const doc = await collection.findOne({ _id: SESSION_KEY });
-      return !doc; // Return true if auth IS needed (no session found)
+      return !doc;
     } catch (err) {
       console.error('Error checking session:', err);
-      return true; // Assume auth needed on error
+      return true;
     }
   }
 
   async getAuthEventPayload(): Promise<any> {
-    // Return stored session
     try {
       const collection = await getCollection();
       const doc = await collection.findOne({ _id: SESSION_KEY });
@@ -67,26 +60,22 @@ export class MongoAuth {
     }
   }
 
-  async afterAuthReady(): Promise<void> {
-    // Session is ready
-  }
+  async afterAuthReady(): Promise<void> {}
 
   async disconnect(): Promise<void> {
-    // Close MongoDB connection
     if (client) {
       await client.close();
       client = null;
       db = null;
-      console.log('🔌 Disconnected from MongoDB');
+      console.log('Disconnected from MongoDB');
     }
   }
 
   async destroy(): Promise<void> {
-    // Remove session from MongoDB
     try {
       const collection = await getCollection();
       await collection.deleteOne({ _id: SESSION_KEY });
-      console.log('🗑️  Session destroyed in MongoDB');
+      console.log('Session destroyed in MongoDB');
     } catch (err) {
       console.error('Error destroying session:', err);
     }
@@ -98,7 +87,6 @@ export class MongoAuth {
   }
 
   async save(session: any): Promise<void> {
-    // Save session to MongoDB
     try {
       const collection = await getCollection();
       await collection.updateOne(
@@ -106,14 +94,13 @@ export class MongoAuth {
         { $set: { session, updatedAt: new Date() } },
         { upsert: true }
       );
-      console.log('💾 Session saved to MongoDB');
+      console.log('Session saved to MongoDB');
     } catch (err) {
       console.error('Error saving session:', err);
     }
   }
 
   async extractSession(session: any): Promise<any> {
-    // Extract session data from authentication event
     return session;
   }
 }

@@ -28,7 +28,6 @@ from .metrics import (
     metrics_response,
 )
 
-# Rate limiter: 10 requests per minute per IP
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Agent Financeiro Multi-Platform")
 app.state.limiter = limiter
@@ -60,7 +59,6 @@ async def log_requests(request: Request, call_next):
     )
     return response
 
-# Optional Green API clients (legacy)
 green_api = None
 try:
     from whatsapp_api_client_python import API
@@ -83,7 +81,6 @@ if settings.TELEGRAM_ID_INSTANCE and settings.TELEGRAM_TOKEN_INSTANCE:
     except Exception:
         pass
 
-# Redis cache client
 redis_cache = None
 try:
     import redis
@@ -95,7 +92,6 @@ except Exception as e:
 
 
 def run_migrations():
-    """Run Alembic migrations on startup."""
     import alembic.config
     import alembic.command
     alembic_cfg = alembic.config.Config("alembic.ini")
@@ -126,8 +122,7 @@ async def process_agent_message(chat_id: str, platform: str, message_text: str =
     }
     
     try:
-        # Run graph.invoke in a separate thread to avoid blocking the event loop
-        final_state = await asyncio.to_thread(graph.invoke, initial_state, config)
+            final_state = await asyncio.to_thread(graph.invoke, initial_state, config)
         
         pdf_bytes = final_state.get("report_pdf_bytes")
         api_client = green_api if platform == "whatsapp" else telegram_api
@@ -320,7 +315,6 @@ async def green_api_webhook(request: Request):
 @app.post("/webhook/whatsapp")
 @limiter.limit("30/minute")
 async def whatsapp_web_webhook(request: Request):
-    """Webhook for whatsapp-web.js bridge."""
     start = time.time()
     body = await request.json()
     
@@ -358,7 +352,6 @@ async def whatsapp_web_webhook(request: Request):
 
 @app.get("/health")
 async def health_check():
-    """Real health check: verifies DB, Redis, and WhatsApp bridge connectivity."""
     checks = {
         "server": "ok",
         "database": "unknown",
@@ -367,7 +360,6 @@ async def health_check():
     }
     status_code = 200
 
-    # Check database
     try:
         from sqlalchemy import text
         with engine.connect() as conn:
@@ -377,7 +369,6 @@ async def health_check():
         checks["database"] = f"error: {str(e)}"
         status_code = 503
 
-    # Check redis
     try:
         import redis as redis_lib
         r = redis_lib.from_url(settings.REDIS_URL, socket_timeout=2)
@@ -387,7 +378,6 @@ async def health_check():
         checks["redis"] = f"error: {str(e)}"
         status_code = 503
 
-    # Check whatsapp bridge
     try:
         import httpx
         async with httpx.AsyncClient() as client:

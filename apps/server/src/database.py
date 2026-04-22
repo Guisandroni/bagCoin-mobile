@@ -2,7 +2,6 @@ from typing import Generator
 from sqlmodel import create_engine, Session, SQLModel
 from .config import settings
 
-# Connection pooling for production
 engine = create_engine(
     settings.DATABASE_URL,
     pool_size=10,

@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting WhatsApp bridge..."
+echo "Starting WhatsApp bridge..."
 exec "$@"

@@ -43,7 +43,6 @@ def router_node(state: AgentState) -> Dict[str, Any]:
     whatsapp_number = state["whatsapp_number"]
     last_message = state["messages"][-1].content
     
-    # Check if user was auto-created in the task (user_id already in state)
     user_id_from_state = state.get("user_id")
     if user_id_from_state:
         user = get_active_user(whatsapp_number)
@@ -84,7 +83,6 @@ def router_node(state: AgentState) -> Dict[str, Any]:
                 
             return {"intent": intent, "user_id": user.id}
     
-    # Legacy flow: check for activation code (web pre-registration)
     user = get_active_user(whatsapp_number)
     
     if not user:
@@ -155,7 +153,7 @@ def auth_node(state: AgentState) -> Dict[str, Any]:
             user_name = user.name or state.get("pushname") or "usuário"
             return {
                 "user_id": user.id,
-                "messages": [AIMessage(content=f"🎉 Conexão estabelecida com sucesso! Olá {user_name}, agora você pode registrar seus gastos e consultar suas finanças por aqui.")]
+                "messages": [AIMessage(content=f"Conexão estabelecida com sucesso! Olá {user_name}, agora você pode registrar seus gastos e consultar suas finanças por aqui.")]
             }
         else:
             return {"messages": [AIMessage(content="Código de ativação inválido. Verifique o código na página web e tente novamente.")]}
@@ -163,14 +161,14 @@ def auth_node(state: AgentState) -> Dict[str, Any]:
 def unauthorized_node(state: AgentState) -> Dict[str, Any]:
     pushname = state.get("pushname")
     name = pushname or "there"
-    msg = (f"Olá {name}! 👋\n\n"
+    msg = (f"Olá {name}!\n\n"
            "Sou seu assistente financeiro pessoal. Para começar, é só me enviar seus gastos que eu registro tudo pra você!\n\n"
-           "*Exemplos do que você pode fazer:*\n"
-           "• *Gastei R$ 45 no mercado* → Eu registro\n"
-           "• *Quanto gastei esse mês?* → Eu consulto\n"
-           "• *Mande um extrato em PDF* → Eu importo automaticamente\n"
-           "• *Me dê dicas de economia* → Eu pesquiso e recomendo\n\n"
-           "Vamos começar? 😊")
+           "Exemplos do que você pode fazer:\n"
+           "- Gastei R$ 45 no mercado → Eu registro\n"
+           "- Quanto gastei esse mês? → Eu consulto\n"
+           "- Mande um extrato em PDF → Eu importo automaticamente\n"
+           "- Me dê dicas de economia → Eu pesquiso e recomendo\n\n"
+           "Vamos começar?")
     return {"messages": [AIMessage(content=msg)]}
 
 def parse_flexible_date(date_str: str) -> date:
@@ -247,7 +245,7 @@ def statement_node(state: AgentState) -> Dict[str, Any]:
                     saved_count += 1
             session.commit()
             
-        msg = f"📊 Extrato processado! Encontrei {len(transaction_list)} lançamentos e importei {saved_count} novas transações para o seu histórico."
+        msg = f"Extrato processado! Encontrei {len(transaction_list)} lançamentos e importei {saved_count} novas transações para o seu histórico."
     except Exception as e:
         print(f"Error processing statement: {e}")
         msg = "Desculpe, tive um problema ao processar este formato de extrato."
@@ -417,7 +415,7 @@ def extraction_node(state: AgentState) -> Dict[str, Any]:
         
     return {
         "extracted_data": extracted,
-        "messages": [AIMessage(content=f"✅ Registrado: R$ {extracted.amount:.2f} em '{extracted.description}' ({extracted.category}).")]
+        "messages": [AIMessage(content=f"Registrado: R$ {extracted.amount:.2f} em '{extracted.description}' ({extracted.category}).")]
     }
 
 def query_node(state: AgentState) -> Dict[str, Any]:

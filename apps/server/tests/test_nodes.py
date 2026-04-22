@@ -48,4 +48,4 @@ def test_extraction_node_mock(mock_llm):
         result = extraction_node(state)
         
         assert result["extracted_data"].amount == 50.0
-        assert "✅ Registrado: R$ 50.00" in result["messages"][0].content
+        assert "Registrado: R$ 50.00" in result["messages"][0].content

@@ -20,7 +20,6 @@ structlog.configure(
     cache_logger_on_first_use=True,
 )
 
-# Configure standard library logging to use structlog
 logging.basicConfig(
     format="%(message)s",
     stream=sys.stdout,

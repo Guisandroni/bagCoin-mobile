@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { sendMessage, sendFile } from './client';
+import { sendMessage, sendFile, getCurrentQrData } from './client';
 import type { SendMessageBody, SendFileBody, HealthResponse } from './types';
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
@@ -31,6 +31,25 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
+  });
+
+  app.get('/qr', async (_request, reply: FastifyReply) => {
+    const qrData = getCurrentQrData();
+
+    if (!qrData) {
+      return reply.status(404).send({
+        status: 'not_found',
+        message: 'No QR code available. WhatsApp may already be authenticated or not yet initialized.',
+      });
+    }
+
+    return reply.send({
+      status: 'ok',
+      qr: qrData.qr,
+      base64Image: qrData.base64Image,
+      generatedAt: qrData.generatedAt,
+      instructions: 'Scan the QR code with your WhatsApp app (Linked Devices) to authenticate.',
+    });
   });
 
   app.get('/health', async (_request, reply: FastifyReply) => {

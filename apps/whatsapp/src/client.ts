@@ -1,6 +1,7 @@
 import { Client, MessageMedia, WAState } from 'whatsapp-web.js';
 import type { Message } from 'whatsapp-web.js';
-import qrcode from 'qrcode-terminal';
+import qrcodeTerminal from 'qrcode-terminal';
+import QRCode from 'qrcode';
 import axios from 'axios';
 import type { IncomingMessagePayload } from './types';
 import { MongoAuth } from './auth/MongoAuth';
@@ -16,6 +17,9 @@ const readyPromise = new Promise<void>((resolve) => {
 
 let reconnectAttempts = 0;
 let isShuttingDown = false;
+
+// Store the latest QR code for remote access
+let currentQrData: { qr: string; base64Image: string | null; generatedAt: string } | null = null;
 
 const mongoAuth = new MongoAuth();
 
@@ -37,9 +41,23 @@ const client = new Client({
   },
 });
 
-client.on('qr', (qr: string) => {
+client.on('qr', async (qr: string) => {
   console.log('\n⚡ Scan the QR code below to authenticate WhatsApp:\n');
-  qrcode.generate(qr, { small: true });
+  qrcodeTerminal.generate(qr, { small: true });
+
+  // Generate base64 PNG image for remote access
+  try {
+    const base64Image = await QRCode.toDataURL(qr, { width: 400, margin: 2 });
+    currentQrData = {
+      qr,
+      base64Image,
+      generatedAt: new Date().toISOString(),
+    };
+    console.log('📱 QR Code saved for remote access at GET /qr');
+  } catch (err: any) {
+    console.error('Failed to generate QR image:', err.message);
+    currentQrData = { qr, base64Image: null, generatedAt: new Date().toISOString() };
+  }
 });
 
 client.on('ready', () => {
@@ -53,6 +71,7 @@ client.on('ready', () => {
 
 client.on('authenticated', async (session: any) => {
   console.log('🔐 WhatsApp authenticated');
+  currentQrData = null; // Clear QR code after auth
   // Save session to MongoDB
   await mongoAuth.save(session);
 });
@@ -184,6 +203,10 @@ export async function sendFile(chatId: string, base64File: string, filename: str
     console.error('Error sending file:', err.message);
     throw err;
   }
+}
+
+export function getCurrentQrData(): typeof currentQrData {
+  return currentQrData;
 }
 
 export async function initialize(): Promise<void> {

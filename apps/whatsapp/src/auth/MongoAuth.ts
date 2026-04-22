@@ -2,7 +2,7 @@ import { MongoClient, Db, Collection } from 'mongodb';
 
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/whatsapp_sessions';
 const SESSION_COLLECTION = 'whatsapp_sessions';
-const SESSION_KEY = 'backcoin_session';
+const SESSION_KEY = 'bagcoin_session';
 
 let db: Db | null = null;
 let client: MongoClient | null = null;
@@ -12,7 +12,7 @@ async function getCollection(): Promise<Collection> {
     client = new MongoClient(MONGO_URL);
     await client.connect();
     db = client.db();
-    console.log('✅ Connected to MongoDB for session storage');
+    console.log('Connected to MongoDB for session storage');
   }
   return db.collection(SESSION_COLLECTION);
 }
@@ -57,7 +57,7 @@ export class MongoAuth {
       const collection = await getCollection();
       const doc = await collection.findOne({ _id: SESSION_KEY });
       if (doc && doc.session) {
-        console.log('🔐 Restoring session from MongoDB');
+        console.log('Restoring session from MongoDB');
         return doc.session;
       }
       return null;

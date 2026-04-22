@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Backcoin | Money for Here, There and Everywhere",
+  title: "Bagcoin | Money for Here, There and Everywhere",
   description: "Redefining capital through technology, transparency, and clinical design.",
 };
 

@@ -27,4 +27,4 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-logger = structlog.get_logger("backcoin")
+logger = structlog.get_logger("bagcoin")

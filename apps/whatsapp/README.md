@@ -1,6 +1,6 @@
 # WhatsApp Bridge (whatsapp-web.js + Fastify + TypeScript)
 
-Este app atua como um bridge entre o WhatsApp Web e o backend Backcoin, substituindo a integração via Green API.
+Este app atua como um bridge entre o WhatsApp Web e o backend Bagcoin, substituindo a integração via Green API.
 
 ## Stack
 
@@ -39,7 +39,7 @@ cp .env.example .env
 
 | Variável | Descrição | Padrão |
 |---|---|---|
-| `API_URL` | URL do backend Backcoin | `http://localhost:8001` |
+| `API_URL` | URL do backend Bagcoin | `http://localhost:8001` |
 | `PORT` | Porta do bridge WhatsApp | `3002` |
 
 ## Rodar em desenvolvimento

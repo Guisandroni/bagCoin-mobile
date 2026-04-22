@@ -1,7 +1,7 @@
 {
-  "name": "@backcoin/whatsapp",
+  "name": "@bagcoin/whatsapp",
   "version": "1.1.0",
-  "description": "WhatsApp Web bridge for Backcoin using whatsapp-web.js + Fastify + TypeScript",
+  "description": "WhatsApp Web bridge for Bagcoin using whatsapp-web.js + Fastify + TypeScript",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",

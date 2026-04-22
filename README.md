@@ -1,6 +1,6 @@
-# Backcoin - Assistente Financeiro Inteligente (Multi-Agent)
+# BagCoin - Assistente Financeiro Inteligente (Multi-Agent)
 
-**Backcoin** é um ecossistema de gestão financeira pessoal que transforma o WhatsApp e o Telegram em interfaces conversacionais poderosas. Utilizando uma arquitetura de múltiplos agentes (LangGraph), o sistema é capaz de processar despesas via texto, áudio, imagens e extratos bancários complexos, oferecendo análises profundas e recomendações baseadas em dados reais e pesquisa na web.
+**Bagcoin** é um ecossistema de gestão financeira pessoal que transforma o WhatsApp e o Telegram em interfaces conversacionais poderosas. Utilizando uma arquitetura de múltiplos agentes (LangGraph), o sistema é capaz de processar despesas via texto, áudio, imagens e extratos bancários complexos, oferecendo análises profundas e recomendações baseadas em dados reais e pesquisa na web.
 
 ---
 
@@ -76,8 +76,4 @@ O projeto é dividido em uma estrutura monorepo para facilitar o desenvolvimento
     - **Web**: [http://localhost:3000](http://localhost:3000)
     - **API (Swagger)**: [http://localhost:8001/docs](http://localhost:8001/docs)
 
----
 
-## 📜 Licença
-Este projeto foi desenvolvido para fins de gestão financeira pessoal e automação inteligente.
-© 2026 Backcoin Kinetic. Todos os direitos reservados.

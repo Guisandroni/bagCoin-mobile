@@ -54,10 +54,10 @@ export const Footer: React.FC<FooterProps> = ({ onConnect }) => {
         <div className="flex flex-col md:flex-row justify-between items-center px-12 py-16 w-full max-w-screen-2xl mx-auto border-t border-on-background/5">
           <div className="flex flex-col gap-4 mb-8 md:mb-0">
             <div className="font-headline font-bold text-on-background text-3xl">
-              Backcoin
+              BagCoin
             </div>
             <p className="text-sm uppercase tracking-widest text-on-background/50">
-              © 2026 Backcoin Kinetic. All rights reserved.
+              © 226 BagCoin Kinetic. All rights reserved.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-12 text-sm uppercase tracking-widest">

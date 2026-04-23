@@ -161,15 +161,27 @@ def auth_node(state: AgentState) -> Dict[str, Any]:
 
 def unauthorized_node(state: AgentState) -> Dict[str, Any]:
     pushname = state.get("pushname")
-    name = pushname or "there"
-    msg = (f"Olá {name}!\n\n"
-           "Sou seu assistente financeiro pessoal. Para começar, é só me enviar seus gastos que eu registro tudo pra você!\n\n"
-           "Exemplos do que você pode fazer:\n"
-           "- Gastei R$ 45 no mercado → Eu registro\n"
-           "- Quanto gastei esse mês? → Eu consulto\n"
-           "- Mande um extrato em PDF → Eu importo automaticamente\n"
-           "- Me dê dicas de economia → Eu pesquiso e recomendo\n\n"
-           "Vamos começar?")
+    name = pushname or "amigo"
+    msg = (
+        f"Olá, {name}! Sou seu Assistente Financeiro Pessoal. Estou aqui para ajudar você a organizar seus gastos, "
+        f"acompanhar seu orçamento e tomar melhores decisões financeiras.\n\n"
+        f"*O que eu posso fazer por você:*\n\n"
+        f"1. *Registrar Gastos e Ganhos*\n"
+        f"   Basta me enviar uma mensagem simples. Exemplos:\n"
+        f"   - \"Gastei 45 no mercado\" → Registro em Alimentação\n"
+        f"   - \"Uber pra casa 12 reais\" → Registro em Transporte\n"
+        f"   - \"Salário caiu 5000\" → Registro em Receita\n\n"
+        f"2. *Consultar Seus Dados*\n"
+        f"   Pergunte sobre seus gastos a qualquer momento:\n"
+        f"   - \"Quanto gastei esse mês?\"\n"
+        f"   - \"Qual meu maior gasto?\"\n"
+        f"   - \"Gastos de saúde nos últimos 3 meses\"\n\n"
+        f"3. *Importar Extratos*\n"
+        f"   Envie um PDF, CSV ou OFX do seu banco que eu extraio automaticamente todos os lançamentos.\n\n"
+        f"4. *Análise e Recomendações*\n"
+        f"   Posso analisar seus hábitos de consumo e dar dicas personalizadas para economizar.\n\n"
+        f"*Dica:* Quanto mais você registrar, mais precisas serão minhas análises. Vamos começar?"
+    )
     return {"messages": [AIMessage(content=msg)]}
 
 def parse_flexible_date(date_str: str) -> date:

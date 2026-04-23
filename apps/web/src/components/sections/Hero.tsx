@@ -33,16 +33,16 @@ export const Hero: React.FC<HeroProps> = ({ onConnect, isLoading }) => {
                 WhatsApp
                 <span className="material-symbols-outlined text-3xl">chat</span>
               </Button>
-              <Button
+              {/* <Button
                 onClick={() => onConnect("telegram")}
                 disabled={isLoading}
                 variant="secondary"
                 size="lg"
                 className="group"
               >
-                Telegram
+                Telegram coming soon
                 <span className="material-symbols-outlined text-3xl">send</span>
-              </Button>
+              </Button> */}
             </div>
             <span className="text-sm font-label uppercase tracking-widest opacity-60">
               No downloads. No complicated setups.

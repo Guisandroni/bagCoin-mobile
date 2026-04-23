@@ -60,7 +60,7 @@ export const Footer: React.FC<FooterProps> = ({ onConnect }) => {
               © 226 BagCoin Kinetic. All rights reserved.
             </p>
           </div>
-          <div className="flex flex-wrap justify-center gap-12 text-sm uppercase tracking-widest">
+          {/* <div className="flex flex-wrap justify-center gap-12 text-sm uppercase tracking-widest">
             <a className="text-on-background/70 hover:text-primary transition-all" href="#">
               Terms of Service
             </a>
@@ -70,15 +70,15 @@ export const Footer: React.FC<FooterProps> = ({ onConnect }) => {
             <a className="text-on-background/70 hover:text-primary transition-all" href="#">
               Security Audit
             </a>
-          </div>
-          <div className="mt-8 md:mt-0 flex gap-6">
+          </div> */}
+          {/* <div className="mt-8 md:mt-0 flex gap-6">
             <a className="w-12 h-12 rounded-full border border-on-background/10 flex items-center justify-center hover:bg-primary-container transition-colors" href="#">
               <span className="material-symbols-outlined text-on-background">public</span>
             </a>
             <a className="w-12 h-12 rounded-full border border-on-background/10 flex items-center justify-center hover:bg-primary-container transition-colors" href="#">
               <span className="material-symbols-outlined text-on-background">alternate_email</span>
             </a>
-          </div>
+          </div> */}
         </div>
       </footer>
     </>

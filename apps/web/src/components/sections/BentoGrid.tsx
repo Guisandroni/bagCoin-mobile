@@ -3,12 +3,12 @@ import React from "react";
 export const BentoGrid: React.FC = () => {
   return (
     <section className="px-6 py-32 max-w-screen-2xl mx-auto">
-      <div className="mb-24 flex flex-col md:flex-row justify-between items-end gap-8">
+      {/* <div className="mb-24 flex flex-col md:flex-row justify-between items-end gap-8">
         <h2 className="text-5xl md:text-8xl font-bold tracking-tighter max-w-2xl">
           BUILT FOR THE NEXT GENERATION OF WEALTH
         </h2>
         <div className="h-1 w-32 bg-primary-container mb-6"></div>
-      </div>
+      </div> */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
         <div className="md:col-span-8 bg-surface-container-low rounded-xl p-12 flex flex-col justify-between min-h-[500px]">
           <div>
@@ -46,7 +46,7 @@ export const BentoGrid: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="md:col-span-4 bg-on-background text-background rounded-xl p-10 flex flex-col justify-between">
+        {/* <div className="md:col-span-4 bg-on-background text-background rounded-xl p-10 flex flex-col justify-between">
           <span
             className="material-symbols-outlined text-6xl text-primary-container"
             style={{ fontVariationSettings: "'FILL' 1" }}
@@ -62,7 +62,7 @@ export const BentoGrid: React.FC = () => {
               baseline protocol.
             </p>
           </div>
-        </div>
+        </div> */}
         <div className="md:col-span-4 bg-surface-container-highest rounded-xl p-10 flex flex-col gap-8">
           <h3 className="text-3xl font-bold tracking-tight leading-none uppercase">
             Everything happens on WhatsApp
@@ -79,7 +79,7 @@ export const BentoGrid: React.FC = () => {
             decentralized finance protocols.
           </p>
         </div>
-        <div className="md:col-span-8 relative overflow-hidden bg-white rounded-xl p-12 min-h-[400px] flex items-center shadow-sm">
+        {/* <div className="md:col-span-8 relative overflow-hidden bg-white rounded-xl p-12 min-h-[400px] flex items-center shadow-sm">
           <div className="relative z-10 max-w-lg text-on-surface">
             <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
               Kinetic Capital Flow
@@ -97,7 +97,7 @@ export const BentoGrid: React.FC = () => {
             </a>
           </div>
           <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary-container/20 to-transparent"></div>
-        </div>
+        </div> */}
       </div>
     </section>
   );

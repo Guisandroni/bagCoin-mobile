@@ -12,7 +12,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onConnect }) => {
         <div className="text-2xl font-black tracking-tighter text-on-background">
           Bagcoin
         </div>
-        <div className="hidden md:flex items-center gap-10 font-headline tracking-tighter uppercase font-bold text-sm">
+        {/* <div className="hidden md:flex items-center gap-10 font-headline tracking-tighter uppercase font-bold text-sm">
           <a className="text-on-background border-b-4 border-primary-container" href="#">
             Features
           </a>
@@ -25,7 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onConnect }) => {
           <a className="text-on-background/60 hover:text-on-background transition-colors duration-200" href="#">
             Docs
           </a>
-        </div>
+        </div> */}
         <div className="flex items-center gap-4">
           <Button onClick={onConnect} size="md">
             Launch App

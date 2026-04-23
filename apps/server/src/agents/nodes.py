@@ -43,89 +43,94 @@ def get_active_user(whatsapp_number: str) -> Optional[User]:
 def router_node(state: AgentState) -> Dict[str, Any]:
     whatsapp_number = state["whatsapp_number"]
     last_message = state["messages"][-1].content
-    
+    msg_lower = last_message.lower()
+
+    # 1. Identify user
+    user = None
     user_id_from_state = state.get("user_id")
     if user_id_from_state:
         user = get_active_user(whatsapp_number)
-        if user:
-            file_type = state.get("file_type")
-            
-            is_statement = False
-            if file_type in ["pdf", "csv", "ofx"]:
-                keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau", "lista", "relatorio"]
-                if any(kw in last_message.lower() for kw in keywords):
-                    is_statement = True
-                    
-            if is_statement:
-                return {"intent": "statement", "user_id": user.id}
-            
-            if file_type == "audio": return {"intent": "audio", "user_id": user.id}
-            elif file_type == "image": return {"intent": "image", "user_id": user.id}
-            elif file_type == "pdf": return {"intent": "pdf", "user_id": user.id}
 
-            system_prompt = """You are a financial assistant router. 
-            Classify the user intent into one of:
-            - 'record': User wants to log a new expense or income.
-            - 'query': User wants to know their balance, spending history, or financial summary.
-            - 'report': User wants a PDF report or complete statement.
-            - 'recommendation': User wants financial advice, investment tips, or ways to save money.
-            - 'chat': General conversation or unclear intent.
-            
-            Return ONLY the intent name in lowercase."""
-            
-            response = llm.invoke([
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=last_message)
-            ])
-            
-            intent = response.content.strip().lower()
-            if intent not in ["record", "query", "report", "recommendation", "chat"]:
-                intent = "chat"
-                
-            return {"intent": intent, "user_id": user.id}
-    
-    user = get_active_user(whatsapp_number)
-    
+    if not user:
+        user = get_active_user(whatsapp_number)
+
+    # 2. Not authenticated
     if not user:
         if "Activation code:" in last_message or re.search(r"/start\s*([\w-]+)", last_message):
             return {"intent": "auth"}
         else:
             return {"intent": "unauthorized"}
 
+    # 3. Authenticated — check file types first
     file_type = state.get("file_type")
-    
+
     is_statement = False
     if file_type in ["pdf", "csv", "ofx"]:
-        keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau", "lista", "relatorio"]
-        if any(kw in last_message.lower() for kw in keywords):
+        statement_keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau", "lista", "relatorio"]
+        if any(kw in msg_lower for kw in statement_keywords):
             is_statement = True
-            
+
     if is_statement:
         return {"intent": "statement", "user_id": user.id}
-    
-    if file_type == "audio": return {"intent": "audio", "user_id": user.id}
-    elif file_type == "image": return {"intent": "image", "user_id": user.id}
-    elif file_type == "pdf": return {"intent": "pdf", "user_id": user.id}
 
-    system_prompt = """You are a financial assistant router. 
-    Classify the user intent into one of:
-    - 'record': User wants to log a new expense or income.
-    - 'query': User wants to know their balance, spending history, or financial summary.
-    - 'report': User wants a PDF report or complete statement.
-    - 'recommendation': User wants financial advice, investment tips, or ways to save money.
-    - 'chat': General conversation or unclear intent.
-    
-    Return ONLY the intent name in lowercase."""
-    
+    if file_type == "audio":
+        return {"intent": "audio", "user_id": user.id}
+    elif file_type == "image":
+        return {"intent": "image", "user_id": user.id}
+    elif file_type == "pdf":
+        return {"intent": "pdf", "user_id": user.id}
+
+    # 4. Text messages — fast-path keyword rules
+    help_keywords = [
+        "aprender", "ensinar", "como faço", "como posso", "como registrar",
+        "tutorial", "me explica", "me ensina", "funciona", "ajuda",
+        "o que voce faz", "o que você faz", "quem é você", "quem e voce",
+        "como usar", "primeira vez", "novo aqui", "guia", "dica"
+    ]
+    query_keywords = [
+        "quanto gastei", "quanto ja gastei", "meu saldo", "total de gastos",
+        "quanto recebi", "balanco", "resumo", "extrato", "historico",
+        "lista de", "mostrar", "ver meus", "consultar", "quanto foi",
+        "gastos do mes", "gastos da semana", "receitas do mes",
+        "orcamento", "gastos", "receitas", "despesas", "saldo"
+    ]
+
+    if any(kw in msg_lower for kw in help_keywords):
+        return {"intent": "chat", "user_id": user.id}
+
+    if any(kw in msg_lower for kw in query_keywords):
+        return {"intent": "query", "user_id": user.id}
+
+    # Short vague messages without numbers should be chat, not record/query
+    words = last_message.strip().split()
+    if len(words) <= 2:
+        has_number = bool(re.search(r'\d', last_message))
+        if not has_number:
+            return {"intent": "chat", "user_id": user.id}
+
+    # 5. Fallback to LLM with strong few-shot examples
+    system_prompt = """You are a financial assistant intent router. Classify the user message into EXACTLY one of:
+- 'record': User is reporting a SPECIFIC expense or income with an amount. Examples: "gastei 50 no mercado", "uber 12 reais", "salario 5000", "paguei 200 de luz".
+- 'query': User wants to KNOW something about their existing data. Examples: "quanto gastei esse mes?", "qual meu maior gasto?", "saude nos ultimos 3 meses", "orcamento", "gastos" (when asking about data).
+- 'report': User wants a PDF report or complete statement. Examples: "gerar relatorio", "pdf dos gastos", "extrato completo".
+- 'recommendation': User wants financial advice, investment tips, or ways to save money. Examples: "onde investir", "como economizar", "dicas financeiras".
+- 'chat': General conversation, onboarding, asking how to use the bot, or unclear intent. Examples: "quero aprender a registrar gastos", "como funciona", "oi", "obrigado", "bom dia".
+
+CRITICAL RULES:
+- If the message has NO numeric amount, it is NEVER 'record'.
+- If the user asks HOW to do something or wants to LEARN, it is ALWAYS 'chat'.
+- If the user asks ABOUT their data, it is ALWAYS 'query'.
+- Return ONLY the intent name in lowercase, nothing else."""
+
     response = llm.invoke([
         SystemMessage(content=system_prompt),
         HumanMessage(content=last_message)
     ])
-    
+
     intent = response.content.strip().lower()
     if intent not in ["record", "query", "report", "recommendation", "chat"]:
         intent = "chat"
-        
+
     return {"intent": intent, "user_id": user.id}
 
 def auth_node(state: AgentState) -> Dict[str, Any]:
@@ -417,6 +422,14 @@ def extraction_node(state: AgentState) -> Dict[str, Any]:
     last_message = state["messages"][-1].content
     today = date.today().isoformat()
 
+    # Pre-validation: check if message actually contains a numeric amount
+    import re as _re
+    has_amount = bool(_re.search(r'\d+[.,]?\d*', last_message))
+    if not has_amount:
+        return {
+            "messages": [AIMessage(content="Não entendi como um registro financeiro. Para registrar um gasto ou receita, envie algo como: 'Gastei 45 no mercado' ou 'Salario 5000'. Quer que eu te explique como funciona?")]
+        }
+
     structured_llm = llm.with_structured_output(TransactionExtraction)
 
     category_prompt = get_category_prompt()
@@ -426,13 +439,20 @@ def extraction_node(state: AgentState) -> Dict[str, Any]:
         f"\n\n{category_prompt}\n\n"
         f"IMPORTANT: The 'description' should be a short, clean label WITHOUT the amount value. "
         f"For example, if the user says 'gastei 50 no mercado', description must be 'Mercado', not 'Mercado 50'. "
+        f"If the message does not contain a real financial transaction, return amount=0 and description=''. "
         f"\n\nMessage: {last_message}"
     )
 
     extracted = structured_llm.invoke(prompt)
 
+    # Post-validation: reject invalid extractions
+    if extracted.amount == 0 or not extracted.description or extracted.description.strip() == "":
+        return {
+            "messages": [AIMessage(content="Não consegui identificar um valor ou descrição válidos para registrar. Tente algo como: 'Gastei 50 no mercado' ou 'Uber 12 reais'.")]
+        }
+
     # Normalize category to the allowed list (case-insensitive)
-    raw_category = extracted.category.strip()
+    raw_category = (extracted.category or "").strip()
     normalized_category = None
     for allowed in CATEGORIES:
         if allowed.lower() == raw_category.lower():
@@ -471,9 +491,11 @@ def query_node(state: AgentState) -> Dict[str, Any]:
     
     system_prompt = f"""You are a Text-to-SQL expert. Given the schema below, generate a PostgreSQL query to answer the user's question.
     Schema: {schema}
-    IMPORTANT: 
+    IMPORTANT:
     - Always filter by user_id = {user_id}.
     - ALWAYS quote the table name "transaction" like this: SELECT * FROM "transaction" (because it is a reserved word).
+    - Amounts are ALWAYS positive. Category 'Receita' means income; ALL other categories mean expenses.
+    - Do NOT use amount < 0 for expenses. Use category != 'Receita' or category = 'Receita' instead.
     - Return ONLY the SQL query.
     - User questions are in Portuguese.
     """
@@ -513,9 +535,36 @@ def query_node(state: AgentState) -> Dict[str, Any]:
 
 def chat_node(state: AgentState) -> Dict[str, Any]:
     last_message = state["messages"][-1].content
+    user_id = state.get("user_id")
+
+    system_prompt = """You are Bagcoin, a helpful Brazilian Portuguese financial assistant running inside WhatsApp.
+
+Your main capabilities:
+1. REGISTER transactions: user sends "gastei 45 no mercado" and you log it.
+2. QUERY data: user asks "quanto gastei esse mes?" and you search their history.
+3. IMPORT statements: user sends PDF/CSV/OFX bank files.
+4. REPORTS: user asks for a PDF report.
+5. RECOMMENDATIONS: user asks for financial advice.
+
+When the user asks HOW to do something (onboarding/tutorial), give clear, concise instructions with examples.
+
+EXAMPLES OF HOW TO REGISTER:
+- "Gastei 45 no mercado" -> Alimentacao
+- "Uber pra casa 12 reais" -> Transporte
+- "Salario caiu 5000" -> Receita
+- "Paguei 200 de luz" -> Luz
+- "Netflix 39,90" -> Assinaturas
+
+EXAMPLES OF QUERIES:
+- "Quanto gastei esse mes?"
+- "Qual meu maior gasto?"
+- "Gastos de saude nos ultimos 3 meses"
+- "Orcamento"
+
+Keep responses short (WhatsApp style), friendly, and ALWAYS in Brazilian Portuguese (pt-BR)."""
 
     response = llm.invoke([
-        SystemMessage(content="You are a helpful financial assistant. Keep it concise and friendly. ALWAYS respond in Brazilian Portuguese (pt-BR)."),
+        SystemMessage(content=system_prompt),
         HumanMessage(content=last_message)
     ])
 

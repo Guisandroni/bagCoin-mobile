@@ -12,6 +12,7 @@ from sqlmodel import Session, select
 from ..database import engine
 from ..models import User, Transaction
 from .state import AgentState, TransactionExtraction
+from .categories import get_category_prompt, CATEGORIES
 from ..config import settings
 from ..services.report_service import generate_financial_report
 from langchain_community.tools.tavily_search import TavilySearchResults
@@ -51,7 +52,7 @@ def router_node(state: AgentState) -> Dict[str, Any]:
             
             is_statement = False
             if file_type in ["pdf", "csv", "ofx"]:
-                keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau"]
+                keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau", "lista", "relatorio"]
                 if any(kw in last_message.lower() for kw in keywords):
                     is_statement = True
                     
@@ -95,7 +96,7 @@ def router_node(state: AgentState) -> Dict[str, Any]:
     
     is_statement = False
     if file_type in ["pdf", "csv", "ofx"]:
-        keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau"]
+        keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau", "lista", "relatorio"]
         if any(kw in last_message.lower() for kw in keywords):
             is_statement = True
             
@@ -202,15 +203,17 @@ def statement_node(state: AgentState) -> Dict[str, Any]:
     class TransactionList(BaseModel):
         transactions: List[TransactionExtraction]
 
+    category_prompt = get_category_prompt()
     structured_llm = llm.with_structured_output(TransactionList)
-    
-    prompt = f"""Extraia todos os lançamentos financeiros (gastos e ganhos) deste extrato bancário.
-    Ignore saldos, transferências entre contas do mesmo titular ou informativos.
-    Data de hoje: {today}
-    
-    CONTEÚDO DO EXTRATO:
-    {raw_content[:4000]}
-    """
+
+    prompt = (
+        f"Extract all financial transactions (expenses and income) from this bank statement. "
+        f"Ignore balances, transfers between accounts of the same owner, or informational lines. "
+        f"Today is {today}. "
+        f"\n\n{category_prompt}\n\n"
+        f"IMPORTANT: The 'description' should be a short, clean label WITHOUT the amount value. "
+        f"\n\nSTATEMENT CONTENT:\n{raw_content[:4000]}"
+    )
     
     try:
         extracted = structured_llm.invoke(prompt)
@@ -222,7 +225,16 @@ def statement_node(state: AgentState) -> Dict[str, Any]:
         with Session(engine) as session:
             for txn in transaction_list:
                 t_date = parse_flexible_date(txn.date)
-                
+
+                raw_category = (txn.category or "").strip()
+                normalized_category = None
+                for allowed in CATEGORIES:
+                    if allowed.lower() == raw_category.lower():
+                        normalized_category = allowed
+                        break
+                if not normalized_category:
+                    normalized_category = "Outros"
+
                 existing = session.exec(
                     select(Transaction).where(
                         Transaction.user_id == user_id,
@@ -231,13 +243,13 @@ def statement_node(state: AgentState) -> Dict[str, Any]:
                         Transaction.transaction_date == t_date
                     )
                 ).first()
-                
+
                 if not existing:
                     new_txn = Transaction(
                         user_id=user_id,
                         amount=txn.amount,
                         description=txn.description,
-                        category=txn.category,
+                        category=normalized_category,
                         transaction_date=t_date,
                         source_file=file_type
                     )
@@ -392,30 +404,48 @@ def document_node(state: AgentState) -> Dict[str, Any]:
 def extraction_node(state: AgentState) -> Dict[str, Any]:
     last_message = state["messages"][-1].content
     today = date.today().isoformat()
-    
+
     structured_llm = llm.with_structured_output(TransactionExtraction)
-    
-    prompt = f"Extract transaction details from the following message. Today is {today}. Message: {last_message}"
-    
+
+    category_prompt = get_category_prompt()
+    prompt = (
+        f"Extract transaction details from the following message. "
+        f"Today is {today}. "
+        f"\n\n{category_prompt}\n\n"
+        f"IMPORTANT: The 'description' should be a short, clean label WITHOUT the amount value. "
+        f"For example, if the user says 'gastei 50 no mercado', description must be 'Mercado', not 'Mercado 50'. "
+        f"\n\nMessage: {last_message}"
+    )
+
     extracted = structured_llm.invoke(prompt)
-    
+
+    # Normalize category to the allowed list (case-insensitive)
+    raw_category = extracted.category.strip()
+    normalized_category = None
+    for allowed in CATEGORIES:
+        if allowed.lower() == raw_category.lower():
+            normalized_category = allowed
+            break
+    if not normalized_category:
+        normalized_category = "Outros"
+
     user_id = state.get("user_id")
-    
+
     with Session(engine) as session:
         transaction = Transaction(
             user_id=user_id,
             amount=extracted.amount,
             description=extracted.description,
-            category=extracted.category,
+            category=normalized_category,
             transaction_date=parse_flexible_date(extracted.date),
             source_file="manual"
         )
         session.add(transaction)
         session.commit()
-        
+
     return {
         "extracted_data": extracted,
-        "messages": [AIMessage(content=f"Registrado: R$ {extracted.amount:.2f} em '{extracted.description}' ({extracted.category}).")]
+        "messages": [AIMessage(content=f"Registrado: R$ {extracted.amount:.2f} em {extracted.description}.")]
     }
 
 def query_node(state: AgentState) -> Dict[str, Any]:
@@ -471,10 +501,10 @@ def query_node(state: AgentState) -> Dict[str, Any]:
 
 def chat_node(state: AgentState) -> Dict[str, Any]:
     last_message = state["messages"][-1].content
-    
+
     response = llm.invoke([
-        SystemMessage(content="You are a helpful financial assistant. Keep it concise and friendly."),
+        SystemMessage(content="You are a helpful financial assistant. Keep it concise and friendly. ALWAYS respond in Brazilian Portuguese (pt-BR)."),
         HumanMessage(content=last_message)
     ])
-    
+
     return {"messages": [AIMessage(content=response.content)]}

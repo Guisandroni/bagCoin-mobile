@@ -243,3 +243,9 @@ apps/web/AGENTS.md
 apps/web/CLAUDE.md
 apps/web/README.md
 apps/whatsapp/README.md
+
+# Veloz deploy config (contains project IDs - generate via `veloz deploy`)
+veloz.json
+
+# Scripts with sensitive env vars
+scripts/setup-veloz-env.sh

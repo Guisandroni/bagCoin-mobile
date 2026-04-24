@@ -1,0 +1,61 @@
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Env files (serão copiados manualmente se necessário)
+.env
+.env.local
+.env.*.local
+
+# Test files
+tests/
+test/
+*.test.py
+pytest.ini
+
+# Local data
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker/
+
+# Documentation
+*.md
+!README.md
+
+# Node modules (if any)
+node_modules/
+
+# Build artifacts
+dist/
+build/

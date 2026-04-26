@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { Button } from "../ui/Button";
 
 interface NavbarProps {
@@ -7,29 +8,35 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ onConnect }) => {
   return (
-    <nav className="w-full top-0 sticky bg-background/80 backdrop-blur-md z-50">
-      <div className="flex justify-between items-center px-8 py-6 max-w-screen-2xl mx-auto">
-        <div className="text-2xl font-black tracking-tighter text-on-background">
+    <nav className="w-full top-0 sticky bg-white/80 backdrop-blur-md z-50">
+      <div className="flex justify-between items-center px-8 py-5 max-w-screen-2xl mx-auto">
+        <Link href="/" className="font-display font-black text-2xl tracking-tight text-near-black">
           Bagcoin
+        </Link>
+        <div className="hidden md:flex items-center gap-8 font-body font-semibold text-sm">
+          <Link className="text-near-black hover:text-gray transition-colors duration-200" href="/app/dashboard">
+            App
+          </Link>
+          <Link className="text-gray hover:text-near-black transition-colors duration-200" href="#features">
+            Recursos
+          </Link>
+          <Link className="text-gray hover:text-near-black transition-colors duration-200" href="#">
+            Preços
+          </Link>
+          <Link className="text-gray hover:text-near-black transition-colors duration-200" href="#">
+            Sobre
+          </Link>
         </div>
-        {/* <div className="hidden md:flex items-center gap-10 font-headline tracking-tighter uppercase font-bold text-sm">
-          <a className="text-on-background border-b-4 border-primary-container" href="#">
-            Features
-          </a>
-          <a className="text-on-background/60 hover:text-on-background transition-colors duration-200" href="#">
-            Protocol
-          </a>
-          <a className="text-on-background/60 hover:text-on-background transition-colors duration-200" href="#">
-            Governance
-          </a>
-          <a className="text-on-background/60 hover:text-on-background transition-colors duration-200" href="#">
-            Docs
-          </a>
-        </div> */}
         <div className="flex items-center gap-4">
-          <Button onClick={onConnect} size="md">
-            Launch App
+          <Button size="md" variant="outline" onClick={onConnect}>
+            <span className="material-symbols-outlined text-base">chat</span>
+            WhatsApp
           </Button>
+          <Link href="/app/dashboard">
+            <Button size="md">
+              Acessar App
+            </Button>
+          </Link>
         </div>
       </div>
     </nav>

@@ -11,9 +11,9 @@ export default function LandingPage() {
   const { connectPlatform, isLoading } = useAuth();
 
   return (
-    <div className="bg-background text-on-background min-h-screen">
+    <div className="bg-background text-foreground min-h-screen">
       <Navbar onConnect={() => connectPlatform("whatsapp")} />
-      
+
       <main>
         <Hero onConnect={connectPlatform} isLoading={isLoading} />
         <BentoGrid />

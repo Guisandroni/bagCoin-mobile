@@ -1,103 +1,99 @@
 import React from "react";
+import Link from "next/link";
 
 export const BentoGrid: React.FC = () => {
   return (
-    <section className="px-6 py-32 max-w-screen-2xl mx-auto">
-      {/* <div className="mb-24 flex flex-col md:flex-row justify-between items-end gap-8">
-        <h2 className="text-5xl md:text-8xl font-bold tracking-tighter max-w-2xl">
-          BUILT FOR THE NEXT GENERATION OF WEALTH
+    <section id="features" className="px-6 py-32 max-w-screen-2xl mx-auto">
+      <div className="mb-16">
+        <h2 className="section-heading text-near-black max-w-3xl">
+          CONSTRUÍDO PARA A PRÓXIMA GERAÇÃO DE RIQUEZA
         </h2>
-        <div className="h-1 w-32 bg-primary-container mb-6"></div>
-      </div> */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        <div className="md:col-span-8 bg-surface-container-low rounded-xl p-12 flex flex-col justify-between min-h-[500px]">
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="md:col-span-8 bg-light-surface rounded-[30px] p-10 md:p-14 flex flex-col justify-between min-h-[480px]">
           <div>
-            <span className="inline-block px-4 py-1 bg-surface-container-highest rounded-full text-xs font-bold uppercase tracking-widest mb-8">
-              Infrastructure
+            <span className="inline-block px-4 py-1.5 bg-wise-green/15 rounded-full text-xs font-bold uppercase tracking-widest mb-8 text-dark-green">
+              Dashboard
             </span>
-            <h3 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Absolute Transparency. Global Reach.
+            <h3 className="font-display font-black text-4xl md:text-5xl tracking-tight text-near-black mb-6 leading-[0.9]">
+              Transparência
+              <br />
+              Absoluta.
+              <br />
+              Alcance Global.
             </h3>
-            <p className="text-lg text-on-surface-variant max-w-md">
-              Every transaction, every movement of capital is verified on-chain,
-              yet managed with the simplicity of a text message.
+            <p className="text-lg text-warm-dark max-w-md font-medium">
+              Cada transação, cada movimento de capital é verificado com
+              a simplicidade de uma mensagem de texto.
             </p>
           </div>
-          <div className="flex gap-4 mt-8">
-            <div className="flex -space-x-4">
-              <div className="w-12 h-12 rounded-full border-4 border-surface-container-low bg-surface-container-highest flex items-center justify-center overflow-hidden">
-                <img
-                  alt="user"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDssVhtXHkC4Ggzq1x5eO8vXRJAHaJi6z9q1mHUTGs2EgYlRsFbaWOxr2mtTsCFfXk_4Nwt42r0q7a5SzP7v5KyFYm8HI1_IxDkLh4zDN3wJvLFN2cOcGpkUwUoDuIKsf3gFizs1mlBtfhYkKjAq3AktXR9okimDhSo6V4D1t1R84E38vKx5F8IdKaLdVdytJnWNWpAcQjle8Rh93KERAdCtyI2REQ3xFAiDv3JfmGOe2AkxbrG_0_FkJSUI3H8YV1jEqzFI4uKC4GU"
-                />
+          <div className="flex gap-4 mt-8 items-center">
+            <div className="flex -space-x-3">
+              <div className="w-10 h-10 rounded-full border-2 border-light-surface bg-wise-green flex items-center justify-center overflow-hidden">
+                <span className="text-dark-green font-bold text-xs">JD</span>
               </div>
-              <div className="w-12 h-12 rounded-full border-4 border-surface-container-low bg-surface-container-high flex items-center justify-center overflow-hidden">
-                <img
-                  alt="user"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkACZ0PRV-XD-4Ut5gEQHVSPDZyz2qGxky8tJIYtqAH7NC4tKVP6xPosdoN3Cu_YiwcLFmWpoXBvLUjnLyMBshEc1v2k1FD0-ArvYgDnXPYzPtL0xRScxpn5VzI0o_0oL3BVmDAE5VXmTA9fg5RvVs3GGpIwoifg1VXMvsQZRlPXhIzr6SU3A7UVpyoAXGMVkZk-3ZeFpP-dNuEYLPL8SewQcOKgsnWns6EbBvTGrHqcQRMCzrGr4gFiZu1Oq4HewPFOM0CNKQKSxK"
-                />
+              <div className="w-10 h-10 rounded-full border-2 border-light-surface bg-pastel-green flex items-center justify-center overflow-hidden">
+                <span className="text-dark-green font-bold text-xs">MA</span>
               </div>
-              <div className="w-12 h-12 rounded-full border-4 border-surface-container-low bg-primary-container flex items-center justify-center font-bold text-xs">
+              <div className="w-10 h-10 rounded-full border-2 border-light-surface bg-light-mint flex items-center justify-center font-bold text-xs text-dark-green">
                 +2k
               </div>
             </div>
-            <div className="text-sm self-center">
-              Trusted by high-net-worth innovators globally.
+            <div className="text-sm font-medium text-warm-dark">
+              Confiança de inovadores de alto patrimônio globalmente.
             </div>
           </div>
         </div>
-        {/* <div className="md:col-span-4 bg-on-background text-background rounded-xl p-10 flex flex-col justify-between">
-          <span
-            className="material-symbols-outlined text-6xl text-primary-container"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
-            bolt
-          </span>
+
+        <div className="md:col-span-4 bg-near-black rounded-[30px] p-10 flex flex-col gap-8 text-white">
+          <span className="material-symbols-outlined text-5xl text-wise-green">bolt</span>
           <div>
-            <h3 className="text-3xl font-bold tracking-tight mb-4 leading-none uppercase">
-              Real-time Settlements
+            <h3 className="font-display font-black text-3xl tracking-tight mb-4 leading-[0.9]">
+              LIQUIDAÇÕES
+              <br />
+              EM TEMPO REAL
             </h3>
-            <p className="text-background/60 text-sm">
-              Gone are the days of 3-5 business day waits. Kinetic speed is our
-              baseline protocol.
+            <p className="text-white/60 text-sm font-medium">
+              Acabaram-se os dias de espera de 3-5 dias úteis. Velocidade cinética é nosso protocolo base.
             </p>
           </div>
-        </div> */}
-        <div className="md:col-span-4 bg-surface-container-highest rounded-xl p-10 flex flex-col gap-8">
-          <h3 className="text-3xl font-bold tracking-tight leading-none uppercase">
-            Everything happens on WhatsApp
+        </div>
+
+        <div className="md:col-span-4 bg-wise-green rounded-[30px] p-10 flex flex-col gap-8 text-dark-green">
+          <h3 className="font-display font-black text-3xl tracking-tight leading-[0.9]">
+            CONTROLE
+            <br />
+            TOTAL
           </h3>
-          <div className="aspect-square w-full rounded-lg bg-surface flex items-center justify-center overflow-hidden">
-            <img
-              className="w-full h-full object-cover grayscale"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5nIl6Z7vrf2ZFvoEzSlies-EhnujDnL8tKj2dojAIQ9mMml8l2frwBq_IJcEdtVu7DWHiTzDTsNSdq-UyTSarZNRMZC2607Ll0JV7JmDBl-sP3lpSuw9a2TdDioznFP0byWJRdZd3X6nUZFhPtyJXA51NQv2zMy6_pCI25MNN5Tlz5Bj3GIDYzy7UvaIi_b88sirZmtDPmdCWIZ6Czxvn-oEJfELLWQlAu3vUhXcWQFF1hoRGHKQJxEeVWYzkUlQSztaomRtKyRHI"
-              alt="mobile app interface"
-            />
+          <div className="aspect-square w-full rounded-2xl bg-dark-green/10 flex items-center justify-center">
+            <span className="material-symbols-outlined text-6xl opacity-40">dashboard</span>
           </div>
-          <p className="text-sm opacity-70">
-            A seamless bridge between traditional communication and
-            decentralized finance protocols.
+          <p className="text-sm opacity-70 font-medium">
+            Uma ponte perfeita entre comunicação tradicional e
+            protocolos de finanças descentralizadas.
           </p>
         </div>
-        {/* <div className="md:col-span-8 relative overflow-hidden bg-white rounded-xl p-12 min-h-[400px] flex items-center shadow-sm">
-          <div className="relative z-10 max-w-lg text-on-surface">
-            <h3 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
-              Kinetic Capital Flow
+
+        <div className="md:col-span-8 bg-white rounded-[30px] p-10 md:p-14 min-h-[400px] flex items-center ring-shadow">
+          <div className="max-w-lg">
+            <h3 className="font-display font-black text-4xl md:text-5xl tracking-tight text-near-black mb-6 leading-[0.9]">
+              FLUXO DE
+              <br />
+              CAPITAL
             </h3>
-            <p className="text-on-surface-variant mb-8">
-              Move liquidity across borders with 0.1% overhead. Our protocol
-              optimizes for efficiency, removing the legacy banking bloat.
+            <p className="text-warm-dark mb-8 font-medium">
+              Movimente liquidez através de fronteiras com 0.1% de overhead. Nosso protocolo
+              otimiza para eficiência, removendo o inchaço dos bancos legados.
             </p>
-            <a
-              className="font-bold text-primary border-b-2 border-primary-container inline-flex items-center gap-2"
-              href="#"
+            <Link
+              href="/app/dashboard"
+              className="font-bold text-dark-green bg-wise-green px-6 py-3 rounded-full inline-flex items-center gap-2 btn-scale"
             >
-              Read Whitepaper{" "}
-              <span className="material-symbols-outlined">north_east</span>
-            </a>
+              Explorar App
+              <span className="material-symbols-outlined">arrow_forward</span>
+            </Link>
           </div>
-          <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-primary-container/20 to-transparent"></div>
-        </div> */}
+        </div>
       </div>
     </section>
   );

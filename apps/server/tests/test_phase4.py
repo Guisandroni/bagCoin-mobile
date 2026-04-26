@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from src.agents.nodes import research_node, recommendation_node
-from src.models import Transaction, User
+from src.models.user import User
+from src.models.transaction import Transaction
 from datetime import date
 
 def test_research_node_mock():

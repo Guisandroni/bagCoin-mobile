@@ -2,15 +2,17 @@ import json
 import base64
 import io
 import re
-from datetime import date, datetime
+import structlog
+from datetime import date, datetime, timedelta
 from typing import Literal, Dict, Any, List, Optional
 import pdfplumber
 from groq import Groq
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from sqlmodel import Session, select
-from ..database import engine
-from ..models import User, Transaction
+from ..core.database import engine
+from ..models.user import User
+from ..models.transaction import Transaction
 from .state import AgentState, TransactionExtraction
 from .categories import get_category_prompt, CATEGORIES
 from ..config import settings
@@ -18,6 +20,8 @@ from ..services.report_service import generate_financial_report
 from langchain_community.tools.tavily_search import TavilySearchResults
 from ..services.statement_service import parse_csv_statement, parse_pdf_statement, parse_ofx_statement
 from pydantic import BaseModel
+
+logger = structlog.get_logger()
 
 llm = ChatGroq(
     model="llama-3.3-70b-versatile", 
@@ -61,38 +65,60 @@ def router_node(state: AgentState) -> Dict[str, Any]:
         else:
             return {"intent": "unauthorized"}
 
-    # 3. Authenticated — check file types first
+    # 3. Conversational flow controls FIRST
+    if state.get("awaiting_budget_month"):
+        logger.info("router_follow_up_budget", chat_id=whatsapp_number)
+        return {"intent": "budget", "user_id": user.id}
+
+    # 4. Check if we are awaiting file type confirmation
+    awaiting_file = state.get("awaiting_file_type")
+    pending_file = state.get("pending_file_bytes")
+
+    if awaiting_file and pending_file:
+        return {"intent": "awaiting_file_type", "user_id": user.id}
+
+    # 5. Check if current message contains a file
     file_type = state.get("file_type")
 
-    is_statement = False
-    if file_type in ["pdf", "csv", "ofx"]:
-        statement_keywords = ["extrato", "lançamentos", "conta", "fatura", "statement", "nubank", "bradesco", "itau", "lista", "relatorio"]
-        if any(kw in msg_lower for kw in statement_keywords):
-            is_statement = True
-
-    if is_statement:
-        return {"intent": "statement", "user_id": user.id}
-
     if file_type == "audio":
-        return {"intent": "audio", "user_id": user.id}
+        return {
+            "intent": "audio",
+            "user_id": user.id,
+            "pending_file_bytes": state.get("file_bytes"),
+            "pending_file_type": "audio",
+            "awaiting_file_type": True,
+        }
     elif file_type == "image":
-        return {"intent": "image", "user_id": user.id}
+        return {
+            "intent": "image",
+            "user_id": user.id,
+            "pending_file_bytes": state.get("file_bytes"),
+            "pending_file_type": "image",
+            "awaiting_file_type": True,
+        }
     elif file_type == "pdf":
-        return {"intent": "pdf", "user_id": user.id}
+        return {
+            "intent": "pdf",
+            "user_id": user.id,
+            "pending_file_bytes": state.get("file_bytes"),
+            "pending_file_type": "pdf",
+            "awaiting_file_type": True,
+        }
 
-    # 4. Text messages — fast-path keyword rules
+    # 6. Text messages — fast-path keyword rules
     help_keywords = [
         "aprender", "ensinar", "como faço", "como posso", "como registrar",
         "tutorial", "me explica", "me ensina", "funciona", "ajuda",
         "o que voce faz", "o que você faz", "quem é você", "quem e voce",
-        "como usar", "primeira vez", "novo aqui", "guia", "dica"
+        "como usar", "primeira vez", "novo aqui", "guia", "dica",
+        "como funciona", "o que voce pode fazer"
     ]
     query_keywords = [
         "quanto gastei", "quanto ja gastei", "meu saldo", "total de gastos",
         "quanto recebi", "balanco", "resumo", "extrato", "historico",
-        "lista de", "mostrar", "ver meus", "consultar", "quanto foi",
+        "mostrar", "ver meus", "consultar", "quanto foi",
         "gastos do mes", "gastos da semana", "receitas do mes",
-        "orcamento", "gastos", "receitas", "despesas", "saldo"
+        "saldo", "gerar relatorio", "resumo mensal"
     ]
 
     if any(kw in msg_lower for kw in help_keywords):
@@ -108,18 +134,37 @@ def router_node(state: AgentState) -> Dict[str, Any]:
         if not has_number:
             return {"intent": "chat", "user_id": user.id}
 
-    # 5. Fallback to LLM with strong few-shot examples
+    # 5. Fallback to LLM with comprehensive few-shot examples for all intents
     system_prompt = """You are a financial assistant intent router. Classify the user message into EXACTLY one of:
 - 'record': User is reporting a SPECIFIC expense or income with an amount. Examples: "gastei 50 no mercado", "uber 12 reais", "salario 5000", "paguei 200 de luz".
-- 'query': User wants to KNOW something about their existing data. Examples: "quanto gastei esse mes?", "qual meu maior gasto?", "saude nos ultimos 3 meses", "orcamento", "gastos" (when asking about data).
+- 'query': User wants to KNOW something about their existing data. Examples: "quanto gastei esse mes?", "qual meu maior gasto?", "saude nos ultimos 3 meses", "gastos" (when asking about data).
+- 'budget': User wants to create or check a budget. Examples: "definir orcamento", "criar limite de gastos", "como esta meu orcamento", "definir 5000 para alimentacao".
+- 'fund': User wants to create or manage savings funds/goals. Examples: "criar fundo", "meta de viagem", "reserva de emergencia".
+- 'reminder': User wants to create or check reminders. Examples: "me lembra de pagar a luz", "criar lembrete", "proximos vencimentos".
+- 'shopping_list': User wants to manage shopping list. Examples: "anota leite e pao", "ver lista de compras".
+- 'subscription': User wants to manage subscriptions/fixed expenses. Examples: "assinaturas", "gastos fixos", "mensalidade", "netflix 39 mensal".
+- 'custom_category': User wants to manage custom categories. Examples: "nova categoria", "categorias personalizadas".
 - 'report': User wants a PDF report or complete statement. Examples: "gerar relatorio", "pdf dos gastos", "extrato completo".
-- 'recommendation': User wants financial advice, investment tips, or ways to save money. Examples: "onde investir", "como economizar", "dicas financeiras".
-- 'chat': General conversation, onboarding, asking how to use the bot, or unclear intent. Examples: "quero aprender a registrar gastos", "como funciona", "oi", "obrigado", "bom dia".
+- 'recommendation': User wants financial advice. Examples: "onde investir", "como economizar", "dicas financeiras".
+- 'chat': General conversation, onboarding, asking how to use the bot, or unclear intent. Examples: "quero aprender", "como funciona", "oi", "obrigado", "ajuda".
+
+EDGE CASES — classify as follows:
+- "quanto gastei esse mes" -> query (asking about data)
+- "definir 3000 para transporte" -> budget (allocating money to a category limit)
+- "me lembra de pagar a luz dia 10" -> reminder (asking to be reminded)
+- "anota leite, pao, ovos" -> shopping_list (adding grocery items)
+- "assinatura netflix 39 mensal" -> subscription (managing recurring expense)
+- "ajuda" -> chat (asking for help)
+- "quero criar um fundo para viagem" -> fund (savings goal)
+- "gastei 45 no mercado" -> record (reporting an expense)
+- "recebi 2500 de salario" -> record (reporting income)
+- "saldo" -> query (asking about balance)
 
 CRITICAL RULES:
 - If the message has NO numeric amount, it is NEVER 'record'.
 - If the user asks HOW to do something or wants to LEARN, it is ALWAYS 'chat'.
 - If the user asks ABOUT their data, it is ALWAYS 'query'.
+- If the user allocates a money limit to a category (e.g. "5000 para alimentacao"), it is 'budget', NOT 'record'.
 - Return ONLY the intent name in lowercase, nothing else."""
 
     response = llm.invoke([
@@ -128,7 +173,9 @@ CRITICAL RULES:
     ])
 
     intent = response.content.strip().lower()
-    if intent not in ["record", "query", "report", "recommendation", "chat"]:
+    valid_intents = ["record", "query", "budget", "fund", "reminder", "shopping_list",
+                     "subscription", "custom_category", "report", "recommendation", "chat"]
+    if intent not in valid_intents:
         intent = "chat"
 
     return {"intent": intent, "user_id": user.id}
@@ -153,6 +200,7 @@ def auth_node(state: AgentState) -> Dict[str, Any]:
             
             user.whatsapp_number = whatsapp_number
             user.is_active = True
+            user.activation_token_expires_at = datetime.utcnow() + timedelta(days=7)
             session.add(user)
             session.commit()
             
@@ -185,6 +233,7 @@ def unauthorized_node(state: AgentState) -> Dict[str, Any]:
         f"   Envie um PDF, CSV ou OFX do seu banco que eu extraio automaticamente todos os lançamentos.\n\n"
         f"4. *Análise e Recomendações*\n"
         f"   Posso analisar seus hábitos de consumo e dar dicas personalizadas para economizar.\n\n"
+        f"Para começar, você precisa de um código de ativação válido por 7 dias.\n\n"
         f"*Dica:* Quanto mais você registrar, mais precisas serão minhas análises. Vamos começar?"
     )
     return {"messages": [AIMessage(content=msg)]}
@@ -569,3 +618,48 @@ Keep responses short (WhatsApp style), friendly, and ALWAYS in Brazilian Portugu
     ])
 
     return {"messages": [AIMessage(content=response.content)]}
+
+
+def file_type_confirmation_node(state: AgentState) -> Dict[str, Any]:
+    """Processa a resposta do usuário sobre o tipo de arquivo enviado."""
+    last_message = state["messages"][-1].content.lower()
+    pending_type = state.get("pending_file_type")
+
+    # Palavras-chave para identificar o tipo escolhido pelo usuário
+    extrato_keywords = ["extrato", "banco", "fatura", "cartão", "conta", "lançamentos", "2"]
+    nota_keywords = ["nota", "recibo", "cupom", "comprovante", "despesa", "receita", "1"]
+
+    is_extrato = any(kw in last_message for kw in extrato_keywords)
+    is_nota = any(kw in last_message for kw in nota_keywords)
+
+    if is_extrato:
+        # Recupera o arquivo pendente e processa como extrato
+        return {
+            "intent": "statement",
+            "file_bytes": state.get("pending_file_bytes"),
+            "file_type": pending_type,
+            "awaiting_file_type": False,
+            "pending_file_bytes": None,
+            "pending_file_type": None,
+        }
+    elif is_nota:
+        # Recupera o arquivo pendente e processa como nota fiscal / PDF
+        return {
+            "intent": "pdf",
+            "file_bytes": state.get("pending_file_bytes"),
+            "file_type": pending_type,
+            "awaiting_file_type": False,
+            "pending_file_bytes": None,
+            "pending_file_type": None,
+        }
+    else:
+        # Não entendeu — pede novamente
+        return {
+            "messages": [AIMessage(content=(
+                "Não entendi bem. Esse arquivo é:\n\n"
+                "1️⃣ *Nota fiscal / Recibo / Comprovante* (despesa ou receita)\n"
+                "2️⃣ *Extrato bancário / Fatura* (vários lançamentos)\n\n"
+                "Responda com *1* ou *2* para eu saber como processar."
+            ))],
+            "awaiting_file_type": True,
+        }

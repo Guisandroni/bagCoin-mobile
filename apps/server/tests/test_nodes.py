@@ -12,20 +12,38 @@ def mock_llm():
 def test_router_node_record(mock_llm):
     # Mock response for "Gastei 50 no Ifood"
     mock_llm.invoke.return_value = MagicMock(content="record")
-    
-    state = {"messages": [HumanMessage(content="Gastei 50 no Ifood")]}
-    result = router_node(state)
-    
-    assert result["intent"] == "record"
+
+    with patch("src.agents.nodes.get_active_user") as mock_get_user:
+        mock_user = MagicMock()
+        mock_user.id = 1
+        mock_user.is_active = True
+        mock_get_user.return_value = mock_user
+
+        state = {
+            "messages": [HumanMessage(content="Gastei 50 no Ifood")],
+            "whatsapp_number": "5511999999999",
+        }
+        result = router_node(state)
+
+        assert result["intent"] == "record"
 
 def test_router_node_query(mock_llm):
     # Mock response for "Quanto gastei?"
     mock_llm.invoke.return_value = MagicMock(content="query")
-    
-    state = {"messages": [HumanMessage(content="Quanto gastei?")]}
-    result = router_node(state)
-    
-    assert result["intent"] == "query"
+
+    with patch("src.agents.nodes.get_active_user") as mock_get_user:
+        mock_user = MagicMock()
+        mock_user.id = 1
+        mock_user.is_active = True
+        mock_get_user.return_value = mock_user
+
+        state = {
+            "messages": [HumanMessage(content="Quanto gastei?")],
+            "whatsapp_number": "5511999999999",
+        }
+        result = router_node(state)
+
+        assert result["intent"] == "query"
 
 def test_extraction_node_mock(mock_llm):
     # Mock the with_structured_output result
@@ -37,15 +55,15 @@ def test_extraction_node_mock(mock_llm):
         date="2026-04-15"
     )
     mock_llm.with_structured_output.return_value = structured_mock
-    
+
     # Mock DB interaction in extraction_node
-    with patch("src.agents.nodes.Session"), patch("src.agents.nodes.get_or_create_user") as mock_user:
-        mock_user.return_value = 1
+    with patch("src.agents.nodes.Session"):
         state = {
             "messages": [HumanMessage(content="Gastei 50 no Ifood")],
-            "whatsapp_number": "5527928341723"
+            "whatsapp_number": "5511999999999",
+            "user_id": 1,
         }
         result = extraction_node(state)
-        
+
         assert result["extracted_data"].amount == 50.0
         assert "Registrado: R$ 50.00" in result["messages"][0].content

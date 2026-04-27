@@ -58,8 +58,11 @@ client.on('qr', async (qr: string) => {
   }
 });
 
+let isClientReady = false;
+
 client.on('ready', () => {
   console.log('WhatsApp client is ready');
+  isClientReady = true;
   reconnectAttempts = 0;
   if (readyResolve) {
     readyResolve();
@@ -69,6 +72,7 @@ client.on('ready', () => {
 
 client.on('authenticated', async (session: any) => {
   console.log('WhatsApp authenticated');
+  isClientReady = true;
   currentQrData = null;
   await mongoAuth.save(session);
 });
@@ -79,6 +83,7 @@ client.on('auth_failure', (msg: string) => {
 
 client.on('disconnected', async (reason: WAState | string) => {
   console.log('WhatsApp disconnected:', reason);
+  isClientReady = false;
 
   if (isShuttingDown) {
     console.log('Shutdown in progress, skipping reconnection');
@@ -142,6 +147,7 @@ async function handleIncomingMessage(msg: Message): Promise<void> {
       const payload: IncomingMessagePayload = {
         chatId,
         platform: 'whatsapp',
+        messageId: msg.id.id,
         messageText: messageText ?? undefined,
         fileBytes: fileBytes ?? undefined,
         fileType: fileType ?? undefined,
@@ -154,7 +160,7 @@ async function handleIncomingMessage(msg: Message): Promise<void> {
       let lastError: any;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          await axios.post(`${API_URL}/webhook/whatsapp`, payload, {
+          await axios.post(`${API_URL}/api/v1/webhooks/whatsapp`, payload, {
             headers: { 'Content-Type': 'application/json' },
             timeout: 120000,
           });
@@ -179,7 +185,9 @@ async function handleIncomingMessage(msg: Message): Promise<void> {
 }
 
 export async function sendMessage(chatId: string, text: string): Promise<void> {
-  await readyPromise;
+  if (!isClientReady) {
+    throw new Error('WhatsApp client is not ready. Please scan the QR code to authenticate.');
+  }
   try {
     await client.sendMessage(chatId, text);
     console.log(`Text sent to ${chatId}`);
@@ -190,7 +198,9 @@ export async function sendMessage(chatId: string, text: string): Promise<void> {
 }
 
 export async function sendFile(chatId: string, base64File: string, filename: string, caption?: string): Promise<void> {
-  await readyPromise;
+  if (!isClientReady) {
+    throw new Error('WhatsApp client is not ready. Please scan the QR code to authenticate.');
+  }
   try {
     const media = new MessageMedia('application/pdf', base64File, filename);
     await client.sendMessage(chatId, media, { caption: caption || '' });

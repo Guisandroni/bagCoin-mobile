@@ -9,11 +9,14 @@ from celery.exceptions import MaxRetriesExceededError
 from langchain_core.messages import HumanMessage
 
 from ..config import settings
-from ..database import init_db, engine
+from ..core.database import engine, init_db
+from ..core.logging import logger
+from ..core.metrics import agent_messages_processed_total, agent_processing_duration_seconds
+from ..core.auth import is_token_valid
 from ..agents.graph import graph
-from ..logging_config import logger
-from ..metrics import agent_messages_processed_total, agent_processing_duration_seconds
 from ..celery_app import celery_app
+from ..repositories.conversation_context_repository import ConversationContextRepository
+from sqlmodel import Session
 
 redis_cache = None
 try:
@@ -55,6 +58,69 @@ def _set_cached_response(cache_key: str, response_text: str, ttl: int = 300):
         pass
 
 
+def _has_active_conversational_context(ctx) -> bool:
+    """Return True if the user is in the middle of a multi-turn conversation."""
+    if ctx is None:
+        return False
+    return (
+        ctx.awaiting_budget_month
+        or ctx.awaiting_fund_field is not None
+        or ctx.awaiting_file_type
+        or ctx.pending_budget_category is not None
+        or ctx.pending_fund is not None
+    )
+
+
+def _invalidate_chat_cache(chat_id: str):
+    """Delete all cached responses for a given chat_id."""
+    if not redis_cache:
+        return
+    try:
+        pattern = f"agent:response:*"
+        for key in redis_cache.scan_iter(match=pattern):
+            redis_cache.delete(key)
+        logger.info("chat_cache_invalidated", chat_id=chat_id)
+    except Exception:
+        pass
+
+
+def _load_context_into_state(ctx) -> dict:
+    """Build state overrides from persistent conversation context."""
+    if ctx is None:
+        return {}
+    return {
+        "awaiting_budget_month": ctx.awaiting_budget_month,
+        "pending_budget_category": ctx.pending_budget_category,
+        "pending_budget_amount": ctx.pending_budget_amount,
+        "awaiting_fund_field": ctx.awaiting_fund_field,
+        "pending_fund": ctx.pending_fund,
+        "awaiting_file_type": ctx.awaiting_file_type,
+        "pending_file_bytes": ctx.pending_file_bytes,
+        "pending_file_type": ctx.pending_file_type,
+        "last_intent": ctx.last_intent,
+        "last_action": ctx.last_action,
+    }
+
+
+def _save_context_from_state(ctx_repo: ConversationContextRepository, ctx, final_state: dict):
+    """Persist follow-up flags from the final graph state back to the database."""
+    if ctx is None:
+        return
+
+    ctx.awaiting_budget_month = final_state.get("awaiting_budget_month", False)
+    ctx.pending_budget_category = final_state.get("pending_budget_category")
+    ctx.pending_budget_amount = final_state.get("pending_budget_amount")
+    ctx.awaiting_fund_field = final_state.get("awaiting_fund_field")
+    ctx.pending_fund = final_state.get("pending_fund")
+    ctx.awaiting_file_type = final_state.get("awaiting_file_type", False)
+    ctx.pending_file_bytes = final_state.get("pending_file_bytes")
+    ctx.pending_file_type = final_state.get("pending_file_type")
+    ctx.last_intent = final_state.get("intent") or final_state.get("last_intent")
+    ctx.last_action = final_state.get("last_action")
+
+    ctx_repo.update(ctx)
+
+
 @celery_app.task(
     bind=True,
     max_retries=3,
@@ -72,8 +138,7 @@ def process_agent_message_task(
     file_type: str = None,
     pushname: str = None,
 ):
-    from sqlmodel import Session, select
-    from ..models import User
+    from ..models.user import User
 
     try:
         init_db()
@@ -88,39 +153,44 @@ def process_agent_message_task(
         pushname=pushname,
     )
 
-    user_id = None
-    user_name = pushname or "Usuário"
-    is_new_user = False
-
     with Session(engine) as session:
+        from sqlmodel import select
         statement = select(User).where(User.whatsapp_number == chat_id)
         user = session.exec(statement).first()
 
-        if not user:
-            user = User(
-                whatsapp_number=chat_id,
-                name=user_name,
-                is_active=True,
-            )
-            session.add(user)
-            session.commit()
-            session.refresh(user)
-            user_id = user.id
-            is_new_user = True
-            logger.info("user_auto_created", user_id=user_id, name=user_name, chat_id=chat_id)
-        else:
-            user_id = user.id
-            if pushname and (not user.name or user.name == "Usuário"):
-                user.name = pushname
-                session.add(user)
-                session.commit()
-                logger.info("user_name_updated", user_id=user_id, name=pushname)
+    # Se usuário não existe ou não está ativo → mensagem de boas-vindas/unauthorized
+    if not user or not user.is_active:
+        _send_unauthorized_message(chat_id, pushname)
+        return {"status": "unauthorized", "chat_id": chat_id}
+
+    # Se token expirou → pedir reativação
+    if not is_token_valid(user):
+        msg = (
+            "Olá! Seu acesso expirou após 7 dias. "
+            "Para continuar usando o Assistente Financeiro, acesse a plataforma web e gere um novo código de ativação."
+        )
+        try:
+            send_whatsapp_message_sync(chat_id, msg)
+        except Exception as ex:
+            logger.error("error_sending_expired_message", error=str(ex), chat_id=chat_id)
+        return {"status": "token_expired", "chat_id": chat_id}
+
+    user_id = user.id
+    user_name = user.name or pushname or "Usuário"
 
     config = {"configurable": {"thread_id": f"{platform}:{chat_id}"}}
     content = message_text or f"[Anexo {file_type}]"
 
+    # Load persistent conversational context
+    with Session(engine) as session:
+        ctx_repo = ConversationContextRepository(session)
+        ctx = ctx_repo.get_or_create(user_id)
+        context_state = _load_context_into_state(ctx)
+        has_active_context = _has_active_conversational_context(ctx)
+
+    # Only use Redis cache when NOT in the middle of a follow-up conversation
     cache_key = None
-    if message_text and not file_bytes_b64:
+    if message_text and not file_bytes_b64 and not has_active_context:
         cache_key = _get_cache_key(chat_id, message_text)
         cached = _get_cached_response(cache_key)
         if cached:
@@ -137,20 +207,31 @@ def process_agent_message_task(
     if file_bytes_b64:
         file_bytes = base64.b64decode(file_bytes_b64)
 
+    # Merge persistent context into initial state so the graph sees follow-up flags
     initial_state = {
         "messages": [HumanMessage(content=content)],
         "whatsapp_number": chat_id,
         "file_bytes": file_bytes,
         "file_type": file_type,
         "user_id": user_id,
-        "pushname": pushname,
-        "is_group": False,
+        "pushname": user_name,
     }
+    initial_state.update(context_state)
 
     start = time.time()
     try:
         final_state = graph.invoke(initial_state, config=config)
-        agent_processing_duration_seconds.observe(time.time() - start)
+        agent_processing_duration_seconds.labels(platform=platform).observe(time.time() - start)
+
+        # Persist any follow-up flags back to the database
+        with Session(engine) as session:
+            ctx_repo = ConversationContextRepository(session)
+            ctx = ctx_repo.get_or_create(user_id)
+            _save_context_from_state(ctx_repo, ctx, final_state)
+            # If we just entered or exited a follow-up, invalidate cache to prevent stale hits
+            if _has_active_conversational_context(ctx):
+                _invalidate_chat_cache(chat_id)
+
         pdf_bytes = final_state.get("report_pdf_bytes")
 
         if pdf_bytes:
@@ -184,7 +265,7 @@ def process_agent_message_task(
         return {"status": "success", "chat_id": chat_id}
 
     except Exception as e:
-        agent_processing_duration_seconds.observe(time.time() - start)
+        agent_processing_duration_seconds.labels(platform=platform).observe(time.time() - start)
         agent_messages_processed_total.labels(platform=platform, status="error").inc()
         logger.error("error_processing_agent", error=str(e), chat_id=chat_id, exc_info=True)
 
@@ -200,6 +281,48 @@ def process_agent_message_task(
         except MaxRetriesExceededError:
             logger.error("max_retries_exceeded", chat_id=chat_id)
             return {"status": "failed", "error": str(e)}
+
+
+def _send_unauthorized_message(chat_id: str, pushname: str = None):
+    name = pushname or "amigo"
+    msg = (
+        f"Olá, {name}! Sou seu Assistente Financeiro Pessoal. Estou aqui para ajudar você a organizar seus gastos, "
+        f"acompanhar seu orçamento e tomar melhores decisões financeiras.\n\n"
+        f"*O que eu posso fazer por você:*\n\n"
+        f"1. *Registrar Gastos e Ganhos*\n"
+        f"   Basta me enviar uma mensagem simples. Exemplos:\n"
+        f"   - \"Gastei 45 no mercado\" → Registro em Alimentação\n"
+        f"   - \"Uber pra casa 12 reais\" → Registro em Transporte\n"
+        f"   - \"Salário caiu 5000\" → Registro em Receita\n\n"
+        f"2. *Consultar Seus Dados*\n"
+        f"   Pergunte sobre seus gastos a qualquer momento:\n"
+        f"   - \"Quanto gastei esse mês?\"\n"
+        f"   - \"Qual meu maior gasto?\"\n"
+        f"   - \"Gastos de saúde nos últimos 3 meses\"\n\n"
+        f"3. *Orçamentos e Fundos*\n"
+        f"   Defina limites de gastos e metas de economia:\n"
+        f"   - \"Definir 5000 para alimentação\" → Cria orçamento mensal\n"
+        f"   - \"Criar fundo Viagem Disney\" → Guarda dinheiro para uma meta\n"
+        f"   - \"Como está meu orçamento?\" → Mostra progresso\n\n"
+        f"4. *Lembretes e Assinaturas*\n"
+        f"   Organize contas a pagar e gastos fixos:\n"
+        f"   - \"Me lembra de pagar a luz dia 10\"\n"
+        f"   - \"Registrar assinatura Netflix 39\"\n\n"
+        f"5. *Lista de Compras*\n"
+        f"   Anote itens rapidamente:\n"
+        f"   - \"Anota leite, pão, ovos\"\n\n"
+        f"6. *Importar Extratos*\n"
+        f"   Envie um PDF, CSV ou OFX do seu banco que eu extraio automaticamente todos os lançamentos.\n\n"
+        f"7. *Análise e Recomendações*\n"
+        f"   Posso analisar seus hábitos de consumo e dar dicas personalizadas para economizar.\n\n"
+        f"*Para começar:* Acesse nossa plataforma web, cadastre-se e envie o código de ativação aqui. "
+        f"O código é válido por 7 dias.\n\n"
+        f"Estou pronto para ajudar! 💪"
+    )
+    try:
+        send_whatsapp_message_sync(chat_id, msg)
+    except Exception as ex:
+        logger.error("error_sending_unauthorized", error=str(ex), chat_id=chat_id)
 
 
 def send_whatsapp_message_sync(chat_id: str, text: str):

@@ -8,7 +8,7 @@ export interface PreRegisterResponse {
 
 export const apiService = {
   async preRegister(name: string = "Novo Usuário"): Promise<PreRegisterResponse> {
-    const response = await fetch(`${API_BASE_URL}/users/pre-register`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/users/pre-register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),

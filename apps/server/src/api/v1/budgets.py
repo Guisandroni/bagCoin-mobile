@@ -46,8 +46,8 @@ class StatusResponse(BaseModel):
 def list_budgets(
     user: CurrentUserDep,
     db: DbSessionDep,
-    year: Annotated[Optional[int], Query(None)] = None,
-    month: Annotated[Optional[int], Query(None)] = None,
+    year: Annotated[Optional[int], Query()] = None,
+    month: Annotated[Optional[int], Query()] = None,
 ) -> List[BudgetResponse]:
     repo = BudgetRepository(db)
     # For simplicity, return all budgets for user

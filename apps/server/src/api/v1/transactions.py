@@ -30,10 +30,10 @@ class StatusResponse(BaseModel):
 def list_transactions(
     user: CurrentUserDep,
     db: DbSessionDep,
-    month: Annotated[Optional[str], Query(None, description="Filter by month (YYYY-MM)")] = None,
-    category: Annotated[Optional[str], Query(None)] = None,
-    limit: Annotated[int, Query(100, ge=1, le=500)] = 100,
-    offset: Annotated[int, Query(0, ge=0)] = 0,
+    month: Annotated[Optional[str], Query(description="Filter by month (YYYY-MM)")] = None,
+    category: Annotated[Optional[str], Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> TransactionListResponse:
     repo = TransactionRepository(db)
     transactions = repo.get_by_user(user.id, limit=1000)
@@ -165,7 +165,7 @@ def delete_transaction(
 def get_summary(
     user: CurrentUserDep,
     db: DbSessionDep,
-    month: Annotated[Optional[str], Query(None, description="Filter by month (YYYY-MM)")] = None,
+    month: Annotated[Optional[str], Query(description="Filter by month (YYYY-MM)")] = None,
 ) -> TransactionSummaryResponse:
     repo = TransactionRepository(db)
     transactions = repo.get_by_user(user.id, limit=1000)

@@ -37,7 +37,7 @@ class StatusResponse(BaseModel):
 def list_reminders(
     user: CurrentUserDep,
     db: DbSessionDep,
-    upcoming_days: Annotated[Optional[int], Query(None)] = None,
+    upcoming_days: Annotated[Optional[int], Query()] = None,
 ) -> List[ReminderResponse]:
     if upcoming_days:
         end_date = date.today() + timedelta(days=upcoming_days)

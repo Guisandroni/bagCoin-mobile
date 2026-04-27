@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Annotated
 from datetime import date
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -28,11 +28,15 @@ class SubscriptionResponse(BaseModel):
     is_active: bool
 
 
+class StatusResponse(BaseModel):
+    status: str
+
+
 @router.get("", response_model=List[SubscriptionResponse])
 def list_subscriptions(
     user: CurrentUserDep,
     db: DbSessionDep,
-):
+) -> List[SubscriptionResponse]:
     subs = db.exec(
         select(Subscription).where(
             Subscription.user_id == user.id,
@@ -59,7 +63,7 @@ def create_subscription(
     user: CurrentUserDep,
     db: DbSessionDep,
     data: SubscriptionCreate,
-):
+) -> SubscriptionResponse:
     sub = Subscription(
         user_id=user.id,
         name=data.name,
@@ -85,12 +89,12 @@ def create_subscription(
     )
 
 
-@router.delete("/{subscription_id}")
+@router.delete("/{subscription_id}", response_model=StatusResponse)
 def delete_subscription(
     user: CurrentUserDep,
     db: DbSessionDep,
-    subscription_id: int,
-):
+    subscription_id: Annotated[int, ...],
+) -> StatusResponse:
     sub = db.exec(
         select(Subscription).where(
             Subscription.id == subscription_id,
@@ -106,4 +110,4 @@ def delete_subscription(
     db.commit()
     
     logger.info("subscription_deleted", user_id=user.id, subscription_id=subscription_id)
-    return {"status": "deleted"}
+    return StatusResponse(status="deleted")

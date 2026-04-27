@@ -1,7 +1,8 @@
 import base64
 import time
 from typing import Annotated
-from fastapi import APIRouter, Request
+from urllib.parse import urlparse
+from fastapi import APIRouter, Request, HTTPException
 from ...core.metrics import webhook_requests_total, webhook_latency_seconds
 from ...tasks.agent_tasks import process_agent_message_task
 from ...schemas.webhook import WebhookPayload, WebhookResponse
@@ -19,6 +20,9 @@ except Exception:
     _redis = None
 
 
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+
 def _is_duplicate_message(message_id: str) -> bool:
     """Return True if this message was already processed in the last 60 seconds."""
     if not message_id or not _redis:
@@ -28,6 +32,15 @@ def _is_duplicate_message(message_id: str) -> bool:
         return True
     _redis.setex(key, 60, "1")
     return False
+
+
+def _is_valid_url(url: str) -> bool:
+    """Validate URL to prevent SSRF attacks."""
+    try:
+        parsed = urlparse(url)
+        return parsed.scheme == "https" and parsed.netloc != ""
+    except Exception:
+        return False
 
 
 def _extract_greenapi_body(body: dict) -> tuple[str | None, bytes | None, str | None]:
@@ -49,26 +62,37 @@ def _extract_greenapi_body(body: dict) -> tuple[str | None, bytes | None, str | 
             message_text = caption
 
         if download_url:
+            # SSRF protection
+            if not _is_valid_url(download_url):
+                return message_text, None, None
+            
             import httpx
-
-            with httpx.Client() as client:
-                resp = client.get(download_url)
-                if resp.status_code == 200:
-                    file_bytes = resp.content
-                    if type_message == "imageMessage":
-                        file_type = "image"
-                    elif type_message == "audioMessage":
-                        file_type = "audio"
-                    elif type_message == "documentMessage":
-                        file_name = file_data.get("fileName", "").lower()
-                        if file_name.endswith(".pdf"):
-                            file_type = "pdf"
+            try:
+                with httpx.Client(timeout=30.0) as client:
+                    resp = client.get(download_url)
+                    if resp.status_code == 200:
+                        # Size check
+                        content_length = len(resp.content)
+                        if content_length > MAX_FILE_SIZE:
+                            return message_text, None, None
+                        file_bytes = resp.content
+                        if type_message == "imageMessage":
+                            file_type = "image"
+                        elif type_message == "audioMessage":
+                            file_type = "audio"
+                        elif type_message == "documentMessage":
+                            file_name = file_data.get("fileName", "").lower()
+                            if file_name.endswith(".pdf"):
+                                file_type = "pdf"
+            except Exception:
+                # Fail-safe: return text only if download fails
+                pass
 
     return message_text, file_bytes, file_type
 
 
 @router.post("/green-api", response_model=WebhookResponse)
-async def green_api_webhook(request: Request):
+async def green_api_webhook(request: Request) -> WebhookResponse:
     start = time.time()
     body = await request.json()
     chat_id = body.get("senderData", {}).get("chatId")
@@ -91,7 +115,7 @@ async def green_api_webhook(request: Request):
 
 
 @router.post("/telegram", response_model=WebhookResponse)
-async def telegram_webhook(request: Request):
+async def telegram_webhook(request: Request) -> WebhookResponse:
     start = time.time()
     body = await request.json()
     chat_id = body.get("senderData", {}).get("chatId")
@@ -117,7 +141,7 @@ async def telegram_webhook(request: Request):
 async def whatsapp_web_webhook(
     request: Request,
     payload: WebhookPayload,
-):
+) -> WebhookResponse:
     start = time.time()
     chat_id = payload.chatId
 

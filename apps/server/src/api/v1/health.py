@@ -1,7 +1,5 @@
-from typing import Annotated
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
-from slowapi.util import get_remote_address
 from ...core.database import engine
 from ...core.metrics import metrics_response
 from ...config import settings
@@ -19,7 +17,7 @@ class HealthCheckResponse(BaseModel):
 
 
 @router.get("/health", response_model=HealthCheckResponse)
-async def health_check(request: Request):
+def health_check(request: Request) -> HealthCheckResponse:
     checks = {
         "server": "ok",
         "database": "unknown",
@@ -43,11 +41,8 @@ async def health_check(request: Request):
         checks["redis"] = f"error: {e!s}"
 
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{settings.WHATSAPP_BRIDGE_URL}/health",
-                timeout=5.0,
-            )
+        with httpx.Client(timeout=5.0) as client:
+            resp = client.get(f"{settings.WHATSAPP_BRIDGE_URL}/health")
             checks["whatsapp_bridge"] = (
                 "ok" if resp.status_code == 200 else f"error: status {resp.status_code}"
             )
@@ -57,7 +52,7 @@ async def health_check(request: Request):
     return HealthCheckResponse(**checks)
 
 
-@router.get("/metrics")
-async def metrics_endpoint():
+@router.get("/metrics", response_model=str)
+def metrics_endpoint() -> str:
     data, content_type = metrics_response()
     return data

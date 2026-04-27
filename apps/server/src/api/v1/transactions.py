@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from datetime import date
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -22,15 +22,19 @@ class TransactionSummaryResponse(BaseModel):
     total_by_category: dict[str, float]
 
 
+class StatusResponse(BaseModel):
+    status: str
+
+
 @router.get("", response_model=TransactionListResponse)
 def list_transactions(
     user: CurrentUserDep,
     db: DbSessionDep,
-    month: Optional[str] = Query(None, description="Filter by month (YYYY-MM)"),
-    category: Optional[str] = Query(None),
-    limit: int = Query(100, ge=1, le=500),
-    offset: int = Query(0, ge=0),
-):
+    month: Annotated[Optional[str], Query(None, description="Filter by month (YYYY-MM)")] = None,
+    category: Annotated[Optional[str], Query(None)] = None,
+    limit: Annotated[int, Query(100, ge=1, le=500)] = 100,
+    offset: Annotated[int, Query(0, ge=0)] = 0,
+) -> TransactionListResponse:
     repo = TransactionRepository(db)
     transactions = repo.get_by_user(user.id, limit=1000)
     
@@ -65,7 +69,7 @@ def create_transaction(
     user: CurrentUserDep,
     db: DbSessionDep,
     data: TransactionCreate,
-):
+) -> TransactionResponse:
     repo = TransactionRepository(db)
     txn = repo.create(
         user_id=user.id,
@@ -90,8 +94,8 @@ def create_transaction(
 def get_transaction(
     user: CurrentUserDep,
     db: DbSessionDep,
-    transaction_id: int,
-):
+    transaction_id: Annotated[int, ...],
+) -> TransactionResponse:
     repo = TransactionRepository(db)
     txn = repo.get_by_id(transaction_id, user.id)
     if not txn:
@@ -110,9 +114,9 @@ def get_transaction(
 def update_transaction(
     user: CurrentUserDep,
     db: DbSessionDep,
-    transaction_id: int,
+    transaction_id: Annotated[int, ...],
     data: TransactionCreate,
-):
+) -> TransactionResponse:
     repo = TransactionRepository(db)
     txn = repo.get_by_id(transaction_id, user.id)
     if not txn:
@@ -139,12 +143,12 @@ def update_transaction(
     )
 
 
-@router.delete("/{transaction_id}")
+@router.delete("/{transaction_id}", response_model=StatusResponse)
 def delete_transaction(
     user: CurrentUserDep,
     db: DbSessionDep,
-    transaction_id: int,
-):
+    transaction_id: Annotated[int, ...],
+) -> StatusResponse:
     repo = TransactionRepository(db)
     txn = repo.get_by_id(transaction_id, user.id)
     if not txn:
@@ -154,15 +158,15 @@ def delete_transaction(
     db.commit()
     
     logger.info("transaction_deleted", user_id=user.id, transaction_id=transaction_id)
-    return {"status": "deleted"}
+    return StatusResponse(status="deleted")
 
 
 @router.get("/summary", response_model=TransactionSummaryResponse)
 def get_summary(
     user: CurrentUserDep,
     db: DbSessionDep,
-    month: Optional[str] = Query(None, description="Filter by month (YYYY-MM)"),
-):
+    month: Annotated[Optional[str], Query(None, description="Filter by month (YYYY-MM)")] = None,
+) -> TransactionSummaryResponse:
     repo = TransactionRepository(db)
     transactions = repo.get_by_user(user.id, limit=1000)
     

@@ -1,22 +1,15 @@
 import httpx
-from typing import Annotated, Optional
-from fastapi import APIRouter, HTTPException, Query
+from typing import Annotated
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from ...core.database import engine
-from ...core.auth import create_access_token, get_current_user_from_token
+from ...core.auth import create_access_token
 from ...core.logging import logger
-from ...core.dependencies import DbSessionDep
+from ...core.dependencies import DbSessionDep, CurrentUserDep
 from ...repositories.user_repository import UserRepository
 from ...schemas.user import UserResponse
 from ...config import settings
-from sqlmodel import Session, select
-from ...models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-class GoogleAuthPayload(BaseModel):
-    code: str
 
 
 class AuthResponse(BaseModel):
@@ -28,16 +21,20 @@ class AuthResponse(BaseModel):
 @router.post("/google", response_model=AuthResponse)
 async def google_auth(
     db: DbSessionDep,
-    data: GoogleAuthPayload,
-):
+    data: Annotated[dict, ...],
+) -> AuthResponse:
     """Exchange Google authorization code for access token."""
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
     
+    code = data.get("code")
+    if not code:
+        raise HTTPException(status_code=400, detail="Code is required")
+    
     # Exchange code for token
     token_url = "https://oauth2.googleapis.com/token"
     token_data = {
-        "code": data.code,
+        "code": code,
         "client_id": settings.GOOGLE_CLIENT_ID,
         "client_secret": settings.GOOGLE_CLIENT_SECRET,
         "redirect_uri": f"{settings.FRONTEND_URL}/api/auth/callback/google",
@@ -101,26 +98,24 @@ async def google_auth(
         user=UserResponse(
             id=user.id,
             name=user.name,
+            email=user.email,
             whatsapp_number=user.whatsapp_number,
+            avatar_url=user.avatar_url,
             is_active=user.is_active,
-            activation_token=user.activation_token,
         )
     )
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(
-    db: DbSessionDep,
-    token: Annotated[str, Query()],
-):
+def get_current_user(
+    user: CurrentUserDep,
+) -> UserResponse:
     """Get current authenticated user."""
-    user = get_current_user_from_token(token)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
     return UserResponse(
         id=user.id,
         name=user.name,
+        email=user.email,
         whatsapp_number=user.whatsapp_number,
+        avatar_url=user.avatar_url,
         is_active=user.is_active,
-        activation_token=user.activation_token,
     )

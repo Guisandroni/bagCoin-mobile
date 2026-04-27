@@ -14,10 +14,8 @@ class UserResponse(BaseModel):
     whatsapp_number: Optional[str] = None
     avatar_url: Optional[str] = None
     is_active: bool
-    activation_token: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class UserPreRegisterResponse(BaseModel):

@@ -1,6 +1,6 @@
-from typing import List, Optional
-from datetime import date
-from fastapi import APIRouter, HTTPException
+from typing import List, Optional, Annotated
+from datetime import date, timedelta
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from ...core.dependencies import CurrentUserDep, DbSessionDep
 from ...models.reminder import Reminder
@@ -29,14 +29,17 @@ class ReminderResponse(BaseModel):
     recurring_frequency: Optional[str]
 
 
+class StatusResponse(BaseModel):
+    status: str
+
+
 @router.get("", response_model=List[ReminderResponse])
 def list_reminders(
     user: CurrentUserDep,
     db: DbSessionDep,
-    upcoming_days: Optional[int] = None,
-):
+    upcoming_days: Annotated[Optional[int], Query(None)] = None,
+) -> List[ReminderResponse]:
     if upcoming_days:
-        from datetime import timedelta
         end_date = date.today() + timedelta(days=upcoming_days)
         reminders = db.exec(
             select(Reminder).where(
@@ -72,7 +75,7 @@ def create_reminder(
     user: CurrentUserDep,
     db: DbSessionDep,
     data: ReminderCreate,
-):
+) -> ReminderResponse:
     reminder = Reminder(
         user_id=user.id,
         title=data.title,
@@ -99,12 +102,12 @@ def create_reminder(
     )
 
 
-@router.delete("/{reminder_id}")
+@router.delete("/{reminder_id}", response_model=StatusResponse)
 def delete_reminder(
     user: CurrentUserDep,
     db: DbSessionDep,
-    reminder_id: int,
-):
+    reminder_id: Annotated[int, ...],
+) -> StatusResponse:
     reminder = db.exec(
         select(Reminder).where(
             Reminder.id == reminder_id,
@@ -119,4 +122,4 @@ def delete_reminder(
     db.commit()
     
     logger.info("reminder_deleted", user_id=user.id, reminder_id=reminder_id)
-    return {"status": "deleted"}
+    return StatusResponse(status="deleted")

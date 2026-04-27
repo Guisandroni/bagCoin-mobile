@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from datetime import date
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -7,6 +7,7 @@ from ...repositories.fund_repository import FundRepository
 from ...models.fund import Fund
 from ...models.fund_contribution import FundContribution
 from ...core.logging import logger
+from sqlmodel import select
 
 router = APIRouter(prefix="/funds", tags=["funds"])
 
@@ -35,11 +36,21 @@ class ContributionCreate(BaseModel):
     note: Optional[str] = None
 
 
+class ContributionResponse(BaseModel):
+    status: str
+    fund_id: int
+    amount: float
+
+
+class StatusResponse(BaseModel):
+    status: str
+
+
 @router.get("", response_model=List[FundResponse])
 def list_funds(
     user: CurrentUserDep,
     db: DbSessionDep,
-):
+) -> List[FundResponse]:
     repo = FundRepository(db)
     funds = repo.get_by_user(user.id)
     return [
@@ -61,7 +72,7 @@ def create_fund(
     user: CurrentUserDep,
     db: DbSessionDep,
     data: FundCreate,
-):
+) -> FundResponse:
     fund = Fund(
         user_id=user.id,
         name=data.name,
@@ -88,24 +99,18 @@ def create_fund(
     )
 
 
-@router.post("/{fund_id}/contributions")
+@router.post("/{fund_id}/contributions", response_model=ContributionResponse)
 def add_contribution(
     user: CurrentUserDep,
     db: DbSessionDep,
-    fund_id: int,
+    fund_id: Annotated[int, ...],
     data: ContributionCreate,
-):
+) -> ContributionResponse:
     repo = FundRepository(db)
     fund = repo.get_by_id(fund_id, user.id)
     if not fund:
         raise HTTPException(status_code=404, detail="Fund not found")
     
-    contribution = ContributionCreate(
-        fund_id=fund_id,
-        amount=data.amount,
-        note=data.note,
-    )
-    # Note: FundContribution model needs to be instantiated correctly
     contrib = FundContribution(
         fund_id=fund_id,
         amount=data.amount,
@@ -120,22 +125,21 @@ def add_contribution(
     db.refresh(contrib)
     
     logger.info("contribution_added", user_id=user.id, fund_id=fund_id, amount=data.amount)
-    return {"status": "success", "fund_id": fund_id, "amount": data.amount}
+    return ContributionResponse(status="success", fund_id=fund_id, amount=data.amount)
 
 
-@router.delete("/{fund_id}")
+@router.delete("/{fund_id}", response_model=StatusResponse)
 def delete_fund(
     user: CurrentUserDep,
     db: DbSessionDep,
-    fund_id: int,
-):
+    fund_id: Annotated[int, ...],
+) -> StatusResponse:
     repo = FundRepository(db)
     fund = repo.get_by_id(fund_id, user.id)
     if not fund:
         raise HTTPException(status_code=404, detail="Fund not found")
     
     # Delete contributions first
-    from sqlmodel import select
     contributions = db.exec(
         select(FundContribution).where(FundContribution.fund_id == fund_id)
     ).all()
@@ -146,4 +150,4 @@ def delete_fund(
     db.commit()
     
     logger.info("fund_deleted", user_id=user.id, fund_id=fund_id)
-    return {"status": "deleted"}
+    return StatusResponse(status="deleted")

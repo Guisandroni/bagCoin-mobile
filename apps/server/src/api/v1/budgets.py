@@ -1,6 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from datetime import date
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from ...core.dependencies import CurrentUserDep, DbSessionDep
 from ...repositories.budget_repository import BudgetRepository
@@ -38,13 +38,17 @@ class BudgetResponse(BaseModel):
     categories: List[BudgetCategoryResponse]
 
 
+class StatusResponse(BaseModel):
+    status: str
+
+
 @router.get("", response_model=List[BudgetResponse])
 def list_budgets(
     user: CurrentUserDep,
     db: DbSessionDep,
-    year: Optional[int] = None,
-    month: Optional[int] = None,
-):
+    year: Annotated[Optional[int], Query(None)] = None,
+    month: Annotated[Optional[int], Query(None)] = None,
+) -> List[BudgetResponse]:
     repo = BudgetRepository(db)
     # For simplicity, return all budgets for user
     # In production, you'd want a get_by_user method
@@ -86,7 +90,7 @@ def create_budget(
     user: CurrentUserDep,
     db: DbSessionDep,
     data: BudgetCreate,
-):
+) -> BudgetResponse:
     repo = BudgetRepository(db)
     
     # Check if budget already exists for this period
@@ -136,12 +140,12 @@ def create_budget(
     )
 
 
-@router.delete("/{budget_id}")
+@router.delete("/{budget_id}", response_model=StatusResponse)
 def delete_budget(
     user: CurrentUserDep,
     db: DbSessionDep,
-    budget_id: int,
-):
+    budget_id: Annotated[int, ...],
+) -> StatusResponse:
     from sqlmodel import select
     budget = db.exec(
         select(Budget).where(Budget.id == budget_id, Budget.user_id == user.id)
@@ -159,4 +163,4 @@ def delete_budget(
     db.commit()
     
     logger.info("budget_deleted", user_id=user.id, budget_id=budget_id)
-    return {"status": "deleted"}
+    return StatusResponse(status="deleted")

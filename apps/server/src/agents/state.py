@@ -7,6 +7,7 @@ class TransactionExtraction(BaseModel):
     amount: float
     description: str
     category: str
+    is_expense: bool = True
     date: Optional[str] = None
 
 class AgentState(TypedDict):
@@ -23,3 +24,17 @@ class AgentState(TypedDict):
     processed_transactions: Optional[List[TransactionExtraction]]
     pushname: Optional[str]
     is_group: bool
+    # File upload flow control
+    awaiting_file_type: bool
+    pending_file_bytes: Optional[bytes]
+    pending_file_type: Optional[str]
+    # Budget flow control
+    awaiting_budget_month: bool
+    pending_budget_category: Optional[str]
+    pending_budget_amount: Optional[float]
+    # Fund flow control
+    awaiting_fund_field: Optional[str]
+    pending_fund: Optional[dict]
+    # General conversational context
+    last_intent: Optional[str]
+    last_action: Optional[str]

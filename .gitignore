@@ -238,8 +238,13 @@ extracted_data_final.txt
 GEMINI.md
 KIMI.md
 DEPLOY.md
+FASTAPI.md
+TESTES_CHATBOT.md
+DER.md
 apps/server/README.md
 apps/web/AGENTS.md
 apps/web/CLAUDE.md
 apps/web/README.md
+apps/web/DESIGN.md
+apps/web/functions.md
 apps/whatsapp/README.md

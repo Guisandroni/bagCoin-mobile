@@ -6,25 +6,6 @@ declare module 'qrcode-terminal' {
   export = { generate };
 }
 
-declare module 'mongodb' {
-  export class MongoClient {
-    constructor(url: string, options?: any);
-    connect(): Promise<MongoClient>;
-    close(): Promise<void>;
-    db(dbName?: string): Db;
-  }
-
-  export class Db {
-    collection<T = any>(name: string): Collection<T>;
-  }
-
-  export class Collection<T = any> {
-    findOne(filter: any): Promise<T | null>;
-    updateOne(filter: any, update: any, options?: any): Promise<any>;
-    deleteOne(filter: any): Promise<any>;
-  }
-}
-
 declare module 'whatsapp-web.js' {
   export class Client {
     constructor(options: ClientOptions);
@@ -72,7 +53,15 @@ declare module 'whatsapp-web.js' {
     constructor(options: { store: any; backupSyncIntervalMs?: number });
   }
 
+  export interface MessageId {
+    fromMe: boolean;
+    remote: string;
+    id: string;
+    _serialized: string;
+  }
+
   export interface Message {
+    id: MessageId;
     from: string;
     to: string;
     body: string;

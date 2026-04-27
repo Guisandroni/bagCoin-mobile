@@ -1,6 +1,7 @@
 export interface IncomingMessagePayload {
   chatId: string;
   platform: 'whatsapp';
+  messageId: string;
   messageText?: string;
   fileBytes?: string;
   fileType?: string;

@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     
     DATABASE_URL: str
     SECRET_KEY: str = "secret"
+    
+    # Google OAuth
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    FRONTEND_URL: str = "http://localhost:3000"
+    
+    # JWT
+    JWT_SECRET: str = "jwt-secret-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRATION_HOURS: int = 168  # 7 days
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

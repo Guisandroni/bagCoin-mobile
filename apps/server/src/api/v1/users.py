@@ -6,11 +6,11 @@ from typing import Annotated
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from slowapi.util import get_remote_address
-from ...core.dependencies import DbSessionDep
+from ...core.dependencies import DbSessionDep, CurrentUserDep
 from ...core.metrics import pre_register_total
 from ...core.logging import logger
 from ...repositories.user_repository import UserRepository
-from ...schemas.user import UserPreRegisterResponse
+from ...schemas.user import UserPreRegisterResponse, UserResponse
 from ...models.conversation_context import ConversationContext
 from sqlmodel import select
 
@@ -47,6 +47,45 @@ async def pre_register_user(
         user = repo.create(name=data.name, token=token)
 
     return UserPreRegisterResponse(status="success", token=token, id=user.id)
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(
+    user: CurrentUserDep,
+):
+    return UserResponse(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        whatsapp_number=user.whatsapp_number,
+        avatar_url=user.avatar_url,
+        is_active=user.is_active,
+        activation_token=user.activation_token,
+    )
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    user: CurrentUserDep,
+    db: DbSessionDep,
+    data: PreRegisterPayload,
+):
+    user.name = data.name
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    logger.info("user_updated", user_id=user.id)
+    
+    return UserResponse(
+        id=user.id,
+        name=user.name,
+        email=user.email,
+        whatsapp_number=user.whatsapp_number,
+        avatar_url=user.avatar_url,
+        is_active=user.is_active,
+        activation_token=user.activation_token,
+    )
 
 
 @router.get("/context/{whatsapp_number}")

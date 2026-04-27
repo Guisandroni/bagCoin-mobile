@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List
+from typing import List, Optional
 from sqlmodel import Session, select
 from sqlalchemy import func
 from ..models.transaction import Transaction
@@ -39,6 +39,13 @@ class TransactionRepository:
             .limit(limit)
         )
         return self.db.exec(statement).all()
+
+    def get_by_id(self, transaction_id: int, user_id: int) -> Optional[Transaction]:
+        statement = (
+            select(Transaction)
+            .where(Transaction.id == transaction_id, Transaction.user_id == user_id)
+        )
+        return self.db.exec(statement).first()
 
     def get_total_by_user(self, user_id: int) -> float:
         statement = select(func.sum(Transaction.amount)).where(

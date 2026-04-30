@@ -125,10 +125,16 @@ def get_date_filter(msg_lower: str) -> str:
 
 def get_fallback_query(message: str, phone_number: str) -> tuple:
     """Tenta mapear consultas comuns para SQL sem usar LLM."""
+    import unicodedata
     msg_lower = message.lower()
+    msg_norm = unicodedata.normalize('NFKD', msg_lower).encode('ASCII', 'ignore').decode('ASCII')
     user_filter = "user_id = (SELECT id FROM users WHERE phone_number = :phone_number)"
     date_clause = get_date_filter(msg_lower)
     date_sql = f" AND {date_clause}" if date_clause else ""
+
+    def _in(keywords):
+        """Verifica se alguma keyword está na mensagem (normalizada ou não)."""
+        return any(kw in msg_lower for kw in keywords) or any(kw in msg_norm for kw in keywords)
 
     # Total de gastos (muitas variações)
     expense_phrases = [
@@ -136,7 +142,7 @@ def get_fallback_query(message: str, phone_number: str) -> tuple:
         "total de gastos", "soma das despesas", "total pago",
         "gastos totais", "despesas totais", "quanto ja paguei",
     ]
-    if any(p in msg_lower for p in expense_phrases):
+    if _in(expense_phrases):
         sql = f"SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE {user_filter} AND type = 'EXPENSE'{date_sql}"
         period_label = _period_label(date_clause)
         return sql, f"Total de gastos{period_label}"
@@ -147,13 +153,13 @@ def get_fallback_query(message: str, phone_number: str) -> tuple:
         "total de entradas", "receitas totais", "quanto caiu",
         "quanto ganhei", "quanto entrou",
     ]
-    if any(p in msg_lower for p in income_phrases):
+    if _in(income_phrases):
         sql = f"SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE {user_filter} AND type = 'INCOME'{date_sql}"
         period_label = _period_label(date_clause)
         return sql, f"Total de receitas{period_label}"
 
     # Saldo
-    if any(p in msg_lower for p in ["saldo", "quanto sobrou", "diferenca", "balanco"]):
+    if _in(["saldo", "quanto sobrou", "diferenca", "balanco"]):
         if date_clause:
             sql = f"SELECT (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE {user_filter} AND type = 'INCOME' AND {date_clause}) - (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE {user_filter} AND type = 'EXPENSE' AND {date_clause}) as saldo"
         else:
@@ -165,27 +171,27 @@ def get_fallback_query(message: str, phone_number: str) -> tuple:
         "gastos por categoria", "despesas por categoria", "categorias",
         "gastos em cada categoria", "quanto gastei em cada",
     ]
-    if any(p in msg_lower for p in category_phrases):
+    if _in(category_phrases):
         sql = f"SELECT c.name as categoria, COALESCE(SUM(t.amount), 0) as total FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE t.{user_filter} AND t.type = 'EXPENSE'{date_sql} GROUP BY c.name ORDER BY total DESC"
         return sql, "Gastos por categoria"
 
     # Últimas transações
-    if any(p in msg_lower for p in ["ultimas transacoes", "ultimos gastos", "historico recente", "lista de transacoes"]):
+    if _in(["ultimas transacoes", "ultimos gastos", "historico recente", "lista de transacoes"]):
         sql = f"SELECT t.transaction_date as data, t.type as tipo, t.amount as valor, t.description as descricao, c.name as categoria FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE t.{user_filter}{date_sql} ORDER BY t.transaction_date DESC LIMIT 10"
         return sql, "Últimas 10 transações"
 
     # Maior gasto
-    if any(p in msg_lower for p in ["maior gasto", "maior despesa", "gasto mais alto"]):
+    if _in(["maior gasto", "maior despesa", "gasto mais alto"]):
         sql = f"SELECT t.amount as valor, t.description as descricao, c.name as categoria FROM transactions t LEFT JOIN categories c ON t.category_id = c.id WHERE t.{user_filter} AND t.type = 'EXPENSE'{date_sql} ORDER BY t.amount DESC LIMIT 1"
         return sql, "Maior gasto registrado"
 
     # Lista de receitas
-    if any(p in msg_lower for p in ["lista de receitas", "minhas receitas", "receitas recentes", "entradas"]):
+    if _in(["lista de receitas", "minhas receitas", "receitas recentes", "entradas"]):
         sql = f"SELECT t.transaction_date as data, t.amount as valor, t.description as descricao FROM transactions t WHERE t.{user_filter} AND t.type = 'INCOME'{date_sql} ORDER BY t.transaction_date DESC LIMIT 10"
         return sql, "Receitas recentes"
 
     # Lista de gastos
-    if any(p in msg_lower for p in ["lista de gastos", "minhas despesas", "gastos recentes", "despesas"]):
+    if _in(["lista de gastos", "minhas despesas", "gastos recentes", "despesas"]):
         sql = f"SELECT t.transaction_date as data, t.amount as valor, t.description as descricao FROM transactions t WHERE t.{user_filter} AND t.type = 'EXPENSE'{date_sql} ORDER BY t.transaction_date DESC LIMIT 10"
         return sql, "Gastos recentes"
 
@@ -231,6 +237,10 @@ def process_query(state: Dict[str, Any]) -> Dict[str, Any]:
             sql = fallback_sql
             description = fallback_desc
         else:
+            from app.agents.persistence import get_conversation_history
+            history = get_conversation_history(phone_number, limit=4)
+            history_context = f"\n\nÚltimas mensagens da conversa:\n{history}" if history else ""
+            
             system_prompt = f"""Você é um assistente especialista em SQL para um chatbot financeiro.
 Sua tarefa é converter perguntas em português para queries SQL seguras e otimizadas.
 
@@ -243,6 +253,7 @@ REGRAS CRÍTICAS:
 4. Formato de datas: YYYY-MM-DD.
 5. Use SEMPRE valores MAIÚSCULOS para o enum type: 'EXPENSE', 'INCOME', 'TRANSFER', 'ADJUSTMENT'
 6. Responda APENAS com JSON: {{"sql": "...", "description": "...", "parameters": {{"phone_number": "..."}}}}
+{history_context}
 
 Exemplos:
 Pergunta: "Quanto gastei esse mês?"

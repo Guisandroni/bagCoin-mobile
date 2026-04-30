@@ -4,7 +4,7 @@ from datetime import datetime, date, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import SessionLocal
-from app.models.models import User, Budget, BudgetItem, Goal, Transaction, Category, GoalStatus
+from app.models.models import User, Budget, Goal, Transaction, Category, GoalStatus
 from app.agents.persistence import get_or_create_user
 
 logger = logging.getLogger(__name__)
@@ -54,14 +54,6 @@ def create_budget(
         db.commit()
         db.refresh(budget)
 
-        item = BudgetItem(
-            budget_id=budget.id,
-            category_id=category.id,
-            limit_amount=total_limit
-        )
-        db.add(item)
-        db.commit()
-
         return {
             "id": budget.id,
             "name": budget.name,
@@ -69,7 +61,6 @@ def create_budget(
             "category_name": category.name,
             "total_limit": budget.total_limit,
             "period": budget.period,
-            "items": [{"category": category.name, "limit": total_limit}]
         }
     except Exception as e:
         db.rollback()
@@ -304,33 +295,15 @@ def check_budget_alerts(phone_number: str) -> List[Dict[str, Any]]:
                 "type": "budget_exceeded",
                 "severity": "high",
                 "budget_name": budget["name"],
-                "message": f"Alerta: você ultrapassou o orçamento '{budget['name']}' ({pct}% — R$ {budget['total_spent']:,.2f} de R$ {budget['total_limit']:,.2f})"
+                "message": f"⚠️ Alerta: você ultrapassou o orçamento '{budget['name']}' ({pct}% — R$ {budget['total_spent']:,.2f} de R$ {budget['total_limit']:,.2f})"
             })
         elif pct >= 80:
             alerts.append({
                 "type": "budget_warning",
                 "severity": "medium",
                 "budget_name": budget["name"],
-                "message": f"Atenção: orçamento '{budget['name']}' está em {pct}% (R$ {budget['total_spent']:,.2f} de R$ {budget['total_limit']:,.2f})"
+                "message": f"⚠️ Atenção: orçamento '{budget['name']}' está em {pct}% (R$ {budget['total_spent']:,.2f} de R$ {budget['total_limit']:,.2f})"
             })
-
-        # Alertas por categoria
-        for item in budget.get("items", []):
-            cat_pct = item["percentage"]
-            if cat_pct >= 100:
-                alerts.append({
-                    "type": "category_exceeded",
-                    "severity": "high",
-                    "category": item["category"],
-                    "message": f"Categoria '{item['category']}' ultrapassou o limite ({cat_pct}% — R$ {item['spent']:,.2f} de R$ {item['limit']:,.2f})"
-                })
-            elif cat_pct >= 80:
-                alerts.append({
-                    "type": "category_warning",
-                    "severity": "medium",
-                    "category": item["category"],
-                    "message": f"Categoria '{item['category']}' está em {cat_pct}% (R$ {item['spent']:,.2f} de R$ {item['limit']:,.2f})"
-                })
 
     return alerts
 

@@ -95,19 +95,24 @@ def generate_recommendations(state: Dict[str, Any]) -> Dict[str, Any]:
     if not llm:
         # Recomendações básicas sem LLM
         recommendations = []
-        
+
         if summary["balance_30d"] < 0:
             recommendations.append("⚠️ Seus gastos superaram suas receitas nos últimos 30 dias. Tente reduzir despesas não essenciais.")
         elif summary["balance_30d"] > 0:
             recommendations.append(f"✅ Você teve uma sobra de R$ {summary['balance_30d']:,.2f}. Considere guardar parte em uma reserva de emergência.")
-        
+
         if summary["top_expense_categories"]:
             top_cat = summary["top_expense_categories"][0]
             recommendations.append(f"📊 Sua maior categoria de gasto é *{top_cat['name']}* (R$ {top_cat['total']:,.2f}). Avalie se está alinhada com suas prioridades.")
-        
+
         state["response"] = "🤖 *Recomendações Financeiras*\n\n" + "\n\n".join(recommendations)
         return state
-    
+
+    # Injeta histórico da conversa para recomendações contextuais
+    from app.agents.persistence import get_conversation_history
+    history = get_conversation_history(phone_number, limit=6)
+    history_context = f"\n\nÚltimas mensagens da conversa:\n{history}" if history else ""
+
     system_prompt = """Você é um assistente financeiro educativo e cauteloso.
 Analise os dados financeiros do usuário e forneça recomendações personalizadas.
 
@@ -126,7 +131,7 @@ IMPORTANTE:
     try:
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Dados financeiros do usuário (últimos 30 dias):\n{context}\n\nGere recomendações personalizadas.")
+            HumanMessage(content=f"Dados financeiros do usuário (últimos 30 dias):\n{context}\n\n{history_context if history_context else ''}\n\nGere recomendações personalizadas baseadas nos dados e no contexto da conversa.")
         ]
         
         response = llm.invoke(messages)

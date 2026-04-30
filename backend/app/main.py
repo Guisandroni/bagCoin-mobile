@@ -62,6 +62,41 @@ async def root():
 async def health_check():
     return {"status": "healthy", "service": "bagcoin-api"}
 
+
+@app.get("/logs/{phone_number}")
+async def get_agent_logs(phone_number: str, limit: int = 50):
+    """Retorna os logs dos agentes para um determinado número de telefone."""
+    try:
+        from app.models.models import AgentLog, User
+        from app.database import SessionLocal
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.phone_number == phone_number).first()
+            if not user:
+                return {"error": "Usuário não encontrado"}
+            logs = db.query(AgentLog).filter(
+                AgentLog.user_id == user.id
+            ).order_by(AgentLog.created_at.desc()).limit(limit).all()
+            return {
+                "phone_number": phone_number,
+                "logs": [
+                    {
+                        "id": log.id,
+                        "agent": log.agent_name,
+                        "status": log.status,
+                        "request": log.request_payload,
+                        "response": log.response_payload,
+                        "created_at": log.created_at.isoformat() if log.created_at else None
+                    }
+                    for log in logs
+                ]
+            }
+        finally:
+            db.close()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 if __name__ == "__main__":
     import uvicorn
     from app.config import get_settings

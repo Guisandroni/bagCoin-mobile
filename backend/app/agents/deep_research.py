@@ -39,6 +39,11 @@ def deep_research(state: Dict[str, Any]) -> Dict[str, Any]:
     try:
         web_results = _search_web(f"financas investimentos economia Brasil {message}")
 
+        # Injeta histórico da conversa
+        from app.agents.persistence import get_conversation_history
+        history = get_conversation_history(state.get("phone_number", ""), limit=4)
+        history_context = f"\n\nHistórico da conversa:\n{history}" if history else ""
+
         system_prompt = """Você é um assistente de pesquisa financeira educativo.
 Forneça informações atualizadas e contextuais sobre finanças, investimentos e economia.
 
@@ -60,6 +65,10 @@ Formate a resposta de forma amigável para WhatsApp (use quebras de linha).
             for i, r in enumerate(web_results[:3], 1):
                 context += f"{i}. {r['title']}: {r['body'][:300]}\n"
             context += "\nUse esses resultados para responder com dados atuais quando relevante."
+
+        # Adiciona histórico ao contexto
+        if history_context:
+            context += history_context
 
         messages = [
             SystemMessage(content=system_prompt),

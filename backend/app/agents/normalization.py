@@ -166,8 +166,12 @@ def extract_transaction(state: Dict[str, Any]) -> Dict[str, Any]:
     if needs_llm:
         try:
             from app.services.llm_service import timed_invoke
+            from app.agents.persistence import get_conversation_history
             llm = get_llm(temperature=0.1)
             if llm:
+                history = get_conversation_history(phone_number, limit=6)
+                history_context = f"\n\nContexto da conversa recente:\n{history}" if history else ""
+                
                 system_prompt = f"""Você é um especialista em extrair informações financeiras de mensagens em português.
 Extraia: tipo (EXPENSE/INCOME/TRANSFER), valor (número), moeda, categoria, descrição, data.
 Responda APENAS com JSON válido.
@@ -184,8 +188,7 @@ Formato esperado:
   "description": "Almoço no restaurante",
   "date": "2024-01-15",
   "confidence": 0.95
-}}
-"""
+}}{history_context}"""
                 messages = [
                     SystemMessage(content=system_prompt),
                     HumanMessage(content=f"Mensagem: {message}")

@@ -138,6 +138,12 @@ def save_transaction(state: Dict[str, Any]) -> Dict[str, Any]:
         state["category_name"] = category_name
         state["category_id"] = category.id
         logger.info(f"Transação {transaction.id} salva para usuário {user.id}")
+
+        # Atualiza perfil financeiro assincronamente (após transação)
+        try:
+            update_financial_profile(phone_number)
+        except Exception:
+            pass
         
     except Exception as e:
         db.rollback()
@@ -397,5 +403,79 @@ def list_categories(phone_number: str) -> list[dict]:
             {"id": c.id, "name": c.name, "is_default": c.is_default}
             for c in sorted(cats, key=lambda x: (not x.is_default, x.name))
         ]
+    finally:
+        db.close()
+
+
+def update_financial_profile(phone_number: str) -> dict:
+    """Atualiza o perfil financeiro do usuário baseado no histórico de transações.
+    
+    Calcula:
+    - Categorias mais frequentes
+    - Gasto médio mensal
+    - Taxa de poupança (receitas - despesas) / receitas
+    - Dia/horário mais comum de registrar gastos
+    """
+    db = SessionLocal()
+    try:
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+        
+        user = get_or_create_user(phone_number, db)
+        user_id = user.id
+        
+        # Últimos 90 dias para análise
+        ninety_days_ago = datetime.utcnow() - timedelta(days=90)
+        
+        # Gasto total por categoria
+        cat_totals = db.query(
+            Category.name,
+            func.coalesce(func.sum(Transaction.amount), 0).label('total'),
+            func.count(Transaction.id).label('count')
+        ).join(Category, Transaction.category_id == Category.id
+        ).filter(
+            Transaction.user_id == user_id,
+            Transaction.type == 'EXPENSE',
+            Transaction.transaction_date >= ninety_days_ago
+        ).group_by(Category.name).order_by(func.sum(Transaction.amount).desc()).all()
+        
+        # Totais de receitas e despesas no período
+        totals = db.query(
+            func.coalesce(func.sum(Transaction.amount).filter(Transaction.type == 'INCOME'), 0).label('income'),
+            func.coalesce(func.sum(Transaction.amount).filter(Transaction.type == 'EXPENSE'), 0).label('expense'),
+        ).filter(
+            Transaction.user_id == user_id,
+            Transaction.transaction_date >= ninety_days_ago
+        ).first()
+        
+        total_income = float(totals.income) if totals else 0
+        total_expense = float(totals.expense) if totals else 0
+        
+        # Monta perfil
+        profile = {
+            "top_categories": [
+                {"name": cat.name, "total": float(cat.total), "count": cat.count}
+                for cat in cat_totals[:5]
+            ],
+            "total_income_90d": total_income,
+            "total_expense_90d": total_expense,
+            "savings_rate": round((total_income - total_expense) / total_income * 100, 1) if total_income > 0 else 0,
+            "average_monthly_spending": round(total_expense / 3, 2),
+            "transaction_count_90d": sum(cat.count for cat in cat_totals),
+            "last_updated": datetime.utcnow().isoformat(),
+        }
+        
+        from sqlalchemy.orm.attributes import flag_modified
+        user.financial_profile = profile
+        flag_modified(user, "financial_profile")
+        db.commit()
+        
+        logger.info(f"Perfil financeiro atualizado para {phone_number}: {len(cat_totals)} categorias")
+        return profile
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Erro ao atualizar perfil financeiro: {e}")
+        return {}
     finally:
         db.close()

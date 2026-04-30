@@ -153,7 +153,31 @@ def generate_report(state: Dict[str, Any]) -> Dict[str, Any]:
             budget_info=budget_info,
             goals_info=goals_info
         )
-        
+
+        # Gera CSV também
+        csv_path = report_path.replace(".pdf", ".csv")
+        try:
+            import csv as csv_module
+            with open(csv_path, "w", newline="", encoding="utf-8") as f:
+                writer = csv_module.writer(f)
+                writer.writerow(["Data", "Tipo", "Categoria", "Descrição", "Valor"])
+                for tx in tx_formatted:
+                    writer.writerow([
+                        tx["date"],
+                        "Receita" if tx["type"] == "INCOME" else "Gasto",
+                        tx["category"],
+                        tx["description"],
+                        f"R$ {tx['amount']:,.2f}"
+                    ])
+                writer.writerow([])
+                writer.writerow(["Resumo", "", "", "", ""])
+                writer.writerow(["Receitas", "", "", "", f"R$ {total_income:,.2f}"])
+                writer.writerow(["Despesas", "", "", "", f"R$ {total_expense:,.2f}"])
+                writer.writerow(["Saldo", "", "", "", f"R$ {(total_income - total_expense):,.2f}"])
+            logger.info(f"CSV gerado: {csv_path}")
+        except Exception as csv_err:
+            logger.warning(f"Erro ao gerar CSV: {csv_err}")
+
         state["report_path"] = report_path
         state["report_summary"] = (
             f"📊 *Relatório Financeiro*\n"
@@ -161,7 +185,7 @@ def generate_report(state: Dict[str, Any]) -> Dict[str, Any]:
             f"💰 Receitas: R$ {total_income:,.2f}\n"
             f"💸 Despesas: R$ {total_expense:,.2f}\n"
             f"📈 Saldo: R$ {(total_income - total_expense):,.2f}\n\n"
-            f"PDF gerado com sucesso!"
+            f"📄 PDF e CSV gerados com sucesso!"
         )
         
         logger.info(f"Relatório gerado: {report_path}")

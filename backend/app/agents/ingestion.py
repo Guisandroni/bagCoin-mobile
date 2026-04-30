@@ -75,35 +75,20 @@ def classify_intent(state: Dict[str, Any]) -> Dict[str, Any]:
 
     # =====================================================================
     # WIZARD CHECK: Se há wizard em andamento, mantém a intenção do wizard
-    # MAS se a mensagem é um comando explícito diferente, limpa o wizard
+    # Apenas cancela se o usuário PEDIR explicitamente (cancelar, sair)
     # =====================================================================
     from app.agents.wizard import _load_wizard_state, _is_wizard_intent, _clear_wizard_state
     wizard_state = _load_wizard_state(phone_number)
     if wizard_state:
         wizard_type = wizard_state.get("type", "")
         wizard_status = wizard_state.get("status", "")
-        # Detecta se a mensagem é um comando explícito que NÃO é continuação do wizard
-        # Inclui orçamento/meta para evitar que wizard de meta anterior intercepte "orçamento de 300"
-        explicit_cancel_keywords = [
-            "gastei", "paguei", "comprei", "recebi", "ganhei",
-            "guardei", "depositei", "adicionei",
-            "quanto", "qual meu saldo", "gastos por",
-            "excluir orcamento", "apagar budget", "mudar orcamento", "alterar orcamento",
-            "excluir meta", "apagar meta", "mudar meta", "alterar meta",
-            "excluir gasto", "apagar transacao",
-            "oi", "ola", "bom dia", "boa tarde", "boa noite",
-            "ajuda", "como usar", "tutorial",
-            "alertas", "desativar alertas", "ativar alertas",
-            "orcamento", "orcamentos", "budget", "limite",
-            "meta", "metas", "objetivo", "objetivos",
-            "guardar", "economizar", "juntar", "poupar",
-        ]
-        is_explicit_cancel = any(kw in msg_norm for kw in explicit_cancel_keywords)
-        # Se é um comando novo E o wizard está em collecting (não confirming), limpa
-        if is_explicit_cancel and wizard_status == "collecting":
+        
+        # Cancela apenas se o usuário pedir explicitamente
+        cancel_words = ["cancelar", "cancela", "sair", "voltar", "esquece", "desistir"]
+        if any(w in msg_norm for w in cancel_words):
             _clear_wizard_state(phone_number)
-            logger.info(f"[classify_intent] Wizard cancelado (collecting), novo comando detectado")
-            # NÃO retorna aqui — deixa o fluxo continuar para classificar a nova mensagem
+            logger.info(f"[classify_intent] Wizard cancelado a pedido do usuário")
+            # Deixa o fluxo continuar para classificar a nova intenção
         elif _is_wizard_intent(wizard_type) and wizard_status in ["collecting", "confirming"]:
             intent_map = {
                 "create_budget": IntentType.CREATE_BUDGET,
@@ -402,6 +387,12 @@ IMPORTANTE:
 - "obrigado", "valeu", "show" é CHAT, nunca UNKNOWN
 - "e no mês passado?" depois de uma consulta é CHAT (follow-up sem contexto explícito)
 - "na verdade foi X" é CHAT (correção contextual, não novo registro)"""
+
+    # Injeta histórico da conversa para contexto
+    from app.agents.persistence import get_conversation_history
+    _history = get_conversation_history(phone_number, limit=4)
+    if _history:
+        system_prompt += f"\n\nHistórico recente da conversa:\n{_history}"
 
     try:
         from app.services.llm_service import timed_invoke

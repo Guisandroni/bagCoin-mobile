@@ -59,7 +59,7 @@ def help_menu() -> str:
         "• Gastos por categoria\n"
         "• Qual meu saldo?\n\n"
         " Voce pode definir orçamentos por categoria:\n"
-        "• Crie um orçamento de R$ 3000 para a categoriaalimentação\n"
+        "• Crie um orçamento de R$ 3000 para a categoria alimentação\n"
         "• Crie um orçamento de R$ 1000 para a categoria transporte\n\n"
         " Voce pode definir metas financeiras:\n"
         "• Crie uma meta de R$ 10000 para a viagem de férias\n"

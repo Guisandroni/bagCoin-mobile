@@ -3,38 +3,59 @@ from typing import Dict, Any, List
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.models import Transaction
+from app.models.models import Transaction, Category
 from app.agents.statement_parser import parse_statement, detect_statement
 
 logger = logging.getLogger(__name__)
 
 
 def _map_category_to_db(category_name: str) -> str:
-    """Mapeia nome de categoria heurística para o enum do banco de dados."""
-    # Categorias válidas no banco (baseado no agent-finance)
-    valid_categories = {
-        "Alimentação": "ALIMENTACAO",
-        "Transporte": "TRANSPORTE",
-        "Moradia": "MORADIA",
-        "Saúde": "SAUDE",
-        "Educação": "EDUCACAO",
-        "Entretenimento": "ENTRETENIMENTO",
-        "Vestuário": "VESTUARIO",
-        "Serviços": "SERVICOS",
-        "Investimentos": "INVESTIMENTOS",
-        "Renda": "RENDA",
-        "Transferência": "TRANSFERENCIA",
-        "Seguros": "SEGUROS",
-        "Impostos": "IMPOSTOS",
-        "Dívidas": "DIVIDAS",
-        "Viagem": "VIAGEM",
-        "Presentes": "PRESENTES",
-        "Doações": "DOACOES",
-        "Taxas Bancárias": "TAXAS_BANCARIAS",
-        "Saque": "SAQUE",
-        "Outros": "OUTROS",
+    """Mapeia nome de categoria heurística para as categorias padronizadas no banco.
+    
+    O statement_parser usa nomes como 'Renda', 'Entretenimento', 'Transferência'
+    mas o banco usa categorias padronizadas como 'Receita', 'Lazer', 'Outros'.
+    """
+    mapping = {
+        # Alimentação
+        "Alimentação": "Alimentação",
+        # Transporte
+        "Transporte": "Transporte",
+        # Moradia
+        "Moradia": "Moradia",
+        # Saúde
+        "Saúde": "Saúde",
+        "Saude": "Saúde",
+        # Educação
+        "Educação": "Educação",
+        "Educacao": "Educação",
+        # Entretenimento → Lazer (padronizado)
+        "Entretenimento": "Lazer",
+        "Lazer": "Lazer",
+        # Vestuário
+        "Vestuário": "Vestuário",
+        "Vestuario": "Vestuário",
+        # Renda → Receita (padronizado)
+        "Renda": "Receita",
+        "Receita": "Receita",
+        # Investimentos → Outros (não é receita nem despesa direta)
+        "Investimentos": "Outros",
+        # Transferência → Outros
+        "Transferência": "Outros",
+        "Transferencia": "Outros",
+        # Seguros
+        "Seguros": "Outros",
+        # Impostos
+        "Impostos": "Impostos",
+        # Viagem
+        "Viagem": "Viagem",
+        # Saque → Outros
+        "Saque": "Outros",
+        # Doações → Doação
+        "Doações": "Doação",
+        "Doacao": "Doação",
+        "Doação": "Doação",
     }
-    return valid_categories.get(category_name, "OUTROS")
+    return mapping.get(category_name, "Outros")
 
 
 def import_transactions(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -92,11 +113,28 @@ def import_transactions(state: Dict[str, Any]) -> Dict[str, Any]:
                     skipped += 1
                     continue
 
+                # Busca ou cria a categoria para o usuário
+                cat_name = _map_category_to_db(tx.get("category", "Outros"))
+                category = db.query(Category).filter(
+                    Category.user_id == user_id,
+                    Category.name == cat_name
+                ).first()
+                if not category:
+                    category = Category(
+                        user_id=user_id,
+                        name=cat_name,
+                        is_default=(cat_name in ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Outros"])
+                    )
+                    db.add(category)
+                    db.commit()
+                    db.refresh(category)
+
                 db_tx = Transaction(
                     user_id=user_id,
                     type=tx["type"].upper(),
                     amount=tx["amount"],
                     currency="BRL",
+                    category_id=category.id,
                     description=tx["description"],
                     transaction_date=tx_date,
                     source_format="statement_import",

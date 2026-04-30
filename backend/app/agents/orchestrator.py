@@ -325,6 +325,142 @@ def wizard_handler_node(state: AgentState) -> AgentState:
     result = wizard_node(dict(state))
     return AgentState(**result)
 
+
+def chat_node(state: AgentState) -> AgentState:
+    """Nó conversacional — responde com LLM usando histórico da conversa.
+    
+    Usado para:
+    - Agradecimentos e conversa casual
+    - Follow-ups sem contexto explícito ("E no mês passado?")
+    - Correções contextuais ("Na verdade foi R$ 60")
+    - Quando a intenção é CHAT, HELP ou UNKNOWN
+    - Saudações com contexto
+    """
+    from app.services.llm_service import get_llm, timed_invoke
+    from app.agents.persistence import get_conversation_history
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from datetime import datetime
+    
+    phone_number = state.get("phone_number", "")
+    message = state.get("message", "")
+    intent = state.get("intent")
+    
+    # Se for saudação e tem histórico, usa chat com contexto
+    # Se for ajuda, usa o template de help mesmo
+    if intent == IntentType.HELP.value:
+        from app.agents import responses as resp
+        state["response"] = resp.help_menu()
+        return state
+    
+    if intent == IntentType.INTRODUCE.value:
+        state["response"] = "Prazer em conhecer você! Como posso ajudar hoje?"
+        return state
+    
+    # Tenta usar LLM com histórico
+    llm = get_llm(temperature=0.7)
+    history = get_conversation_history(phone_number, limit=6)
+    
+    if not llm or not history:
+        # Fallback sem LLM — respostas simples
+        msg_lower = message.lower()
+        
+        # Saudação sem contexto
+        greeting_words = ["oi", "ola", "hello", "hey", "eai", "salve", "bom dia", "boa tarde", "boa noite", "eae", "iai"]
+        if any(w in msg_lower for w in greeting_words):
+            from datetime import datetime as dt
+            hour = dt.utcnow().hour
+            if hour < 12: gt = "Bom dia"
+            elif hour < 18: gt = "Boa tarde"
+            else: gt = "Boa noite"
+            state["response"] = f"{gt}! Sou o BagCoin, seu assistente financeiro. Como posso ajudar?"
+            return state
+        
+        thanks_words = ["obrigado", "obrigada", "valeu", "brigado", "thanks", "show", "beleza", "top"]
+        if any(w in msg_lower for w in thanks_words):
+            state["response"] = "Por nada! Se precisar de algo, é só chamar. 😊"
+            return state
+        
+        if any(w in msg_lower for w in ["ok", "certo", "entendi", "tendi", "blz", "perfeito", "legal"]):
+            state["response"] = "Show! O que mais posso ajudar?"
+            return state
+        
+        # Follow-up detection: "e no mês passado?", "e ontem?", "e de alimentação?"
+        if msg_lower.startswith("e ") or msg_lower.startswith("e,"):
+            state["response"] = (
+                "Pode repetir a pergunta completa? Assim fica mais fácil de entender "
+                "o que você quer consultar. Ex: 'Quanto gastei no mês passado?'"
+            )
+            return state
+        
+        # Correção contextual: "na verdade foi X", "era X"
+        import re as regex
+        if any(w in msg_lower for w in ["na verdade", "era na verdade", "corrigindo", "foi na verdade"]):
+            amount_match = regex.search(r'R?\$?\s*(\d+(?:[.,]\d{1,2})?)', message)
+            if amount_match:
+                state["response"] = (
+                    f"Entendi, vou ajustar! Qual transação quer corrigir? "
+                    f"Pode me dar mais detalhes (descrição, data)?"
+                )
+                return state
+        
+        state["response"] = (
+            "Não entendi muito bem. Posso ajudar com:\n"
+            "- Registrar gastos e receitas\n"
+            "- Consultar seus dados\n"
+            "- Gerar relatórios\n"
+            "- Dar dicas financeiras\n\n"
+            "Manda 'ajuda' para ver exemplos."
+        )
+        return state
+    
+    # Tem LLM e histórico — resposta inteligente
+    hour = datetime.utcnow().hour
+    if hour < 12: greeting = "Bom dia"
+    elif hour < 18: greeting = "Boa tarde"
+    else: greeting = "Boa noite"
+    
+    system_prompt = f"""Você é o BagCoin, um assistente financeiro amigável que conversa via WhatsApp.
+
+{greeting}! Você é especialista em finanças pessoais e ajuda o usuário a:
+- Registrar gastos e receitas
+- Consultar dados financeiros
+- Criar orçamentos e metas
+- Dar dicas de economia
+
+DIRETRIZES:
+- Responda de forma natural e conversacional, como se fosse um amigo
+- Seja breve (máximo 3-4 parágrafos para WhatsApp)
+- Use linguagem simples e direta
+- Se o usuário está agradecendo, apenas agradeça de volta e pergunte se precisa de mais algo
+- Se o usuário pedir algo que o sistema faz (registrar, consultar, etc.), oriente como fazer
+- Se o usuário fizer um follow-up como "e no mês passado?", entenda que é continuação da conversa
+- Se o usuário estiver corrigindo algo ("na verdade foi 60"), reconheça a correção e pergunte os detalhes
+- NUNCA prometa rentabilidade ou dê conselhos financeiros profissionais
+- Se não souber algo, seja honesto
+
+Contexto da conversa recente:
+{history if history else "(primeira interação)"}"""
+
+    try:
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=message)
+        ]
+        
+        response, latency_ms = timed_invoke(llm, messages, operation="chat_node")
+        state["response"] = response.content
+        
+        logger.info(f"[chat_node] Resposta gerada em {latency_ms:.0f}ms")
+        
+    except Exception as e:
+        logger.error(f"[chat_node] Erro: {e}")
+        state["response"] = (
+            "Entendi! Se precisar registrar algo ou consultar dados, "
+            "pode me falar que eu ajudo. 😊"
+        )
+    
+    return state
+
 def build_response_node(state: AgentState) -> AgentState:
     """Nó de construção da resposta final."""
     import re
@@ -492,9 +628,10 @@ def route_by_intent(state: AgentState) -> str:
         IntentType.RECOMMENDATION.value: "generate_recommendations",
         IntentType.DEEP_RESEARCH.value: "deep_research",
         IntentType.IMPORT_STATEMENT.value: "build_response",
-        IntentType.GREETING.value: "build_response",
-        IntentType.INTRODUCE.value: "introduce",
-        IntentType.HELP.value: "build_response",
+        IntentType.GREETING.value: "chat",
+        IntentType.INTRODUCE.value: "chat",
+        IntentType.HELP.value: "chat",
+        IntentType.CHAT.value: "chat",
         IntentType.CREATE_BUDGET.value: "wizard",
         IntentType.CREATE_GOAL.value: "wizard",
         IntentType.CONTRIBUTE_GOAL.value: "contribute_goal",
@@ -510,7 +647,7 @@ def route_by_intent(state: AgentState) -> str:
         IntentType.DELETE_CATEGORY.value: "delete_category",
         IntentType.LIST_CATEGORIES.value: "list_categories",
         IntentType.UPDATE_CATEGORY.value: "update_category",
-        IntentType.UNKNOWN.value: "build_response",
+        IntentType.UNKNOWN.value: "chat",
     }
 
     # Consultas de budgets/goals também caem em QUERY_DATA — detectamos aqui
@@ -553,6 +690,7 @@ def create_orchestrator():
     workflow.add_node("correction", correction_handler_node)
     workflow.add_node("toggle_alerts", toggle_alerts_handler_node)
     workflow.add_node("wizard", wizard_handler_node)
+    workflow.add_node("chat", chat_node)
     workflow.add_node("create_category", create_category_handler_node)
     workflow.add_node("delete_category", delete_category_handler_node)
     workflow.add_node("list_categories", list_categories_handler_node)
@@ -597,6 +735,7 @@ def create_orchestrator():
             "correction": "correction",
             "toggle_alerts": "toggle_alerts",
             "wizard": "wizard",
+            "chat": "chat",
             "create_category": "create_category",
             "delete_category": "delete_category",
             "list_categories": "list_categories",
@@ -627,6 +766,7 @@ def create_orchestrator():
     workflow.add_edge("correction", "build_response")
     workflow.add_edge("toggle_alerts", "build_response")
     workflow.add_edge("wizard", "build_response")
+    workflow.add_edge("chat", "build_response")
     workflow.add_edge("create_category", "build_response")
     workflow.add_edge("delete_category", "build_response")
     workflow.add_edge("list_categories", "build_response")

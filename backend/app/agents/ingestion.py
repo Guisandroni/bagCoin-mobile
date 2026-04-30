@@ -268,6 +268,15 @@ def classify_intent(state: Dict[str, Any]) -> Dict[str, Any]:
         logger.info(f"[classify_intent] Fast-path GREETING: {elapsed:.0f}ms")
         return state
 
+    # 9b. Agradecimento / conversa casual → CHAT
+    chat_words = ["obrigado", "obrigada", "valeu", "brigado", "thanks", "thank", "show", "beleza", "top", "demais", "ótimo", "otimo", "entendi", "tendi", "blz", "ok", "certo", "perfeito", "legal", "bacana"]
+    if any(w in msg_lower for w in chat_words):
+        state["intent"] = IntentType.CHAT
+        state["confidence"] = 0.85
+        elapsed = (time.time() - start_time) * 1000
+        logger.info(f"[classify_intent] Fast-path CHAT (agradecimento): {elapsed:.0f}ms")
+        return state
+
     # 10. Apresentação de nome
     intro_patterns = ["meu nome e", "me chamo", "eu sou o", "eu sou a", "pode me chamar de"]
     if any(p in msg_norm for p in intro_patterns):
@@ -375,6 +384,7 @@ Categorias disponíveis:
 - toggle_alerts: ativar/desativar alertas. Exemplos: "desativar alertas", "ligar notificações"
 - recommendation: pedir recomendação/dica. Exemplos: "onde investir?", "dica de economia"
 - deep_research: pesquisar informações. Exemplos: "notícias do mercado", "cenário econômico"
+- chat: conversa livre, agradecimento, resposta a saudação, perguntas sobre o bot. Exemplos: "obrigado", "valeu", "beleza", "show", "como você funciona?", "o que você é?", "ok", "entendi", "e no mês passado?", "na verdade foi 60", "quem é você?", "pode repetir?"
 - introduce: apresentar nome. Exemplos: "meu nome é Guilherme", "me chamo Ana", "pode me chamar de João"
 - greeting: saudação. Exemplos: "oi", "olá", "bom dia"
 - help: pedido de ajuda. Exemplos: "como usar?", "me ensina", "tutorial"
@@ -389,7 +399,9 @@ IMPORTANTE:
 - "Mercado 240", "Uber 30" — padrão descrição+valor — é REGISTRO (register_expense)
 - "quanto gastei" é sempre CONSULTA, nunca registro
 - "guardei 500 na meta" é CONTRIBUIR META (contribute_goal), não registro de receita
-"""
+- "obrigado", "valeu", "show" é CHAT, nunca UNKNOWN
+- "e no mês passado?" depois de uma consulta é CHAT (follow-up sem contexto explícito)
+- "na verdade foi X" é CHAT (correção contextual, não novo registro)"""
 
     try:
         from app.services.llm_service import timed_invoke

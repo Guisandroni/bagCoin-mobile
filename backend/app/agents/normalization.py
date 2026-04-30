@@ -101,7 +101,7 @@ def extract_transaction(state: Dict[str, Any]) -> Dict[str, Any]:
     # =====================================================================
     # 2. Detecção de tipo com contexto
     # =====================================================================
-    income_signals = ["recebi", "ganhei", "salário", "renda", "entrada", "pagamento recebido", "me mandaram", "me mandou", "me enviaram", "depositaram", "mesada", "aluguel recebido"]
+    income_signals = ["recebi", "ganhei", "salário", "renda", "entrada", "pagamento recebido", "me mandaram", "me mandou", "me enviaram", "depositaram", "caiu", "mesada", "aluguel recebido"]
     transfer_signals = ["transferi", "enviei", "mandei", "fiz pix", "passei para", "transferência"]
     
     if any(w in msg_lower for w in income_signals):
@@ -227,19 +227,19 @@ def suggest_category(text: str) -> str:
         "Transporte": ["uber", "99", "taxi", "gasolina", "combustivel", "onibus", "metro", "estacionamento", "pedagio", "passagem", "moto"],
         "Moradia": ["aluguel", "condominio", "financiamento", "reforma", "manutencao"],
         "Luz": ["energia", "eletricidade", "conta de luz"],
-        "Agua": ["agua", "conta de agua", "esgoto"],
-        "Internet": ["wifi", "banda larga", "provedor", "fibra"],
+        "Água": ["agua", "conta de agua", "esgoto"],
+        "Internet": ["internet", "wifi", "banda larga", "provedor", "fibra"],
         "Telefone": ["celular", "plano movel", "recarga", "tim", "vivo", "claro", "oi"],
-        "Saude": ["farmacia", "remedio", "medico", "dentista", "plano de saude", "exame", "consulta", "hospital", "psicologo"],
-        "Educacao": ["curso", "livro", "material escolar", "faculdade", "universidade", "mensalidade", "idioma"],
+        "Saúde": ["farmacia", "remedio", "medico", "dentista", "plano de saude", "exame", "consulta", "hospital", "psicologo"],
+        "Educação": ["curso", "livro", "material escolar", "faculdade", "universidade", "mensalidade", "idioma"],
         "Lazer": ["cinema", "teatro", "show", "festa", "bar", "hobby", "streaming", "musica", "jogo"],
         "Viagem": ["passagem", "hotel", "hospedagem", "passeio", "turismo"],
-        "Vestuario": ["roupa", "calcado", "acessorio", "loja", "moda", "shopping", "camiseta", "calca", "sapato"],
+        "Vestuário": ["roupa", "calcado", "acessorio", "loja", "moda", "shopping", "camiseta", "calca", "sapato"],
         "Beleza": ["salao", "barbearia", "manicure", "estetica", "cosmetico", "perfumaria"],
         "Tecnologia": ["eletronico", "computador", "tablet", "software", "app", "game", "console"],
         "Assinaturas": ["netflix", "spotify", "youtube premium", "gym", "clube", "revista", "jornal", "saas", "mensalidade"],
         "Pet": ["racao", "veterinario", "petshop", "remedio pet", "banho e tosa"],
-        "Doacao": ["caridade", "igreja", "ong", "vaquinha", "doacao"],
+        "Doação": ["caridade", "igreja", "ong", "vaquinha", "doacao"],
         "Impostos": ["irpf", "iptu", "ipva", "darf", "gps", "taxas governo"],
         "Receita": ["salario", "freelance", "renda extra", "investimento", "bonus", "comissao", "aluguel recebido", "mesada", "presente", "pai", "mae"],
     }

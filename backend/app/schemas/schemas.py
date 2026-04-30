@@ -35,6 +35,7 @@ class IntentType(str, Enum):
     DELETE_CATEGORY = "delete_category"
     UPDATE_CATEGORY = "update_category"
     LIST_CATEGORIES = "list_categories"
+    CHAT = "chat"  # Conversa livre / follow-up / agradecimento
     UNKNOWN = "unknown"
 
 class WebhookPayload(BaseModel):
@@ -73,13 +74,28 @@ class ReportRequest(BaseModel):
     category_id: Optional[int] = None
 
 class AgentState(BaseModel):
+    """Estado que trafega pelo grafo LangGraph.
+    
+    Mantido como Pydantic para compatibilidade futura (API docs, validação).
+    O TypedDict em orchestrator.py é a definição ativa usada pelo grafo.
+    """
     phone_number: str
     user_id: Optional[int] = None
     message: str
-    intent: Optional[IntentType] = None
+    intent: Optional[str] = None
     extracted_data: Optional[Dict[str, Any]] = None
     query_result: Optional[QueryResult] = None
     report_path: Optional[str] = None
+    report_summary: Optional[str] = None
+    import_summary: Optional[str] = None
+    imported_count: Optional[int] = None
+    skipped_count: Optional[int] = None
+    import_errors: Optional[List[str]] = None
+    budget_data: Optional[Dict[str, Any]] = None
+    goal_data: Optional[Dict[str, Any]] = None
+    alerts: Optional[List[Dict[str, Any]]] = None
+    wizard: Optional[Dict[str, Any]] = None
     response: Optional[str] = None
     context: Dict[str, Any] = Field(default_factory=dict)
     error: Optional[str] = None
+    source_format: str = "text"

@@ -262,6 +262,45 @@ def save_message_to_history(phone_number: str, role: str, content: str):
         db.close()
 
 
+def get_conversation_history(phone_number: str, limit: int = 10) -> str:
+    """Retorna as últimas N mensagens da conversa formatadas como texto.
+    
+    Args:
+        phone_number: Número do usuário
+        limit: Máximo de mensagens a retornar
+        
+    Returns:
+        String formatada com o histórico, ou string vazia se não houver
+    """
+    db = SessionLocal()
+    try:
+        user = get_or_create_user(phone_number, db)
+        conv = db.query(Conversation).filter(
+            Conversation.user_id == user.id
+        ).order_by(Conversation.updated_at.desc()).first()
+        
+        if not conv or not conv.message_history:
+            return ""
+        
+        history = list(conv.message_history or [])
+        # Pega as últimas N mensagens
+        recent = history[-limit:]
+        
+        lines = []
+        for msg in recent:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            label = "Usuário" if role == "user" else "BagCoin"
+            lines.append(f"{label}: {content[:200]}")
+        
+        return "\n".join(lines)
+    except Exception as e:
+        logger.error(f"Erro ao recuperar histórico: {e}")
+        return ""
+    finally:
+        db.close()
+
+
 def save_user_name(phone_number: str, name: str):
     """Salva o nome do usuário."""
     db = SessionLocal()

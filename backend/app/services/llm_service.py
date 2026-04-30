@@ -67,8 +67,8 @@ def _invalidate_cache():
 def _select_llm(temperature: float = 0.2, model: str = None) -> BaseChatModel | None:
     """Seleciona o melhor LLM disponível.
 
+    Prioridade: Groq → OpenCodeGo.
     Sem health check síncrono. Cache permanente — só invalida em erro.
-    Fallback automático entre modelos da OpenCodeGo.
     """
     global _cached_llm, _cache_error
 
@@ -80,23 +80,23 @@ def _select_llm(temperature: float = 0.2, model: str = None) -> BaseChatModel | 
     if _cache_error:
         _cached_llm = None
 
-    # 1. Tenta modelos da OpenCodeGo em ordem
+    # 1. Groq (primário)
+    groq = _create_groq_llm(temperature, model)
+    if groq:
+        logger.info(f"LLM selecionado: Groq ({model or settings.default_llm_model})")
+        _cached_llm = groq
+        _cache_error = False
+        return groq
+
+    # 2. Fallback: OpenCodeGo
     models_to_try = [model] if model else OPENCODE_MODELS
     for model_name in models_to_try:
         opencode = _create_opencode_llm(temperature, model_name)
         if opencode:
-            logger.info(f"LLM selecionado: OpenCodeGo ({model_name})")
+            logger.info(f"LLM fallback: OpenCodeGo ({model_name})")
             _cached_llm = opencode
             _cache_error = False
             return opencode
-
-    # 2. Fallback: Groq (experimental)
-    groq = _create_groq_llm(temperature, model)
-    if groq:
-        logger.info(f"LLM fallback: Groq ({model or settings.default_llm_model})")
-        _cached_llm = groq
-        _cache_error = False
-        return groq
 
     # 3. Sem LLM
     logger.warning("Nenhum LLM disponível. Modo offline (fast-path only).")

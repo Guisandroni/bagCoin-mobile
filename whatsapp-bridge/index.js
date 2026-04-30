@@ -105,6 +105,9 @@ const client = new Client({
 
 client.on('qr', (qr) => {
     console.log('\n🔄 Escaneie o QR Code abaixo para conectar:');
+    console.log('RAW_QR_DATA_START');
+    console.log(qr);
+    console.log('RAW_QR_DATA_END');
     qrcode.generate(qr, { small: true });
 });
 

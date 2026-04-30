@@ -4,11 +4,15 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+psycopg://bagcoin:bagcoin123@postgres:5432/bagcoin"
+    postgres_user: str = "bagcoin"
+    postgres_password: str = "bagcoin123"
+    postgres_db: str = "bagcoin"
     
     # LLM APIs
     groq_api_key: str = ""
     deepseek_api_key: str = ""
     opencode_api_key: str = ""
+    tavily_api_key: str = ""
     default_llm_model: str = "llama-3.3-70b-versatile"
     
     # WhatsApp Bridge

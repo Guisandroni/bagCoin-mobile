@@ -67,6 +67,7 @@ def extract_transaction(state: Dict[str, Any]) -> Dict[str, Any]:
     start_time = time.time()
     
     message = state.get("message", "")
+    phone_number = state.get("phone_number", "")
     msg_lower = message.lower()
     
     extracted = {

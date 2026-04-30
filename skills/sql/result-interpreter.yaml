@@ -1,0 +1,15 @@
+name: result-interpreter
+description: Interpreta resultado
+provider: opencode-go
+
+input_schema:
+  result: object
+  query: string
+
+output_schema:
+  message: string
+
+instructions: |
+  Gere resposta simples em linguagem natural.
+
+temperature: 0.4

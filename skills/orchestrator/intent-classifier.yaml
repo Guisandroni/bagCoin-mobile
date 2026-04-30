@@ -1,0 +1,27 @@
+name: intent-classifier
+description: Classifica a intenção do usuário
+provider: opencode-go
+model: kimi-k2.6
+
+input_schema:
+  message: string
+
+output_schema:
+  intent: string
+  confidence: number
+
+instructions: |
+  Classifique a intenção:
+
+  - register_expense
+  - register_income
+  - financial_query
+  - create_budget
+  - create_goal
+  - generate_report
+  - financial_advice
+  - unknown
+
+  Retorne apenas JSON.
+
+temperature: 0.1

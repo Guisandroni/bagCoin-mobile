@@ -1,0 +1,17 @@
+name: message-formatter
+description: Formata resposta
+provider: opencode-go
+
+input_schema:
+  message: string
+
+output_schema:
+  formatted: string
+
+instructions: |
+  Formate para WhatsApp:
+  - curto
+  - claro
+  - amigável
+
+temperature: 0.7

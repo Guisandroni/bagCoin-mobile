@@ -1,0 +1,19 @@
+name: nl-to-sql
+description: Converte NL para SQL
+provider: opencode-go
+model: kimi-k2.6
+
+input_schema:
+  query: string
+  user_id: string
+
+output_schema:
+  sql: string
+
+instructions: |
+  Gere SQL apenas com SELECT.
+
+  Sempre usar:
+  WHERE user_id = '{{user_id}}'
+
+temperature: 0

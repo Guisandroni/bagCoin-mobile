@@ -1,0 +1,15 @@
+name: transaction-normalizer
+description: Normaliza transação
+provider: hybrid
+
+input_schema:
+  data: object
+
+output_schema:
+  normalized: object
+
+logic: |
+  - amount positivo
+  - categoria lowercase
+  - validar tipo
+  - validar data

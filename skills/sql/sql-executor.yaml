@@ -1,0 +1,17 @@
+name: sql-executor
+description: Executa SQL
+provider: opencode-go
+
+tools:
+  - name: run_sql
+
+input_schema:
+  sql: string
+
+output_schema:
+  result: object
+
+instructions: |
+  Execute a query e retorne JSON.
+
+temperature: 0

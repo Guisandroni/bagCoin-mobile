@@ -1,0 +1,25 @@
+name: text-parser
+description: Extrai dados financeiros
+provider: opencode-go
+model: kimi-k2.6
+
+input_schema:
+  message: string
+  current_date: string
+
+output_schema:
+  type: string
+  amount: number
+  category: string
+  date: string
+  description: string
+
+instructions: |
+  Extraia dados financeiros do texto.
+
+  type: expense ou income
+  Se não houver data, use current_date.
+
+  Retorne JSON.
+
+temperature: 0.2

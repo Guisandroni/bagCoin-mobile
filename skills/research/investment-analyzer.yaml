@@ -1,0 +1,15 @@
+name: investment-analyzer
+description: Sugere investimentos
+provider: opencode-go
+
+input_schema:
+  profile: object
+  research: array
+
+output_schema:
+  recommendations: array
+
+instructions: |
+  Sugira opções baseadas no perfil.
+
+temperature: 0.6

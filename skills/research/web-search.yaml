@@ -1,0 +1,17 @@
+name: web-search
+description: Busca web
+provider: opencode-go
+
+tools:
+  - name: search_web
+
+input_schema:
+  query: string
+
+output_schema:
+  results: array
+
+instructions: |
+  Busque informações relevantes.
+
+temperature: 0.3

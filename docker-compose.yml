@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bagcoin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bagcoin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bagcoin123}
+      POSTGRES_DB: ${POSTGRES_DB:-bagcoin}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bagcoin} -d ${POSTGRES_DB:-bagcoin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bagcoin-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: bagcoin-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - bagcoin-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bagcoin-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg://bagcoin:bagcoin123@postgres:5432/bagcoin
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENCODE_API_KEY: ${OPENCODE_API_KEY:-}
+      DEFAULT_LLM_MODEL: ${DEFAULT_LLM_MODEL:-llama-3.3-70b-versatile}
+      WHATSAPP_BRIDGE_URL: http://whatsapp-bridge:3001
+      WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:-bagcoin_webhook_secret_123}
+      REDIS_URL: redis://redis:6379/0
+      FASTAPI_HOST: 0.0.0.0
+      FASTAPI_PORT: 8000
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/reports:/app/reports
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bagcoin-network
+
+  whatsapp-bridge:
+    build:
+      context: ./whatsapp-bridge
+      dockerfile: Dockerfile
+    container_name: bagcoin-whatsapp-bridge
+    restart: unless-stopped
+    environment:
+      FASTAPI_URL: http://backend:8000
+      WHATSAPP_API_KEY: ${WHATSAPP_API_KEY:-bagcoin_webhook_secret_123}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - whatsapp_session:/app/whatsapp-session
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - bagcoin-network
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgres_data:
+  whatsapp_session:
+  redis_data:
+
+networks:
+  bagcoin-network:
+    driver: bridge

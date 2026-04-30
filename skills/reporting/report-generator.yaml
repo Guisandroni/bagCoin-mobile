@@ -1,0 +1,17 @@
+name: report-generator
+description: Gera PDF
+provider: opencode-go
+
+tools:
+  - name: generate_pdf
+
+input_schema:
+  data: object
+
+output_schema:
+  file_url: string
+
+instructions: |
+  Gere relatório financeiro.
+
+temperature: 0.2

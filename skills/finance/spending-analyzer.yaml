@@ -1,0 +1,14 @@
+name: spending-analyzer
+description: Analisa gastos
+provider: opencode-go
+
+input_schema:
+  transactions: array
+
+output_schema:
+  insights: array
+
+instructions: |
+  Identifique padrões de gasto e excessos.
+
+temperature: 0.5

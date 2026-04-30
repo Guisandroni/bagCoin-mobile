@@ -1,0 +1,13 @@
+name: sql-validator
+description: Valida SQL
+provider: deterministic
+
+input_schema:
+  sql: string
+
+output_schema:
+  valid: boolean
+
+logic: |
+  - apenas SELECT
+  - bloquear DELETE, UPDATE, DROP

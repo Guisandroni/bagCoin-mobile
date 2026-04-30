@@ -1,0 +1,30 @@
+name: task-router
+description: Roteia tarefas
+provider: deterministic
+
+input_schema:
+  intent: string
+
+output_schema:
+  agents: array
+
+logic:
+  register_expense:
+    - text-parser
+    - transaction-normalizer
+    - save-transaction
+
+  financial_query:
+    - nl-to-sql
+    - sql-validator
+    - sql-executor
+    - result-interpreter
+
+  financial_advice:
+    - spending-analyzer
+    - investment-analyzer
+
+  generate_report:
+    - nl-to-sql
+    - sql-executor
+    - report-generator

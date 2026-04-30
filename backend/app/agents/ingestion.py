@@ -350,7 +350,8 @@ def classify_intent(state: Dict[str, Any]) -> Dict[str, Any]:
 
     system_prompt = """Você é um classificador de intenções para um chatbot financeiro.
 Analise a mensagem do usuário e classifique em uma das categorias abaixo.
-Responda APENAS com um JSON no formato: {"intent": "CATEGORIA", "confidence": 0.95}
+Responda APENAS com JSON puro, SEM markdown (sem ```).
+Formato: {"intent": "CATEGORIA", "confidence": 0.95}
 
 Categorias disponíveis:
 - register_expense: registrar gasto/despesa. Exemplos: "gastei 50 no mercado", "uber 12 reais", "paguei 200 de luz", "Mercado 240", "14 em pão", "pix 340"
@@ -369,6 +370,7 @@ Categorias disponíveis:
 - toggle_alerts: ativar/desativar alertas. Exemplos: "desativar alertas", "ligar notificações"
 - recommendation: pedir recomendação/dica. Exemplos: "onde investir?", "dica de economia"
 - deep_research: pesquisar informações. Exemplos: "notícias do mercado", "cenário econômico"
+- import_statement: importar extrato bancário. Exemplos: "importar extrato", "importar csv", "meu extrato bancário", "quero importar um arquivo"
 - chat: conversa livre, agradecimento, resposta a saudação, perguntas sobre o bot. Exemplos: "obrigado", "valeu", "beleza", "show", "como você funciona?", "o que você é?", "ok", "entendi", "e no mês passado?", "na verdade foi 60", "quem é você?", "pode repetir?"
 - introduce: apresentar nome. Exemplos: "meu nome é Guilherme", "me chamo Ana", "pode me chamar de João"
 - greeting: saudação. Exemplos: "oi", "olá", "bom dia"
@@ -386,7 +388,8 @@ IMPORTANTE:
 - "guardei 500 na meta" é CONTRIBUIR META (contribute_goal), não registro de receita
 - "obrigado", "valeu", "show" é CHAT, nunca UNKNOWN
 - "e no mês passado?" depois de uma consulta é CHAT (follow-up sem contexto explícito)
-- "na verdade foi X" é CHAT (correção contextual, não novo registro)"""
+- "na verdade foi X" é CHAT (correção contextual, não novo registro)
+- "importar extrato", "importar", "meu extrato" é IMPORT_STATEMENT, não query_data ou unknown"""
 
     # Injeta histórico da conversa para contexto
     from app.agents.persistence import get_conversation_history

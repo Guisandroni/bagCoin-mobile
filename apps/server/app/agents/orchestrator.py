@@ -3,40 +3,50 @@
 Defines the AgentState TypedDict and connects all agent nodes
 via LangGraph's StateGraph with conditional routing.
 """
+
 import logging
 import re
 import unicodedata
-from typing import Any, TypedDict, Annotated
 from datetime import datetime as dt
+from typing import Any, TypedDict
 
-from langgraph.graph import StateGraph, END
-from langgraph.graph.message import add_messages
+from langgraph.graph import END, StateGraph
 
-from app.schemas.enums import IntentType
+from app.agents import responses as resp
+from app.agents.budget_goal import (
+    check_alerts_node,
+    contribute_goal_node,
+    create_budget_node,
+    create_goal_node,
+    delete_budget_node,
+    delete_goal_node,
+    delete_transaction_node,
+    query_budgets_node,
+    toggle_alerts_node,
+    update_budget_node,
+    update_goal_node,
+    update_transaction_node,
+)
+from app.agents.deep_research import deep_research
+from app.agents.import_statement import import_transactions
 from app.agents.ingestion import classify_intent
+from app.agents.multimodal import process_multimodal
 from app.agents.normalization import extract_transaction
 from app.agents.persistence import save_transaction
-from app.agents.text_to_sql import process_query
-from app.agents.reports import generate_report
 from app.agents.recommendations import generate_recommendations
-from app.agents.deep_research import deep_research
-from app.agents.multimodal import process_multimodal
+from app.agents.reports import generate_report
 from app.agents.statement_parser import detect_statement
-from app.agents.import_statement import import_transactions
-from app.agents.budget_goal import (
-    create_budget_node, create_goal_node, check_alerts_node, query_budgets_node,
-    delete_budget_node, toggle_alerts_node, update_budget_node, contribute_goal_node,
-    delete_goal_node, update_goal_node, delete_transaction_node, update_transaction_node,
-)
-from app.agents.wizard import wizard_node
-from app.agents import responses as resp
 from app.agents.tenant_context import tenant_phone_error
+from app.agents.text_to_sql import process_query
+from app.agents.wizard import wizard_node
+from app.schemas.enums import IntentType
 
 logger = logging.getLogger(__name__)
 
 
 class AgentState(TypedDict):
     """Estado que trafega pelo grafo LangGraph do BagCoin."""
+
     phone_number: str
     user_id: int | None
     message: str
@@ -80,7 +90,9 @@ def import_statement_node(state: AgentState) -> AgentState:
 
 def classify_intent_node(state: AgentState) -> AgentState:
     """Nó de classificação de intenção."""
-    logger.info(f"Classificando intenção para: {state['phone_number']} — msg: {state.get('message', '')[:60]}")
+    logger.info(
+        f"Classificando intenção para: {state['phone_number']} — msg: {state.get('message', '')[:60]}"
+    )
     result = classify_intent(dict(state))
     return AgentState(**result)
 
@@ -199,11 +211,17 @@ def update_transaction_handler_node(state: AgentState) -> AgentState:
 
 def update_category_handler_node(state: AgentState) -> AgentState:
     """Nó de renomear categoria."""
-    from app.agents.persistence import rename_category, list_categories
+    from app.agents.persistence import list_categories, rename_category
+
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
-    msg_norm = unicodedata.normalize('NFKD', message.lower()).encode('ASCII', 'ignore').decode('ASCII')
-    match = re.search(r'(?:renomear|mudar nome da|alterar)\s+categoria\s+["\']?(.+?)["\']?\s+(?:para|->)\s+["\']?(.+?)["\']?$', msg_norm)
+    msg_norm = (
+        unicodedata.normalize("NFKD", message.lower()).encode("ASCII", "ignore").decode("ASCII")
+    )
+    match = re.search(
+        r'(?:renomear|mudar nome da|alterar)\s+categoria\s+["\']?(.+?)["\']?\s+(?:para|->)\s+["\']?(.+?)["\']?$',
+        msg_norm,
+    )
     if match:
         old_name = match.group(1).strip().capitalize()
         new_name = match.group(2).strip().capitalize()
@@ -215,7 +233,10 @@ def update_category_handler_node(state: AgentState) -> AgentState:
         cats = list_categories(phone_number)
         user_cats = [c["name"] for c in cats if not c["is_default"]]
         if user_cats:
-            state["response"] = "Para renomear, use: 'renomear categoria NOME_ANTIGO para NOVO_NOME'. Categorias: " + ", ".join(user_cats)
+            state["response"] = (
+                "Para renomear, use: 'renomear categoria NOME_ANTIGO para NOVO_NOME'. Categorias: "
+                + ", ".join(user_cats)
+            )
         else:
             state["response"] = "Você não tem categorias personalizadas para renomear."
     return state
@@ -223,17 +244,24 @@ def update_category_handler_node(state: AgentState) -> AgentState:
 
 def _msg_norm(message: str) -> str:
     import unicodedata
-    return unicodedata.normalize('NFKD', message.lower()).encode('ASCII', 'ignore').decode('ASCII')
+
+    return unicodedata.normalize("NFKD", message.lower()).encode("ASCII", "ignore").decode("ASCII")
 
 
 def create_category_handler_node(state: AgentState) -> AgentState:
     """Nó de criação de categoria."""
     from app.agents.persistence import create_category
+
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
     msg_norm = _msg_norm(message)
     name = None
-    for prefix in ["criar categoria ", "nova categoria ", "adicionar categoria ", "crie uma categoria "]:
+    for prefix in [
+        "criar categoria ",
+        "nova categoria ",
+        "adicionar categoria ",
+        "crie uma categoria ",
+    ]:
         if prefix in msg_norm:
             idx = msg_norm.find(prefix) + len(prefix)
             name = message[idx:].strip().capitalize()
@@ -252,6 +280,7 @@ def create_category_handler_node(state: AgentState) -> AgentState:
 def delete_category_handler_node(state: AgentState) -> AgentState:
     """Nó de exclusão de categoria."""
     from app.agents.persistence import delete_category, list_categories
+
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
     msg_norm = _msg_norm(message)
@@ -272,13 +301,16 @@ def delete_category_handler_node(state: AgentState) -> AgentState:
     if delete_category(phone_number, name):
         state["response"] = f"Categoria '{name}' removida."
     else:
-        state["response"] = f"Não encontrei a categoria '{name}' ou ela é padrão e não pode ser removida."
+        state["response"] = (
+            f"Não encontrei a categoria '{name}' ou ela é padrão e não pode ser removida."
+        )
     return state
 
 
 def list_categories_handler_node(state: AgentState) -> AgentState:
     """Nó de listagem de categorias."""
     from app.agents.persistence import list_categories
+
     phone_number = state.get("phone_number", "")
     cats = list_categories(phone_number)
     if not cats:
@@ -298,12 +330,14 @@ def list_categories_handler_node(state: AgentState) -> AgentState:
 def intro_handler_node(state: AgentState) -> AgentState:
     """Nó de introdução do usuário (nome)."""
     import re as regex
+
     from app.agents.persistence import save_user_name
+
     message = state.get("message", "")
     phone_number = state.get("phone_number", "")
 
     patterns = [
-        r'(?:meu nome [eé]|me chamo|pode me chamar de|eu sou o|eu sou a)\s+([a-zA-ZÀ-ÿ]+)',
+        r"(?:meu nome [eé]|me chamo|pode me chamar de|eu sou o|eu sou a)\s+([a-zA-ZÀ-ÿ]+)",
     ]
     name = None
     for p in patterns:
@@ -325,7 +359,10 @@ def correction_handler_node(state: AgentState) -> AgentState:
     message = state.get("message", "")
 
     import re as regex
-    amount_match = regex.search(r'R?\$\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}|\d+(?:[.,]\d{1,2})?)', message)
+
+    amount_match = regex.search(
+        r"R?\$\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}|\d+(?:[.,]\d{1,2})?)", message
+    )
 
     if amount_match:
         return update_transaction_handler_node(state)
@@ -365,10 +402,12 @@ def chat_node(state: AgentState) -> AgentState:
     - Quando a intenção é CHAT, HELP ou UNKNOWN
     - Saudações com contexto
     """
-    from app.services.llm_service import get_llm, timed_invoke
-    from app.agents.persistence import get_conversation_history
-    from langchain_core.messages import HumanMessage, SystemMessage
     from datetime import datetime
+
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    from app.agents.persistence import get_conversation_history
+    from app.services.llm_service import get_llm, timed_invoke
 
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
@@ -376,55 +415,14 @@ def chat_node(state: AgentState) -> AgentState:
 
     # Se for HELP, tenta responder especificamente com LLM
     if intent == IntentType.HELP.value:
-        from app.services.llm_service import get_llm, timed_invoke
         from langchain_core.messages import HumanMessage, SystemMessage
+
+        from app.agents.prompts.chat import HELP_SPECIFIC_PROMPT
+        from app.services.llm_service import get_llm, timed_invoke
+
         llm = get_llm(temperature=0.3)
         if llm:
-            prompt = f"""Você é o BagCoin, um assistente financeiro amigável.
-
-O usuário pediu ajuda com uma dúvida específica. Responda APENAS sobre o que foi perguntado, de forma direta e útil.
-Não liste todas as funções do bot — foce no que o usuário quer saber.
-
-CAPACIDADES DO BOT (use apenas se relevante):
-- Registrar gastos: "Gastei R$ 50 no mercado", "Uber 15", "Mercado 240"
-- Registrar receitas: "Recebi R$ 5000 de salário", "Me mandaram 170"
-- Consultar dados: "Quanto gastei hoje?", "Qual meu saldo?", "Gastos por categoria"
-- Orçamentos: "Criar orçamento de R$ 3000 para alimentação"
-- Metas: "Quero guardar R$ 10000 para viagem", "Guardei R$ 500 na meta"
-- Relatórios em PDF
-- Importar extrato bancário
-
-Exemplos de respostas diretas:
-Usuário: "Como registrar gastos?"
-Resposta: "É simples! É só me mandar uma mensagem com o valor e a descrição. Exemplos:
-• 'Gastei R$ 50 no mercado'
-• 'Uber 15'
-• 'Mercado 240'
-• 'Paguei 200 de luz'
-
-Não precisa de formato específico — é só falar naturalmente que eu entendo! 😊"
-
-Usuário: "Como criar uma meta?"
-Resposta: "Para criar uma meta financeira, me diga o objetivo e o valor. Exemplos:
-• 'Quero guardar R$ 10000 para uma viagem'
-• 'Meta de R$ 5000 para reserva de emergência'
-• 'Juntar R$ 3000 para comprar um notebook'
-
-Depois de criar, você pode ir adicionando valores com 'Guardei R$ 200 na meta viagem' e eu mostro o progresso! 🎯"
-
-Usuário: "Como funciona o orçamento?"
-Resposta: "O orçamento é um limite de gastos por categoria. Você define um valor máximo por mês e eu aviso quando estiver chegando perto. Exemplos:
-• 'Criar orçamento de R$ 3000 para alimentação'
-• 'Limite de R$ 800 para transporte'
-• 'Orçamento de R$ 500 para lazer'
-
-Quando atingir 80% e 100%, eu te aviso! 📊"
-
-Regras:
-- Responda em português, tom amigável e direto
-- Máximo 2-3 parágrafos
-- NÃO liste tudo que o bot faz — responda só o que foi perguntado
-- Se a pergunta for genérica tipo "como funciona?" ou "ajuda", aí sim dê uma visão geral"""
+            prompt = HELP_SPECIFIC_PROMPT
             try:
                 msgs = [SystemMessage(content=prompt), HumanMessage(content=message)]
                 r, _ = timed_invoke(llm, msgs, operation="help_response")
@@ -435,6 +433,7 @@ Regras:
                 logger.warning(f"[chat_node] HELP via LLM falhou: {e}")
         # Fallback: menu completo
         from app.agents import responses as resp
+
         state["response"] = resp.help_menu()
         return state
 
@@ -451,9 +450,22 @@ Regras:
         msg_lower = message.lower()
 
         # Saudação sem contexto
-        greeting_words = ["oi", "ola", "hello", "hey", "eai", "salve", "bom dia", "boa tarde", "boa noite", "eae", "iai"]
+        greeting_words = [
+            "oi",
+            "ola",
+            "hello",
+            "hey",
+            "eai",
+            "salve",
+            "bom dia",
+            "boa tarde",
+            "boa noite",
+            "eae",
+            "iai",
+        ]
         if any(w in msg_lower for w in greeting_words):
             from datetime import datetime as dt
+
             hour = dt.utcnow().hour
             if hour < 12:
                 gt = "Bom dia"
@@ -461,15 +473,28 @@ Regras:
                 gt = "Boa tarde"
             else:
                 gt = "Boa noite"
-            state["response"] = f"{gt}! Sou o BagCoin, seu assistente financeiro. Como posso ajudar?"
+            state["response"] = (
+                f"{gt}! Sou o BagCoin, seu assistente financeiro. Como posso ajudar?"
+            )
             return state
 
-        thanks_words = ["obrigado", "obrigada", "valeu", "brigado", "thanks", "show", "beleza", "top"]
+        thanks_words = [
+            "obrigado",
+            "obrigada",
+            "valeu",
+            "brigado",
+            "thanks",
+            "show",
+            "beleza",
+            "top",
+        ]
         if any(w in msg_lower for w in thanks_words):
             state["response"] = "Por nada! Se precisar de algo, é só chamar."
             return state
 
-        if any(w in msg_lower for w in ["ok", "certo", "entendi", "tendi", "blz", "perfeito", "legal"]):
+        if any(
+            w in msg_lower for w in ["ok", "certo", "entendi", "tendi", "blz", "perfeito", "legal"]
+        ):
             state["response"] = "Show! O que mais posso ajudar?"
             return state
 
@@ -483,18 +508,35 @@ Regras:
 
         # Correção contextual
         import re as regex
-        if any(w in msg_lower for w in ["na verdade", "era na verdade", "corrigindo", "foi na verdade"]):
-            amount_match = regex.search(r'R?\$?\s*(\d+(?:[.,]\d{1,2})?)', message)
+
+        if any(
+            w in msg_lower for w in ["na verdade", "era na verdade", "corrigindo", "foi na verdade"]
+        ):
+            amount_match = regex.search(r"R?\$?\s*(\d+(?:[.,]\d{1,2})?)", message)
             if amount_match:
                 state["response"] = (
-                    f"Entendi, vou ajustar! Qual transação quer corrigir? "
-                    f"Pode me dar mais detalhes (descrição, data)?"
+                    "Entendi, vou ajustar! Qual transação quer corrigir? "
+                    "Pode me dar mais detalhes (descrição, data)?"
                 )
                 return state
 
         # Para UNKNOWN e HELP, tenta responder algo útil
-        if any(w in msg_lower for w in ["quem", "o que", "como voce", "que é", "que e", "sabe fazer", "pode fazer", "capacidade", "funcionalidade"]):
+        if any(
+            w in msg_lower
+            for w in [
+                "quem",
+                "o que",
+                "como voce",
+                "que é",
+                "que e",
+                "sabe fazer",
+                "pode fazer",
+                "capacidade",
+                "funcionalidade",
+            ]
+        ):
             from app.agents import responses as resp
+
             state["response"] = (
                 "Sou o **BagCoin**, seu assistente financeiro! 💰\n\n"
                 "Posso ajudar com:\n"
@@ -523,6 +565,8 @@ Regras:
     history = get_conversation_history(phone_number, limit=6)
 
     # Tem LLM — resposta inteligente
+    from app.agents.prompts.chat import build_chat_prompt
+
     hour = datetime.utcnow().hour
     if hour < 12:
         greeting = "Bom dia"
@@ -531,33 +575,10 @@ Regras:
     else:
         greeting = "Boa noite"
 
-    system_prompt = f"""Você é o BagCoin, um assistente financeiro amigável que conversa via WhatsApp.
-
-{greeting}! Você é especialista em finanças pessoais e ajuda o usuário a:
-- Registrar gastos e receitas
-- Consultar dados financeiros
-- Criar orçamentos e metas
-- Dar dicas de economia
-
-DIRETRIZES:
-- Responda de forma natural e conversacional, como se fosse um amigo
-- Seja breve (máximo 3-4 parágrafos para WhatsApp)
-- Use linguagem simples e direta
-- Se o usuário está agradecendo, apenas agradeça de volta e pergunte se precisa de mais algo
-- Se o usuário pedir algo que o sistema faz (registrar, consultar, etc.), oriente como fazer
-- Se o usuário fizer um follow-up como "e no mês passado?", entenda que é continuação da conversa
-- Se o usuário estiver corrigindo algo ("na verdade foi 60"), reconheça a correção e pergunte os detalhes
-- NUNCA prometa rentabilidade ou dê conselhos financeiros profissionais
-- Se não souber algo, seja honesto
-
-Contexto da conversa recente:
-{history if history else "(primeira interação)"}"""
+    system_prompt = build_chat_prompt(greeting=greeting, history=history)
 
     try:
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=message)
-        ]
+        messages = [SystemMessage(content=system_prompt), HumanMessage(content=message)]
 
         response, latency_ms = timed_invoke(llm, messages, operation="chat_node")
         state["response"] = response.content
@@ -567,8 +588,7 @@ Contexto da conversa recente:
     except Exception as e:
         logger.error(f"[chat_node] Erro: {e}")
         state["response"] = (
-            "Entendi! Se precisar registrar algo ou consultar dados, "
-            "pode me falar que eu ajudo."
+            "Entendi! Se precisar registrar algo ou consultar dados, pode me falar que eu ajudo."
         )
 
     return state
@@ -576,7 +596,7 @@ Contexto da conversa recente:
 
 def build_response_node(state: AgentState) -> AgentState:
     """Nó de construção da resposta final."""
-    from app.agents.persistence import get_or_create_user, save_message_to_history
+    from app.agents.persistence import get_or_create_user
     from app.db.session import sync_session_maker
 
     intent = state.get("intent")
@@ -617,11 +637,14 @@ def build_response_node(state: AgentState) -> AgentState:
             try:
                 user = get_or_create_user(phone_number, db)
                 from app.services.budget_service import get_goals
+
                 goals = get_goals(phone_number)
                 active_goals = [g for g in goals if g.get("status") == "active"]
                 if active_goals:
                     goal_names = ", ".join([g["title"] for g in active_goals[:3]])
-                    state["response"] += f"\n\nQuer direcionar parte para alguma meta? Você tem: {goal_names}"
+                    state["response"] += (
+                        f"\n\nQuer direcionar parte para alguma meta? Você tem: {goal_names}"
+                    )
             except Exception:
                 pass
             finally:
@@ -642,7 +665,7 @@ def build_response_node(state: AgentState) -> AgentState:
         db = sync_session_maker()
         try:
             user = get_or_create_user(phone_number, db)
-            name = user.name if hasattr(user, 'name') and user.name else None
+            name = user.name if hasattr(user, "name") and user.name else None
         except Exception:
             name = None
         finally:
@@ -696,13 +719,17 @@ def build_response_node(state: AgentState) -> AgentState:
 
     else:
         # Fallback final — tenta usar LLM para responder
-        from app.services.llm_service import get_llm, timed_invoke
         from langchain_core.messages import HumanMessage, SystemMessage
+
+        from app.services.llm_service import get_llm, timed_invoke
+
         llm = get_llm(temperature=0.7)
         if llm:
             try:
                 msgs = [
-                    SystemMessage(content="Você é o BagCoin, assistente financeiro. Responda de forma breve e útil."),
+                    SystemMessage(
+                        content="Você é o BagCoin, assistente financeiro. Responda de forma breve e útil."
+                    ),
                     HumanMessage(content=message),
                 ]
                 r, _ = timed_invoke(llm, msgs, operation="build_response")
@@ -779,9 +806,22 @@ def route_by_intent(state: AgentState) -> str:
 
     # Consultas de budgets/goals também caem em QUERY_DATA — detectamos aqui
     msg_lower = state.get("message", "").lower()
-    msg_norm = unicodedata.normalize('NFKD', msg_lower).encode('ASCII', 'ignore').decode('ASCII')
+    msg_norm = unicodedata.normalize("NFKD", msg_lower).encode("ASCII", "ignore").decode("ASCII")
     if intent == IntentType.QUERY_DATA.value:
-        if any(w in msg_norm for w in ["orcamento", "orcamentos", "budget", "limite", "meta", "metas", "objetivo", "objetivos", "goal"]):
+        if any(
+            w in msg_norm
+            for w in [
+                "orcamento",
+                "orcamentos",
+                "budget",
+                "limite",
+                "meta",
+                "metas",
+                "objetivo",
+                "objetivos",
+                "goal",
+            ]
+        ):
             return "query_budgets"
 
     return routing_map.get(intent, "build_response")
@@ -834,7 +874,7 @@ def create_orchestrator():
             "classify_intent": "classify_intent",
             "import_statement": "import_statement",
             "build_response": "build_response",
-        }
+        },
     )
 
     # 2. Classifica intenção do texto (original ou extraído da mídia)
@@ -867,7 +907,7 @@ def create_orchestrator():
             "list_categories": "list_categories",
             "update_category": "update_category",
             "build_response": "build_response",
-        }
+        },
     )
 
     workflow.add_edge("extract_data", "save_transaction")

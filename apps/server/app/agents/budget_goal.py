@@ -4,25 +4,34 @@ These are individual nodes (functions) that handle budget/goal CRUD
 and alerts, called from the LangGraph orchestrator.
 Uses LLM for all data extraction — no fragile keyword rules.
 """
+
 import logging
 import re
+from datetime import date
 from typing import Any
-from datetime import datetime, date
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.services.llm_service import get_llm, timed_invoke
-from app.services.budget_service import (
-    create_budget, get_budgets, create_goal, get_goals,
-    check_budget_alerts, check_goal_alerts,
-    delete_budget_by_name, update_budget_limit,
-    delete_goal, update_goal, update_goal_progress,
-    delete_all_budgets, set_financial_alerts_enabled,
-)
 from app.agents import responses as resp
+from app.agents.persistence import get_or_create_user
 from app.db.models.phone_conversation import PhoneConversation
 from app.db.session import sync_session_maker
-from app.agents.persistence import get_or_create_user
+from app.services.budget_service import (
+    check_budget_alerts,
+    check_goal_alerts,
+    create_budget,
+    create_goal,
+    delete_all_budgets,
+    delete_budget_by_name,
+    delete_goal,
+    get_budgets,
+    get_goals,
+    set_financial_alerts_enabled,
+    update_budget_limit,
+    update_goal,
+    update_goal_progress,
+)
+from app.services.llm_service import get_llm, timed_invoke
 
 logger = logging.getLogger(__name__)
 
@@ -33,47 +42,9 @@ def _extract_with_llm(message: str, extraction_type: str) -> dict[str, Any]:
     extraction_type: 'budget', 'goal', 'contribute', 'delete_budget', 'update_budget', 'update_goal'
     Returns dict with extracted fields.
     """
-    prompts = {
-        "budget": """Extraia dados de orçamento da mensagem.
-Retorne APENAS JSON: {"name": "categoria", "total_limit": 3000.0, "period": "monthly"}
-- name: a categoria/nome do orçamento (ex: alimentação, transporte)
-- total_limit: valor numérico (número, sem R$)
-- period: "monthly", "weekly", "daily" ou "yearly" (padrão: "monthly")
-Se um campo não estiver na mensagem, omita do JSON.""",
+    from app.agents.prompts.extract_budget_goal import EXTRACT_PROMPTS
 
-        "goal": """Extraia dados de meta financeira da mensagem.
-Retorne APENAS JSON: {"title": "viagem", "target_amount": 10000.0, "deadline": "12/2026"}
-- title: o objetivo da meta
-- target_amount: valor numérico
-- deadline: prazo opcional no formato "MM/YYYY" ou "DD/MM/YYYY"
-Se um campo não estiver na mensagem, omita do JSON.""",
-
-        "contribute": """Extraia dados de contribuição para meta.
-Retorne APENAS JSON: {"goal_identifier": "viagem", "amount": 500.0}
-- goal_identifier: nome da meta ou número (ex: "viagem", "meta 1", "bike")
-- amount: valor a adicionar
-Se um campo não estiver na mensagem, omita do JSON.""",
-
-        "delete_budget": """Extraia qual orçamento excluir.
-Retorne APENAS JSON: {"name": "alimentação"} ou {"all": true} para excluir todos.
-Se a mensagem disser "todos", "todas" ou "tudo", retorne {"all": true}.""",
-
-        "update_budget": """Extraia dados para atualizar orçamento.
-Retorne APENAS JSON: {"name": "alimentação", "total_limit": 4000.0}
-- name: nome do orçamento a atualizar
-- total_limit: novo valor do limite
-Se um campo não estiver na mensagem, omita do JSON.""",
-
-        "update_goal": """Extraia dados para atualizar meta.
-Retorne APENAS JSON: {"goal_identifier": "viagem", "new_target": 12000.0, "new_title": null, "deadline": "06/2027"}
-- goal_identifier: nome da meta
-- new_target: novo valor total (opcional)
-- new_title: novo nome (opcional)
-- deadline: novo prazo (opcional, formato "MM/YYYY")
-Se um campo não estiver na mensagem ou não houver alteração, omita do JSON.""",
-    }
-
-    system_prompt = prompts.get(extraction_type, prompts["budget"])
+    system_prompt = EXTRACT_PROMPTS.get(extraction_type, EXTRACT_PROMPTS["budget"])
     llm = get_llm(temperature=0.1)
 
     if not llm:
@@ -91,6 +62,7 @@ Se um campo não estiver na mensagem ou não houver alteração, omita do JSON."
         elif "```" in content:
             content = content.split("```")[1].split("```")[0].strip()
         import json
+
         result = json.loads(content)
         logger.info(f"[extract_{extraction_type}] LLM extraiu em {latency_ms:.0f}ms: {result}")
         return result
@@ -158,7 +130,9 @@ def create_budget_node(state: dict[str, Any]) -> dict[str, Any]:
         extracted = _extract_with_llm(message, "budget")
         amount = extracted.get("total_limit") or _extract_number(message)
         if amount is None:
-            state["error"] = "Não consegui identificar o valor do orçamento. Pode repetir com o valor? Ex: 'Orçamento de R$ 3000 para alimentação'"
+            state["error"] = (
+                "Não consegui identificar o valor do orçamento. Pode repetir com o valor? Ex: 'Orçamento de R$ 3000 para alimentação'"
+            )
             return state
 
         period = extracted.get("period", "monthly")
@@ -172,12 +146,14 @@ def create_budget_node(state: dict[str, Any]) -> dict[str, Any]:
         )
 
         state["budget_data"] = budget
-        state["response"] = resp.budget_created(budget["name"], budget["total_limit"], budget["period"])
+        state["response"] = resp.budget_created(
+            budget["name"], budget["total_limit"], budget["period"]
+        )
         logger.info(f"Budget created: {budget['id']} — {budget['name']}")
 
     except Exception as e:
         logger.error(f"Error creating budget: {e}")
-        state["error"] = f"Erro ao criar orçamento: {str(e)}"
+        state["error"] = f"Erro ao criar orçamento: {e!s}"
 
     return state
 
@@ -191,7 +167,9 @@ def create_goal_node(state: dict[str, Any]) -> dict[str, Any]:
         extracted = _extract_with_llm(message, "goal")
         amount = extracted.get("target_amount") or _extract_number(message)
         if amount is None:
-            state["error"] = "Não consegui identificar o valor da meta. Pode repetir? Ex: 'Meta de R$ 10000 para viagem'"
+            state["error"] = (
+                "Não consegui identificar o valor da meta. Pode repetir? Ex: 'Meta de R$ 10000 para viagem'"
+            )
             return state
 
         title = extracted.get("title", "Reserva")
@@ -202,6 +180,7 @@ def create_goal_node(state: dict[str, Any]) -> dict[str, Any]:
                 m = re.search(r"(\d{1,2})/(\d{4})", str(deadline))
                 if m:
                     from datetime import date
+
                     deadline_date = date(int(m.group(2)), int(m.group(1)), 1)
             except Exception:
                 pass
@@ -214,12 +193,14 @@ def create_goal_node(state: dict[str, Any]) -> dict[str, Any]:
         )
 
         state["goal_data"] = goal
-        state["response"] = resp.goal_created(goal["title"], goal["target_amount"], goal.get("deadline"))
+        state["response"] = resp.goal_created(
+            goal["title"], goal["target_amount"], goal.get("deadline")
+        )
         logger.info(f"Goal created: {goal['id']} — {goal['title']}")
 
     except Exception as e:
         logger.error(f"Error creating goal: {e}")
-        state["error"] = f"Erro ao criar meta: {str(e)}"
+        state["error"] = f"Erro ao criar meta: {e!s}"
 
     return state
 
@@ -270,13 +251,20 @@ Exemplos:
                 msgs = [SystemMessage(content=prompt), HumanMessage(content=message)]
                 r, _ = timed_invoke(llm, msgs, operation="query_type")
                 import json
-                result = json.loads(r.content.strip().replace("```json", "").replace("```", "").strip())
+
+                result = json.loads(
+                    r.content.strip().replace("```json", "").replace("```", "").strip()
+                )
                 wants_budgets = result.get("budgets", True)
                 wants_goals = result.get("goals", True)
             except Exception:
                 # Fallback: se mencionar orçamento, mostra orçamentos
-                wants_budgets = any(w in msg_lower for w in ["orcamento", "orcamentos", "budget", "limite"])
-                wants_goals = any(w in msg_lower for w in ["meta", "metas", "objetivo", "objetivos", "goal"])
+                wants_budgets = any(
+                    w in msg_lower for w in ["orcamento", "orcamentos", "budget", "limite"]
+                )
+                wants_goals = any(
+                    w in msg_lower for w in ["meta", "metas", "objetivo", "objetivos", "goal"]
+                )
 
         response_parts = []
         if wants_budgets:
@@ -293,7 +281,7 @@ Exemplos:
 
     except Exception as e:
         logger.error(f"Error querying budgets/goals: {e}")
-        state["error"] = f"Erro ao buscar dados: {str(e)}"
+        state["error"] = f"Erro ao buscar dados: {e!s}"
 
     return state
 
@@ -315,7 +303,9 @@ def delete_budget_node(state: dict[str, Any]) -> dict[str, Any]:
             if not name:
                 budgets = get_budgets(phone_number)
                 if budgets:
-                    state["response"] = "Qual orçamento você quer excluir? " + ", ".join([b["name"] for b in budgets])
+                    state["response"] = "Qual orçamento você quer excluir? " + ", ".join(
+                        [b["name"] for b in budgets]
+                    )
                 else:
                     state["response"] = "Você não tem orçamentos para excluir."
                 return state
@@ -326,7 +316,7 @@ def delete_budget_node(state: dict[str, Any]) -> dict[str, Any]:
                 state["response"] = f"Não encontrei um orçamento chamado '{name}'."
     except Exception as e:
         logger.error(f"Error deleting budgets: {e}")
-        state["error"] = f"Erro ao excluir orçamentos: {str(e)}"
+        state["error"] = f"Erro ao excluir orçamentos: {e!s}"
     return state
 
 
@@ -367,19 +357,23 @@ def update_budget_node(state: dict[str, Any]) -> dict[str, Any]:
             if len(budgets) == 1:
                 name = budgets[0]["name"]
             else:
-                state["response"] = "Qual orçamento quer atualizar? " + ", ".join([b["name"] for b in budgets])
+                state["response"] = "Qual orçamento quer atualizar? " + ", ".join(
+                    [b["name"] for b in budgets]
+                )
                 return state
         if amount is None:
             state["response"] = "Qual o novo limite? Ex: 'mudar orçamento de alimentação para 4000'"
             return state
         result = update_budget_limit(phone_number, name, float(amount))
         if result:
-            state["response"] = resp.budget_created(result["name"], result["total_limit"], result["period"], updated=True)
+            state["response"] = resp.budget_created(
+                result["name"], result["total_limit"], result["period"], updated=True
+            )
         else:
             state["response"] = f"Não encontrei o orçamento '{name}'."
     except Exception as e:
         logger.error(f"Error updating budget: {e}")
-        state["error"] = f"Erro ao atualizar orçamento: {str(e)}"
+        state["error"] = f"Erro ao atualizar orçamento: {e!s}"
     return state
 
 
@@ -395,7 +389,9 @@ def contribute_goal_node(state: dict[str, Any]) -> dict[str, Any]:
             return state
         goals = get_goals(phone_number)
         if not goals:
-            state["response"] = "Você ainda não tem metas. Para criar uma, mande algo como: 'Meta de R$ 5000 para viagem'"
+            state["response"] = (
+                "Você ainda não tem metas. Para criar uma, mande algo como: 'Meta de R$ 5000 para viagem'"
+            )
             return state
         identifier = extracted.get("goal_identifier", "")
         target_goal = None
@@ -416,7 +412,12 @@ def contribute_goal_node(state: dict[str, Any]) -> dict[str, Any]:
             else:
                 state["response"] = (
                     "Não entendi qual meta. Suas metas:\n"
-                    + "\n".join([f"• {i+1}. {g['title']} (R$ {g['target_amount']:,.2f})" for i, g in enumerate(goals)])
+                    + "\n".join(
+                        [
+                            f"• {i + 1}. {g['title']} (R$ {g['target_amount']:,.2f})"
+                            for i, g in enumerate(goals)
+                        ]
+                    )
                     + "\n\nQual delas quer atualizar?"
                 )
                 return state
@@ -432,7 +433,7 @@ def contribute_goal_node(state: dict[str, Any]) -> dict[str, Any]:
             state["response"] += "\n\n🎉 **Meta concluída!** Parabéns!"
     except Exception as e:
         logger.error(f"Error contributing to goal: {e}")
-        state["error"] = f"Erro ao atualizar meta: {str(e)}"
+        state["error"] = f"Erro ao atualizar meta: {e!s}"
     return state
 
 
@@ -459,11 +460,16 @@ def delete_goal_node(state: dict[str, Any]) -> dict[str, Any]:
             else:
                 state["response"] = (
                     f"Não encontrei a meta '{identifier}'. Suas metas:\n"
-                    + "\n".join([f"• {i+1}. {g['title']} (R$ {g['target_amount']:,.2f})" for i, g in enumerate(goals)])
+                    + "\n".join(
+                        [
+                            f"• {i + 1}. {g['title']} (R$ {g['target_amount']:,.2f})"
+                            for i, g in enumerate(goals)
+                        ]
+                    )
                 )
     except Exception as e:
         logger.error(f"Error deleting goal: {e}")
-        state["error"] = f"Erro ao excluir meta: {str(e)}"
+        state["error"] = f"Erro ao excluir meta: {e!s}"
     return state
 
 
@@ -477,7 +483,9 @@ def update_goal_node(state: dict[str, Any]) -> dict[str, Any]:
         if not identifier:
             goals = get_goals(phone_number)
             if goals:
-                state["response"] = "Qual meta você quer atualizar?\n" + "\n".join([f"• {i+1}. {g['title']}" for i, g in enumerate(goals)])
+                state["response"] = "Qual meta você quer atualizar?\n" + "\n".join(
+                    [f"• {i + 1}. {g['title']}" for i, g in enumerate(goals)]
+                )
             else:
                 state["response"] = "Você não tem metas para atualizar."
             return state
@@ -492,7 +500,13 @@ def update_goal_node(state: dict[str, Any]) -> dict[str, Any]:
                     deadline_date = date(int(m.group(2)), int(m.group(1)), 1)
             except Exception:
                 pass
-        result = update_goal(phone_number, identifier, new_target=float(amount) if amount else None, new_title=title, new_deadline=deadline_date)
+        result = update_goal(
+            phone_number,
+            identifier,
+            new_target=float(amount) if amount else None,
+            new_title=title,
+            new_deadline=deadline_date,
+        )
         if result:
             progress_bar = _progress_bar(result["percentage"])
             dl = f" | Prazo: {result['deadline'][:10]}" if result.get("deadline") else ""
@@ -504,20 +518,18 @@ def update_goal_node(state: dict[str, Any]) -> dict[str, Any]:
             )
         else:
             goals = get_goals(phone_number)
-            state["response"] = (
-                f"Não encontrei a meta. Suas metas:\n"
-                + "\n".join([f"• {i+1}. {g['title']}" for i, g in enumerate(goals)])
+            state["response"] = "Não encontrei a meta. Suas metas:\n" + "\n".join(
+                [f"• {i + 1}. {g['title']}" for i, g in enumerate(goals)]
             )
     except Exception as e:
         logger.error(f"Error updating goal: {e}")
-        state["error"] = f"Erro ao atualizar meta: {str(e)}"
+        state["error"] = f"Erro ao atualizar meta: {e!s}"
     return state
 
 
 def delete_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
     """Delete transaction node."""
-    from app.agents.persistence import get_or_create_user, delete_transaction_by_id
-    from app.db.session import sync_session_maker
+    from app.agents.persistence import delete_transaction_by_id
     from app.db.models.transaction import Transaction
 
     phone_number = state.get("phone_number", "")
@@ -525,25 +537,39 @@ def delete_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
     db = sync_session_maker()
     try:
         user = get_or_create_user(phone_number, db)
-        conv = db.query(PhoneConversation).filter(
-            PhoneConversation.user_id == user.id,
-        ).order_by(PhoneConversation.updated_at.desc()).first()
+        conv = (
+            db.query(PhoneConversation)
+            .filter(
+                PhoneConversation.user_id == user.id,
+            )
+            .order_by(PhoneConversation.updated_at.desc())
+            .first()
+        )
         tx_id = None
         if conv and conv.context_json:
             tx_id = conv.context_json.get("last_transaction_id")
         amount_match = re.search(r"\d+", message)
         if amount_match:
             explicit_id = int(amount_match.group())
-            tx_check = db.query(Transaction).filter(
-                Transaction.id == explicit_id,
-                Transaction.user_id == user.id,
-            ).first()
+            tx_check = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.id == explicit_id,
+                    Transaction.user_id == user.id,
+                )
+                .first()
+            )
             if tx_check:
                 tx_id = explicit_id
         if not tx_id:
-            last_tx = db.query(Transaction).filter(
-                Transaction.user_id == user.id,
-            ).order_by(Transaction.transaction_date.desc()).first()
+            last_tx = (
+                db.query(Transaction)
+                .filter(
+                    Transaction.user_id == user.id,
+                )
+                .order_by(Transaction.transaction_date.desc())
+                .first()
+            )
             if last_tx:
                 tx_id = last_tx.id
         if tx_id:
@@ -555,7 +581,7 @@ def delete_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
             state["response"] = "Não encontrei transações para remover."
     except Exception as e:
         logger.error(f"Error deleting transaction: {e}")
-        state["error"] = f"Erro ao excluir transação: {str(e)}"
+        state["error"] = f"Erro ao excluir transação: {e!s}"
     finally:
         db.close()
     return state
@@ -563,18 +589,21 @@ def delete_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
 
 def update_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
     """Update transaction node (correct value, description, or category)."""
-    from app.agents.persistence import get_or_create_user, update_transaction
-    from app.db.session import sync_session_maker
-    from app.db.models.transaction import Transaction
+    from app.agents.persistence import update_transaction
 
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
     db = sync_session_maker()
     try:
         user = get_or_create_user(phone_number, db)
-        conv = db.query(PhoneConversation).filter(
-            PhoneConversation.user_id == user.id,
-        ).order_by(PhoneConversation.updated_at.desc()).first()
+        conv = (
+            db.query(PhoneConversation)
+            .filter(
+                PhoneConversation.user_id == user.id,
+            )
+            .order_by(PhoneConversation.updated_at.desc())
+            .first()
+        )
         tx_id = None
         if conv and conv.context_json:
             tx_id = conv.context_json.get("last_transaction_id")
@@ -600,7 +629,9 @@ def update_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
                 category = cat
                 break
         if tx_id:
-            result = update_transaction(phone_number, tx_id, amount=amount, description=desc, category_name=category)
+            result = update_transaction(
+                phone_number, tx_id, amount=amount, description=desc, category_name=category
+            )
             if result:
                 state["response"] = (
                     f"Transação atualizada!\n"
@@ -614,7 +645,7 @@ def update_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
             state["response"] = "Não encontrei transações recentes para atualizar."
     except Exception as e:
         logger.error(f"Error updating transaction: {e}")
-        state["error"] = f"Erro ao atualizar transação: {str(e)}"
+        state["error"] = f"Erro ao atualizar transação: {e!s}"
     finally:
         db.close()
     return state

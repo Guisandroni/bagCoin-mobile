@@ -1,6 +1,7 @@
-"""System prompts for AI agents.
+"""Prompt modules for the BagCoin chatbot.
 
-Centralized location for all agent prompts to make them easy to find and modify.
+All LLM system prompts and instruction templates are centralized here.
+Each module covers a specific agent/domain.
 """
 
 DEFAULT_SYSTEM_PROMPT = """You are a helpful assistant."""
@@ -63,3 +64,57 @@ Before sending your response, check:
 - Is every claim backed by search results?
 - Are you NOT answering from your own knowledge?
 </verification_loop>"""
+
+
+from app.agents.prompts.classify_intent import (
+    CLASSIFY_INTENT_PROMPT,
+    build_classify_prompt,
+)
+
+from app.agents.prompts.extract_transaction import (
+    EXTRACT_TRANSACTION_PROMPT,
+    build_extract_transaction_prompt,
+)
+
+from app.agents.prompts.extract_budget_goal import (
+    EXTRACT_PROMPTS,
+)
+
+from app.agents.prompts.chat import (
+    CHAT_SYSTEM_PROMPT,
+    HELP_SPECIFIC_PROMPT,
+    build_chat_prompt,
+)
+
+from app.agents.prompts.wizard import (
+    FIELD_EXAMPLES,
+    WIZARD_CORRECTION_PROMPT,
+    build_wizard_extract_prompt,
+)
+
+from app.agents.prompts.other import (
+    TEXT_TO_SQL_PROMPT,
+    RECOMMENDATIONS_PROMPT,
+    DEEP_RESEARCH_PROMPT,
+    build_sql_prompt,
+)
+
+__all__ = [
+    "DEFAULT_SYSTEM_PROMPT",
+    "get_system_prompt_with_rag",
+    "CLASSIFY_INTENT_PROMPT",
+    "build_classify_prompt",
+    "EXTRACT_TRANSACTION_PROMPT",
+    "build_extract_transaction_prompt",
+    "EXTRACT_PROMPTS",
+    "CHAT_SYSTEM_PROMPT",
+    "HELP_SPECIFIC_PROMPT",
+    "build_chat_prompt",
+    "FIELD_EXAMPLES",
+    "WIZARD_CORRECTION_PROMPT",
+    "build_wizard_extract_prompt",
+    "TEXT_TO_SQL_PROMPT",
+    "RECOMMENDATIONS_PROMPT",
+    "DEEP_RESEARCH_PROMPT",
+    "build_sql_prompt",
+]

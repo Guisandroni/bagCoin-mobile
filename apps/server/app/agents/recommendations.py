@@ -2,17 +2,18 @@
 
 Uses sync_session_maker and text-to-SQL for financial data analysis.
 """
-import logging
+
 import json
-from typing import Any
+import logging
 from datetime import datetime, timedelta
+from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.services.llm_service import get_llm
-from app.db.session import sync_session_maker
 from app.agents.persistence import get_or_create_user
 from app.agents.text_to_sql import execute_sql_query
+from app.db.session import sync_session_maker
+from app.services.llm_service import get_llm
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,9 @@ def get_user_financial_summary(phone_number: str) -> dict[str, Any]:
             ORDER BY total DESC
             LIMIT 5
         """
-        top_categories = execute_sql_query(cat_sql, {"phone": phone_number, "date": thirty_days_ago})
+        top_categories = execute_sql_query(
+            cat_sql, {"phone": phone_number, "date": thirty_days_ago}
+        )
 
         # Contagem de transações
         count_sql = """
@@ -75,7 +78,7 @@ def get_user_financial_summary(phone_number: str) -> dict[str, Any]:
             "balance_30d": total_income - total_expense,
             "top_expense_categories": top_categories,
             "transaction_count_30d": tx_count[0]["count"] if tx_count else 0,
-            "user_profile": user.financial_profile or {}
+            "user_profile": user.financial_profile or {},
         }
     finally:
         db.close()
@@ -103,46 +106,48 @@ def generate_recommendations(state: dict[str, Any]) -> dict[str, Any]:
         recommendations = []
 
         if summary["balance_30d"] < 0:
-            recommendations.append("Seus gastos superaram suas receitas nos últimos 30 dias. Tente reduzir despesas não essenciais.")
+            recommendations.append(
+                "Seus gastos superaram suas receitas nos últimos 30 dias. Tente reduzir despesas não essenciais."
+            )
         elif summary["balance_30d"] > 0:
-            recommendations.append(f"Você teve uma sobra de R$ {summary['balance_30d']:,.2f}. Considere guardar parte em uma reserva de emergência.")
+            recommendations.append(
+                f"Você teve uma sobra de R$ {summary['balance_30d']:,.2f}. Considere guardar parte em uma reserva de emergência."
+            )
 
         if summary["top_expense_categories"]:
             top_cat = summary["top_expense_categories"][0]
-            recommendations.append(f"Sua maior categoria de gasto é {top_cat.get('name', '')} (R$ {top_cat.get('total', 0):,.2f}). Avalie se está alinhada com suas prioridades.")
+            recommendations.append(
+                f"Sua maior categoria de gasto é {top_cat.get('name', '')} (R$ {top_cat.get('total', 0):,.2f}). Avalie se está alinhada com suas prioridades."
+            )
 
         state["response"] = "Recomendações Financeiras\n\n" + "\n\n".join(recommendations)
         return state
 
     # Injeta histórico da conversa para recomendações contextuais
     from app.agents.persistence import get_conversation_history
+
     history = get_conversation_history(phone_number, limit=6)
     history_context = f"\n\nÚltimas mensagens da conversa:\n{history}" if history else ""
 
-    system_prompt = """Você é um assistente financeiro educativo e cauteloso.
-Analise os dados financeiros do usuário e forneça recomendações personalizadas.
+    from app.agents.prompts.other import RECOMMENDATIONS_PROMPT
 
-IMPORTANTE:
-- NÃO prometa rentabilidade ou retorno de investimentos
-- NÃO substitua consultoria financeira profissional
-- Use tom educativo e informativo
-- Baseie-se apenas nos dados fornecidos
-- Sugira ações práticas e realistas
-- Mencione a importância de reserva de emergência
-- Formate a resposta de forma amigável para WhatsApp (use quebras de linha)
-"""
+    system_prompt = RECOMMENDATIONS_PROMPT
 
     context = json.dumps(summary, ensure_ascii=False, indent=2)
 
     try:
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Dados financeiros do usuário (últimos 30 dias):\n{context}\n\n{history_context if history_context else ''}\n\nGere recomendações personalizadas baseadas nos dados e no contexto da conversa.")
+            HumanMessage(
+                content=f"Dados financeiros do usuário (últimos 30 dias):\n{context}\n\n{history_context if history_context else ''}\n\nGere recomendações personalizadas baseadas nos dados e no contexto da conversa."
+            ),
         ]
 
         response = llm.invoke(messages)
 
-        state["response"] = f"Recomendações Financeiras\n\n{response.content}\n\n_Disclaimer: Estas são sugestões educativas e não substituem consultoria financeira profissional._"
+        state["response"] = (
+            f"Recomendações Financeiras\n\n{response.content}\n\n_Disclaimer: Estas são sugestões educativas e não substituem consultoria financeira profissional._"
+        )
 
     except Exception as e:
         logger.error(f"Erro ao gerar recomendações: {e}")

@@ -2,13 +2,15 @@
 
 Searches the web using DuckDuckGo for financial topics.
 """
+
 import logging
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.services.llm_service import get_llm
 from app.agents.persistence import get_conversation_history
+from app.agents.prompts.other import DEEP_RESEARCH_PROMPT
+from app.services.llm_service import get_llm
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,7 @@ def _search_web(query: str, max_results: int = 5) -> list[dict]:
     """Busca na web usando DuckDuckGo (gratuito, sem API key)."""
     try:
         from duckduckgo_search import DDGS
+
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=max_results))
             return [
@@ -37,9 +40,7 @@ def deep_research(state: dict[str, Any]) -> dict[str, Any]:
     llm = get_llm(temperature=0.5)
 
     if not llm:
-        state["response"] = (
-            "No momento não consigo realizar pesquisas. Tente novamente mais tarde."
-        )
+        state["response"] = "No momento não consigo realizar pesquisas. Tente novamente mais tarde."
         return state
 
     try:
@@ -49,20 +50,7 @@ def deep_research(state: dict[str, Any]) -> dict[str, Any]:
         history = get_conversation_history(state.get("phone_number", ""), limit=4)
         history_context = f"\n\nHistórico da conversa:\n{history}" if history else ""
 
-        system_prompt = """Você é um assistente de pesquisa financeira educativo.
-Forneça informações atualizadas e contextuais sobre finanças, investimentos e economia.
-
-DIRETRIZES:
-- NÃO prometa rentabilidade específica
-- NÃO recomende produtos sem contextualização
-- NÃO substitua assessoria profissional
-- Explique conceitos de forma clara e acessível
-- Mencione riscos sempre que relevante
-- Use linguagem simples
-- Se não tiver certeza, seja honesto e sugira fontes confiáveis
-
-Formate a resposta de forma amigável para WhatsApp (use quebras de linha).
-"""
+        system_prompt = DEEP_RESEARCH_PROMPT
 
         context = ""
         if web_results:
@@ -77,7 +65,7 @@ Formate a resposta de forma amigável para WhatsApp (use quebras de linha).
 
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Pergunta do usuário: {message}{context}")
+            HumanMessage(content=f"Pergunta do usuário: {message}{context}"),
         ]
 
         response = llm.invoke(messages)

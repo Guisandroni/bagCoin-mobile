@@ -3,19 +3,19 @@
 Handles interactive dialogues for creating budgets, goals, etc.
 Uses sync_session_maker for database access.
 """
-import logging
+
 import json
+import logging
 import re
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.output_parsers import JsonOutputParser
 
-from app.services.llm_service import get_llm, timed_invoke
-from app.db.session import sync_session_maker
-from app.db.models.phone_conversation import PhoneConversation
 from app.agents.persistence import get_or_create_user
+from app.db.models.phone_conversation import PhoneConversation
+from app.db.session import sync_session_maker
+from app.services.llm_service import get_llm, timed_invoke
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +27,9 @@ WIZARD_SCHEMAS = {
         "labels": {
             "name": "categoria/nome do orçamento",
             "total_limit": "limite mensal (valor em R$)",
-            "period": "período (mensal, semanal, anual)"
+            "period": "período (mensal, semanal, anual)",
         },
-        "examples": [
-            "alimentação, 3000, mensal",
-            "transporte 800",
-            "lazer R$ 500"
-        ]
+        "examples": ["alimentação, 3000, mensal", "transporte 800", "lazer R$ 500"],
     },
     "create_goal": {
         "fields": ["title", "target_amount"],
@@ -42,40 +38,28 @@ WIZARD_SCHEMAS = {
         "labels": {
             "title": "objetivo da meta",
             "target_amount": "valor total (em R$)",
-            "deadline": "prazo (opcional, ex: 12/2026)"
+            "deadline": "prazo (opcional, ex: 12/2026)",
         },
-        "examples": [
-            "viagem, 10000, 12/2026",
-            "bike 1200",
-            "emergência R$ 5000 até 06/2027"
-        ]
+        "examples": ["viagem, 10000, 12/2026", "bike 1200", "emergência R$ 5000 até 06/2027"],
     },
     "update_goal": {
         "fields": ["goal_identifier", "amount"],
         "defaults": {},
         "labels": {
             "goal_identifier": "qual meta (nome ou número)",
-            "amount": "quanto quer adicionar (em R$)"
+            "amount": "quanto quer adicionar (em R$)",
         },
-        "examples": [
-            "bike, 200",
-            "viagem 500",
-            "meta 1 R$ 300"
-        ]
+        "examples": ["bike, 200", "viagem 500", "meta 1 R$ 300"],
     },
     "contribute_goal": {
         "fields": ["goal_identifier", "amount"],
         "defaults": {},
         "labels": {
             "goal_identifier": "qual meta (nome ou número)",
-            "amount": "quanto quer adicionar (em R$)"
+            "amount": "quanto quer adicionar (em R$)",
         },
-        "examples": [
-            "viagem, 200",
-            "bike 500",
-            "reserva R$ 300"
-        ]
-    }
+        "examples": ["viagem, 200", "bike 500", "reserva R$ 300"],
+    },
 }
 
 
@@ -84,9 +68,12 @@ def _get_conversation(phone_number: str) -> PhoneConversation | None:
     db = sync_session_maker()
     try:
         user = get_or_create_user(phone_number, db)
-        conv = db.query(PhoneConversation).filter(
-            PhoneConversation.user_id == user.id
-        ).order_by(PhoneConversation.updated_at.desc()).first()
+        conv = (
+            db.query(PhoneConversation)
+            .filter(PhoneConversation.user_id == user.id)
+            .order_by(PhoneConversation.updated_at.desc())
+            .first()
+        )
         return conv
     finally:
         db.close()
@@ -97,15 +84,19 @@ def _save_wizard_state(phone_number: str, wizard_state: dict[str, Any]):
     db = sync_session_maker()
     try:
         user = get_or_create_user(phone_number, db)
-        conv = db.query(PhoneConversation).filter(
-            PhoneConversation.user_id == user.id
-        ).order_by(PhoneConversation.updated_at.desc()).first()
+        conv = (
+            db.query(PhoneConversation)
+            .filter(PhoneConversation.user_id == user.id)
+            .order_by(PhoneConversation.updated_at.desc())
+            .first()
+        )
 
         if not conv:
             conv = PhoneConversation(user_id=user.id, channel="whatsapp")
             db.add(conv)
 
         from sqlalchemy.orm.attributes import flag_modified
+
         context = dict(conv.context_json or {})
         context["wizard"] = wizard_state
         conv.context_json = context
@@ -145,12 +136,16 @@ def _clear_wizard_state(phone_number: str):
     db = sync_session_maker()
     try:
         user = get_or_create_user(phone_number, db)
-        conv = db.query(PhoneConversation).filter(
-            PhoneConversation.user_id == user.id
-        ).order_by(PhoneConversation.updated_at.desc()).first()
+        conv = (
+            db.query(PhoneConversation)
+            .filter(PhoneConversation.user_id == user.id)
+            .order_by(PhoneConversation.updated_at.desc())
+            .first()
+        )
 
         if conv and conv.context_json:
             from sqlalchemy.orm.attributes import flag_modified
+
             context = dict(conv.context_json)
             context.pop("wizard", None)
             conv.context_json = context
@@ -174,12 +169,12 @@ def _parse_value(value_str: str) -> float | None:
     if not value_str:
         return None
     # Remove R$, pontos de milhar, converte vírgula decimal
-    cleaned = re.sub(r'R?\$?\s*', '', str(value_str))
-    cleaned = cleaned.replace('.', '').replace(',', '.')
+    cleaned = re.sub(r"R?\$?\s*", "", str(value_str))
+    cleaned = cleaned.replace(".", "").replace(",", ".")
     # Se ficou com múltiplos pontos, o último é decimal
-    if cleaned.count('.') > 1:
-        parts = cleaned.split('.')
-        cleaned = ''.join(parts[:-1]) + '.' + parts[-1]
+    if cleaned.count(".") > 1:
+        parts = cleaned.split(".")
+        cleaned = "".join(parts[:-1]) + "." + parts[-1]
     try:
         return float(cleaned)
     except ValueError:
@@ -191,11 +186,11 @@ def _parse_deadline(date_str: str) -> str | None:
     if not date_str:
         return None
     # MM/YYYY
-    m = re.match(r'(\d{1,2})/(\d{4})', str(date_str))
+    m = re.match(r"(\d{1,2})/(\d{4})", str(date_str))
     if m:
         return f"01/{m.group(1)}/{m.group(2)}"
     # DD/MM/YYYY
-    m = re.match(r'(\d{1,2})/(\d{1,2})/(\d{4})', str(date_str))
+    m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{4})", str(date_str))
     if m:
         return f"{m.group(1)}/{m.group(2)}/{m.group(3)}"
     return None
@@ -210,6 +205,7 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
     - Se sem dados: entra em modo de coleta multi-turno
     """
     import time
+
     start_time = time.time()
 
     message = state.get("message", "")
@@ -227,7 +223,7 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
         logger.info(f"Wizard em andamento para {phone_number}: {wizard_type}")
     elif _is_wizard_intent(intent):
         # Inicia novo wizard
-        if hasattr(intent, 'value'):
+        if hasattr(intent, "value"):
             wizard_type = intent.value
         else:
             wizard_type = str(intent)
@@ -238,7 +234,7 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
             "status": "collecting",
             "collected": {},
             "missing": WIZARD_SCHEMAS[wizard_type]["fields"].copy(),
-            "updated_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.utcnow().isoformat(),
         }
         # Aplica defaults
         for field, default in WIZARD_SCHEMAS[wizard_type].get("defaults", {}).items():
@@ -248,11 +244,16 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
         logger.info(f"Novo wizard iniciado para {phone_number}: {wizard_type}")
 
         # Tenta extrair dados da mensagem inicial
-        msg_has_data = bool(re.search(r'\d', message)) or any(w in message.lower() for w in ["r$", "reais", "para", "de", "até", "ate"])
+        msg_has_data = bool(re.search(r"\d", message)) or any(
+            w in message.lower() for w in ["r$", "reais", "para", "de", "até", "ate"]
+        )
         if llm and msg_has_data:
             extracted = _extract_fields_with_llm(
-                llm, message, wizard_type, wizard_state["missing"],
-                WIZARD_SCHEMAS[wizard_type]["labels"]
+                llm,
+                message,
+                wizard_type,
+                wizard_state["missing"],
+                WIZARD_SCHEMAS[wizard_type]["labels"],
             )
         else:
             extracted = _extract_fields_simple(message, wizard_type, wizard_state["missing"])
@@ -265,7 +266,9 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
 
         # Se conseguiu TODOS os dados na primeira mensagem, executa direto
         if not wizard_state["missing"]:
-            logger.info(f"Wizard {wizard_type}: todos os dados coletados na primeira mensagem. Executando direto.")
+            logger.info(
+                f"Wizard {wizard_type}: todos os dados coletados na primeira mensagem. Executando direto."
+            )
             return _handle_executing(state, wizard_state, phone_number)
 
         # Se conseguiu ALGUNS dados, vai para confirmação/coleta
@@ -285,21 +288,27 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
     if wizard_state["status"] == "collecting":
         result = _handle_collecting(state, wizard_state, message, phone_number, llm)
         total_ms = (time.time() - start_time) * 1000
-        logger.info(f"[wizard_node] collecting total: {total_ms:.0f}ms (llm_init={llm_init_ms:.0f}ms)")
+        logger.info(
+            f"[wizard_node] collecting total: {total_ms:.0f}ms (llm_init={llm_init_ms:.0f}ms)"
+        )
         return result
 
     # 3. Se estamos confirmando, verifica resposta do usuário
     if wizard_state["status"] == "confirming":
         result = _handle_confirming(state, wizard_state, message, phone_number, llm)
         total_ms = (time.time() - start_time) * 1000
-        logger.info(f"[wizard_node] confirming total: {total_ms:.0f}ms (llm_init={llm_init_ms:.0f}ms)")
+        logger.info(
+            f"[wizard_node] confirming total: {total_ms:.0f}ms (llm_init={llm_init_ms:.0f}ms)"
+        )
         return result
 
     # 4. Se estamos executando, executa a ação
     if wizard_state["status"] == "executing":
         result = _handle_executing(state, wizard_state, phone_number)
         total_ms = (time.time() - start_time) * 1000
-        logger.info(f"[wizard_node] executing total: {total_ms:.0f}ms (llm_init={llm_init_ms:.0f}ms)")
+        logger.info(
+            f"[wizard_node] executing total: {total_ms:.0f}ms (llm_init={llm_init_ms:.0f}ms)"
+        )
         return result
 
     total_ms = (time.time() - start_time) * 1000
@@ -307,8 +316,9 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
     return state
 
 
-def _handle_collecting(state: dict[str, Any], wizard: dict[str, Any],
-                       message: str, phone_number: str, llm: Any) -> dict[str, Any]:
+def _handle_collecting(
+    state: dict[str, Any], wizard: dict[str, Any], message: str, phone_number: str, llm: Any
+) -> dict[str, Any]:
     """Processa mensagem do usuário durante fase de coleta."""
     wizard_type = wizard["type"]
     schema = WIZARD_SCHEMAS[wizard_type]
@@ -321,17 +331,20 @@ def _handle_collecting(state: dict[str, Any], wizard: dict[str, Any],
     cancel_words = ["não", "nao", "no", "cancelar", "cancela", "esquece", "errado", "desistir"]
     if any(w in msg_lower for w in cancel_words):
         _clear_wizard_state(phone_number)
-        state["response"] = "Cancelado. Se quiser tentar de novo, é só mandar 'criar orçamento' ou 'criar meta'."
+        state["response"] = (
+            "Cancelado. Se quiser tentar de novo, é só mandar 'criar orçamento' ou 'criar meta'."
+        )
         return state
 
     # Se é a primeira interação e não há dados reais (só defaults), apresenta o wizard
     has_real_data = any(
-        field not in schema.get("defaults", {})
-        for field in wizard.get("collected", {}).keys()
+        field not in schema.get("defaults", {}) for field in wizard.get("collected", {}).keys()
     )
     # Detecta se a mensagem é apenas o comando (ex: "criar orçamento") sem dados
     msg_words = message.lower().split()
-    is_just_command = len(msg_words) <= 3 and any(w in message.lower() for w in ["criar", "crie", "novo", "nova", "quero"])
+    is_just_command = len(msg_words) <= 3 and any(
+        w in message.lower() for w in ["criar", "crie", "novo", "nova", "quero"]
+    )
     if not has_real_data and is_just_command:
         # Primeira mensagem só com "criar orçamento" - explica o que precisa
         missing_labels = [labels[f] for f in wizard["missing"]]
@@ -339,18 +352,12 @@ def _handle_collecting(state: dict[str, Any], wizard: dict[str, Any],
             "create_budget": "orçamento",
             "create_goal": "meta",
             "update_goal": "atualização de meta",
-            "contribute_goal": "contribuição para meta"
-        }.get(wizard_type, wizard_type.replace('_', ' '))
-        response = (
-            f"Vamos criar seu {type_name}!\n\n"
-            f"Preciso das seguintes informações:\n"
-        )
+            "contribute_goal": "contribuição para meta",
+        }.get(wizard_type, wizard_type.replace("_", " "))
+        response = f"Vamos criar seu {type_name}!\n\nPreciso das seguintes informações:\n"
         for i, label in enumerate(missing_labels, 1):
             response += f"{i}. {label}\n"
-        response += (
-            f"\nExemplos de como responder:\n"
-            f"- {examples[0]}\n"
-        )
+        response += f"\nExemplos de como responder:\n- {examples[0]}\n"
         if len(examples) > 1:
             response += f"- {examples[1]}\n"
 
@@ -360,11 +367,11 @@ def _handle_collecting(state: dict[str, Any], wizard: dict[str, Any],
         return state
 
     # Usa LLM para extrair dados da mensagem
-    msg_has_data = bool(re.search(r'\d', message)) or any(w in message.lower() for w in ["r$", "reais", "para", "de", "até", "ate"])
+    msg_has_data = bool(re.search(r"\d", message)) or any(
+        w in message.lower() for w in ["r$", "reais", "para", "de", "até", "ate"]
+    )
     if llm and msg_has_data:
-        extracted = _extract_fields_with_llm(
-            llm, message, wizard_type, wizard["missing"], labels
-        )
+        extracted = _extract_fields_with_llm(llm, message, wizard_type, wizard["missing"], labels)
     else:
         # Fallback sem LLM - parse simples
         extracted = _extract_fields_simple(message, wizard_type, wizard["missing"])
@@ -385,7 +392,7 @@ def _handle_collecting(state: dict[str, Any], wizard: dict[str, Any],
         if collected_summary:
             response += f"Já tenho:\n{collected_summary}\n\n"
 
-        response += f"Ainda preciso de:\n"
+        response += "Ainda preciso de:\n"
         for label in missing_labels:
             response += f"- {label}\n"
 
@@ -399,14 +406,25 @@ def _handle_collecting(state: dict[str, Any], wizard: dict[str, Any],
     return _handle_confirming(state, wizard, message, phone_number, llm)
 
 
-def _handle_confirming(state: dict[str, Any], wizard: dict[str, Any],
-                       message: str, phone_number: str, llm: Any) -> dict[str, Any]:
+def _handle_confirming(
+    state: dict[str, Any], wizard: dict[str, Any], message: str, phone_number: str, llm: Any
+) -> dict[str, Any]:
     """Pede confirmação antes de executar."""
     wizard_type = wizard["type"]
 
     # Se o usuário confirmou
     msg_lower = message.lower().strip()
-    confirm_words = ["sim", "yes", "confirmar", "ok", "tá bom", "pode criar", "pode", "criar", "confirmo"]
+    confirm_words = [
+        "sim",
+        "yes",
+        "confirmar",
+        "ok",
+        "tá bom",
+        "pode criar",
+        "pode",
+        "criar",
+        "confirmo",
+    ]
     cancel_words = ["não", "nao", "no", "cancelar", "cancela", "esquece", "errado"]
 
     if any(w in msg_lower for w in confirm_words):
@@ -415,7 +433,9 @@ def _handle_confirming(state: dict[str, Any], wizard: dict[str, Any],
 
     if any(w in msg_lower for w in cancel_words):
         _clear_wizard_state(phone_number)
-        state["response"] = "Cancelado. Se quiser tentar de novo, é só mandar 'criar orçamento' ou 'criar meta'."
+        state["response"] = (
+            "Cancelado. Se quiser tentar de novo, é só mandar 'criar orçamento' ou 'criar meta'."
+        )
         return state
 
     # Se o usuário quer corrigir algum campo
@@ -434,9 +454,7 @@ def _handle_confirming(state: dict[str, Any], wizard: dict[str, Any],
     # Resumo para confirmação
     summary = _format_confirmation(wizard)
     state["response"] = (
-        f"{summary}\n\n"
-        f"Confirma?\n"
-        f"Responda 'sim' para criar ou me diga o que quer alterar."
+        f"{summary}\n\nConfirma?\nResponda 'sim' para criar ou me diga o que quer alterar."
     )
     wizard["updated_at"] = datetime.utcnow().isoformat()
     _save_wizard_state(phone_number, wizard)
@@ -459,8 +477,9 @@ def _find_goal(goals: list, identifier: str) -> dict | None:
     return None
 
 
-def _handle_executing(state: dict[str, Any], wizard: dict[str, Any],
-                      phone_number: str) -> dict[str, Any]:
+def _handle_executing(
+    state: dict[str, Any], wizard: dict[str, Any], phone_number: str
+) -> dict[str, Any]:
     """Executa a ação do wizard."""
     wizard_type = wizard["type"]
     collected = wizard["collected"]
@@ -468,25 +487,30 @@ def _handle_executing(state: dict[str, Any], wizard: dict[str, Any],
     try:
         if wizard_type == "create_budget":
             from app.services.budget_service import create_budget
+
             budget = create_budget(
                 phone_number=phone_number,
                 name=collected.get("name", "Geral"),
                 total_limit=_parse_value(collected.get("total_limit", 0)) or 0,
-                period=collected.get("period", "monthly")
+                period=collected.get("period", "monthly"),
             )
             state["budget_data"] = budget
             from app.agents import responses as resp
-            state["response"] = resp.budget_created(budget['name'], budget['total_limit'], budget['period'])
+
+            state["response"] = resp.budget_created(
+                budget["name"], budget["total_limit"], budget["period"]
+            )
 
         elif wizard_type == "create_goal":
             from app.services.budget_service import create_goal
+
             deadline_str = collected.get("deadline")
             deadline = None
             if deadline_str:
                 parsed = _parse_deadline(deadline_str)
                 if parsed:
                     try:
-                        from datetime import date
+
                         deadline = datetime.strptime(parsed, "%d/%m/%Y").date()
                     except Exception:
                         pass
@@ -494,14 +518,18 @@ def _handle_executing(state: dict[str, Any], wizard: dict[str, Any],
                 phone_number=phone_number,
                 title=collected.get("title", "Reserva"),
                 target_amount=_parse_value(collected.get("target_amount", 0)) or 0,
-                deadline=deadline
+                deadline=deadline,
             )
             state["goal_data"] = goal
             from app.agents import responses as resp
-            state["response"] = resp.goal_created(goal['title'], goal['target_amount'], goal.get('deadline'))
+
+            state["response"] = resp.goal_created(
+                goal["title"], goal["target_amount"], goal.get("deadline")
+            )
 
         elif wizard_type in ("update_goal", "contribute_goal"):
-            from app.services.budget_service import update_goal_progress, get_goals
+            from app.services.budget_service import get_goals, update_goal_progress
+
             goals = get_goals(phone_number)
             identifier = collected.get("goal_identifier", "")
             amount = _parse_value(collected.get("amount", 0))
@@ -517,10 +545,16 @@ def _handle_executing(state: dict[str, Any], wizard: dict[str, Any],
                     f"Progresso: R$ {result['current_amount']:,.2f} / R$ {result['target_amount']:,.2f} ({result['percentage']}%)"
                 )
             else:
-                goals_list = "\n".join([f"{i+1}. {g['title']} (R$ {g['target_amount']:,.2f})" for i, g in enumerate(goals)])
+                goals_list = "\n".join(
+                    [
+                        f"{i + 1}. {g['title']} (R$ {g['target_amount']:,.2f})"
+                        for i, g in enumerate(goals)
+                    ]
+                )
                 state["response"] = (
-                    f"Não encontrei a meta '{identifier}'.\n"
-                    f"Suas metas atuais:\n{goals_list}" if goals else "Você não tem metas ainda."
+                    f"Não encontrei a meta '{identifier}'.\nSuas metas atuais:\n{goals_list}"
+                    if goals
+                    else "Você não tem metas ainda."
                 )
 
         _clear_wizard_state(phone_number)
@@ -528,57 +562,31 @@ def _handle_executing(state: dict[str, Any], wizard: dict[str, Any],
 
     except Exception as e:
         logger.error(f"Erro ao executar wizard {wizard_type}: {e}")
-        state["error"] = f"Erro ao executar: {str(e)}"
+        state["error"] = f"Erro ao executar: {e!s}"
         _clear_wizard_state(phone_number)
 
     return state
 
 
 def _extract_fields_with_llm(
-    llm: Any, message: str, wizard_type: str,
-    missing_fields: list, labels: dict
+    llm: Any, message: str, wizard_type: str, missing_fields: list, labels: dict
 ) -> dict[str, Any]:
     """Usa LLM para extrair campos da mensagem do usuário."""
     schema = WIZARD_SCHEMAS[wizard_type]
     fields_str = ", ".join([labels[f] for f in missing_fields])
 
     # Mapeia nomes de campos para o LLM
-    field_examples = {
-        "create_budget": '{"name": "alimentação", "total_limit": 3000, "period": "monthly"}',
-        "create_goal": '{"title": "viagem", "target_amount": 10000, "deadline": "12/2026"}',
-        "update_goal": '{"goal_identifier": "bike", "amount": 500}',
-        "contribute_goal": '{"goal_identifier": "bike", "amount": 500}'
-    }
+    from app.agents.prompts.wizard import FIELD_EXAMPLES, build_wizard_extract_prompt
 
-    system_prompt = f"""Você é um assistente que extrai dados de mensagens curtas em português.
-O usuário está preenchendo um formulário de {wizard_type.replace('_', ' ')}.
-
-Extraia APENAS os campos presentes na mensagem do usuário.
-Responda SEMPRE em JSON no formato: {field_examples.get(wizard_type, '{}')}
-
-Regras:
-- Se um campo não estiver na mensagem, omita do JSON (não use null)
-- total_limit, target_amount, amount: números apenas (ex: 3000, 10000.50)
-- deadline: string no formato "MM/YYYY" ou "DD/MM/YYYY"
-- name/title: string, sem incluir o valor monetário
-- period: "monthly", "weekly", "daily" ou "yearly"
-- goal_identifier: nome da meta ou número dela
-
-Exemplos de extração:
-Mensagem: "Orçamento de R$ 3000 para alimentação mensal"
-→ {{"name": "alimentação", "total_limit": 3000, "period": "monthly"}}
-
-Mensagem: "Meta de R$ 10000 para viagem até 12/2026"
-→ {{"title": "viagem", "target_amount": 10000, "deadline": "12/2026"}}
-
-Mensagem: "guardar 500 na meta bike"
-→ {{"goal_identifier": "bike", "amount": 500}}
-"""
+    system_prompt = build_wizard_extract_prompt(
+        wizard_type=wizard_type,
+        field_example=FIELD_EXAMPLES.get(wizard_type, "{}"),
+    )
 
     try:
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Mensagem: {message}")
+            HumanMessage(content=f"Mensagem: {message}"),
         ]
         response, latency_ms = timed_invoke(llm, messages, operation="wizard_extract_fields")
         content = response.content.strip()
@@ -610,7 +618,9 @@ def _extract_fields_simple(message: str, wizard_type: str, missing_fields: list)
 
     # Tenta extrair valor numérico
     if any(f in missing_fields for f in ["total_limit", "target_amount", "amount"]):
-        value_match = re.search(r'R?\$?\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}|\d+(?:[.,]\d{1,2})?)', message)
+        value_match = re.search(
+            r"R?\$?\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}|\d+(?:[.,]\d{1,2})?)", message
+        )
         if value_match:
             val = _parse_value(value_match.group(1))
             if val is not None:
@@ -628,10 +638,10 @@ def _extract_fields_simple(message: str, wizard_type: str, missing_fields: list)
     # Tenta extrair nome/título (texto restante sem números)
     if "name" in missing_fields or "title" in missing_fields:
         # Remove valores monetários e datas
-        text_only = re.sub(r'R?\$?\s*\d{1,3}(?:[.,]\d{3})*[.,]?\d*', '', message)
-        text_only = re.sub(r'\d{1,2}/\d{1,2}/\d{4}|\d{1,2}/\d{4}', '', text_only)
-        text_only = re.sub(r'\b(mensal|semanal|anual|diario|diário)\b', '', text_only, flags=re.I)
-        text_only = text_only.strip(' ,.;:-')
+        text_only = re.sub(r"R?\$?\s*\d{1,3}(?:[.,]\d{3})*[.,]?\d*", "", message)
+        text_only = re.sub(r"\d{1,2}/\d{1,2}/\d{4}|\d{1,2}/\d{4}", "", text_only)
+        text_only = re.sub(r"\b(mensal|semanal|anual|diario|diário)\b", "", text_only, flags=re.I)
+        text_only = text_only.strip(" ,.;:-")
         if text_only and len(text_only) > 1:
             field = "name" if "name" in missing_fields else "title"
             result[field] = text_only.strip()
@@ -650,16 +660,16 @@ def _extract_fields_simple(message: str, wizard_type: str, missing_fields: list)
 
 def _extract_correction_with_llm(llm: Any, message: str, collected: dict) -> dict[str, Any]:
     """Usa LLM para identificar correções em campos já coletados."""
-    system_prompt = """O usuário quer corrigir um campo. Identifique qual campo e novo valor.
-Responda em JSON: {"field_name": "novo_valor"}
-Exemplo: "muda para 4000" → {"total_limit": 4000}
-"não é viagem, é bike" → {"title": "bike"}
-"""
+    from app.agents.prompts.wizard import WIZARD_CORRECTION_PROMPT
+
+    system_prompt = WIZARD_CORRECTION_PROMPT
     try:
-        response = llm.invoke([
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Dados atuais: {json.dumps(collected)}\nMensagem: {message}")
-        ])
+        response = llm.invoke(
+            [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=f"Dados atuais: {json.dumps(collected)}\nMensagem: {message}"),
+            ]
+        )
         content = response.content.strip()
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0].strip()
@@ -704,29 +714,19 @@ def _format_confirmation(wizard: dict) -> str:
         deadline = collected.get("deadline", "")
         deadline_text = f"\nPrazo: {deadline}" if deadline else ""
         return (
-            f"Resumo da Meta:\n\n"
-            f"Objetivo: {title}\n"
-            f"Valor: R$ {float(target):,.2f}"
-            f"{deadline_text}"
+            f"Resumo da Meta:\n\nObjetivo: {title}\nValor: R$ {float(target):,.2f}{deadline_text}"
         )
 
     elif wizard_type in ("update_goal", "contribute_goal"):
         identifier = collected.get("goal_identifier", "")
         amount = collected.get("amount", 0)
         label = "Atualizar Meta" if wizard_type == "update_goal" else "Contribuir para Meta"
-        return (
-            f"{label}:\n\n"
-            f"Meta: {identifier}\n"
-            f"Adicionar: R$ {float(amount):,.2f}"
-        )
+        return f"{label}:\n\nMeta: {identifier}\nAdicionar: R$ {float(amount):,.2f}"
 
     return ""
 
 
 def _period_label(period: str) -> str:
-    return {
-        "daily": "Diário",
-        "weekly": "Semanal",
-        "monthly": "Mensal",
-        "yearly": "Anual"
-    }.get(period, "Mensal")
+    return {"daily": "Diário", "weekly": "Semanal", "monthly": "Mensal", "yearly": "Anual"}.get(
+        period, "Mensal"
+    )

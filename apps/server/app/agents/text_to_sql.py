@@ -2,18 +2,19 @@
 
 Converts natural language queries to safe SQL using the sync engine.
 """
+
 import logging
 import re
-from typing import Any
 from datetime import datetime, timedelta
+from typing import Any
 
-from sqlalchemy import text
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
+from sqlalchemy import text
 
-from app.services.llm_service import get_llm
-from app.db.session import sync_engine
 from app.agents.tenant_context import tenant_phone_error
+from app.db.session import sync_engine
+from app.services.llm_service import get_llm
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +38,18 @@ ALLOWED_SQL_PATTERNS = [
 ]
 
 FORBIDDEN_KEYWORDS = [
-    "DROP", "DELETE", "UPDATE", "INSERT", "ALTER", "CREATE",
-    "TRUNCATE", "GRANT", "REVOKE", "EXEC", "EXECUTE", "UNION",
+    "DROP",
+    "DELETE",
+    "UPDATE",
+    "INSERT",
+    "ALTER",
+    "CREATE",
+    "TRUNCATE",
+    "GRANT",
+    "REVOKE",
+    "EXEC",
+    "EXECUTE",
+    "UNION",
 ]
 
 
@@ -121,9 +132,9 @@ def get_date_filter(msg_lower: str) -> str | None:
     if any(p in msg_lower for p in ["esse ano", "este ano", "ano atual"]):
         return "transaction_date >= date_trunc('year', CURRENT_DATE)"
 
-    if any(p in msg_lower for p in ["ja gastei", "ate agora", "total", "quanto gastei"]) and not any(
-        p in msg_lower for p in ["hoje", "ontem", "semana", "mes", "ano"]
-    ):
+    if any(
+        p in msg_lower for p in ["ja gastei", "ate agora", "total", "quanto gastei"]
+    ) and not any(p in msg_lower for p in ["hoje", "ontem", "semana", "mes", "ano"]):
         return "transaction_date >= date_trunc('month', CURRENT_DATE)"
 
     return None
@@ -149,6 +160,7 @@ def _period_label(date_clause: str) -> str:
 def get_fallback_query(message: str, phone_number: str) -> tuple[str | None, str | None]:
     """Try to map common queries to SQL without LLM."""
     import unicodedata
+
     msg_lower = message.lower()
     msg_norm = unicodedata.normalize("NFKD", msg_lower).encode("ASCII", "ignore").decode("ASCII")
     user_filter = "user_id = (SELECT id FROM phone_users WHERE phone_number = :phone_number)"
@@ -160,9 +172,15 @@ def get_fallback_query(message: str, phone_number: str) -> tuple[str | None, str
 
     # Total expenses
     expense_phrases = [
-        "quanto gastei", "quanto ja gastei", "quanto gastei ate agora",
-        "total de gastos", "soma das despesas", "total pago",
-        "gastos totais", "despesas totais", "quanto ja paguei",
+        "quanto gastei",
+        "quanto ja gastei",
+        "quanto gastei ate agora",
+        "total de gastos",
+        "soma das despesas",
+        "total pago",
+        "gastos totais",
+        "despesas totais",
+        "quanto ja paguei",
     ]
     if _in(expense_phrases):
         sql = f"SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE {user_filter} AND type = 'EXPENSE'{date_sql}"
@@ -171,9 +189,14 @@ def get_fallback_query(message: str, phone_number: str) -> tuple[str | None, str
 
     # Total income
     income_phrases = [
-        "quanto recebi", "total de receitas", "soma das receitas",
-        "total de entradas", "receitas totais", "quanto caiu",
-        "quanto ganhei", "quanto entrou",
+        "quanto recebi",
+        "total de receitas",
+        "soma das receitas",
+        "total de entradas",
+        "receitas totais",
+        "quanto caiu",
+        "quanto ganhei",
+        "quanto entrou",
     ]
     if _in(income_phrases):
         sql = f"SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE {user_filter} AND type = 'INCOME'{date_sql}"
@@ -196,8 +219,11 @@ def get_fallback_query(message: str, phone_number: str) -> tuple[str | None, str
 
     # Expenses by category
     category_phrases = [
-        "gastos por categoria", "despesas por categoria", "categorias",
-        "gastos em cada categoria", "quanto gastei em cada",
+        "gastos por categoria",
+        "despesas por categoria",
+        "categorias",
+        "gastos em cada categoria",
+        "quanto gastei em cada",
     ]
     if _in(category_phrases):
         sql = (
@@ -280,31 +306,15 @@ def process_query(state: dict[str, Any]) -> dict[str, Any]:
             history = ""
             try:
                 from app.agents.persistence import get_conversation_history
+
                 history = get_conversation_history(phone_number, limit=4)
             except Exception:
                 pass
+            from app.agents.prompts.other import build_sql_prompt
+
             history_context = f"\n\nÚltimas mensagens da conversa:\n{history}" if history else ""
 
-            system_prompt = f"""Você é um assistente especialista em SQL para um chatbot financeiro.
-Sua tarefa é converter perguntas em português para queries SQL seguras e otimizadas.
-
-{DB_SCHEMA}
-
-REGRAS CRÍTICAS:
-1. GERE APENAS SELECT ou WITH (CTEs). NUNCA gere INSERT, UPDATE, DELETE, DROP, ALTER.
-2. SEMPRE filtre por user_id usando subquery: user_id = (SELECT id FROM phone_users WHERE phone_number = :phone_number)
-3. Use COALESCE para evitar NULLs em agregações.
-4. Formato de datas: YYYY-MM-DD.
-5. Use SEMPRE valores MAIÚSCULOS para o enum type: 'EXPENSE', 'INCOME', 'TRANSFER', 'ADJUSTMENT'
-6. Responda APENAS com JSON: {{"sql": "...", "description": "...", "parameters": {{"phone_number": "..."}}}}
-{history_context}
-
-Exemplos:
-Pergunta: "Quanto gastei esse mês?"
-SQL: SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE user_id = (SELECT id FROM phone_users WHERE phone_number = :phone_number) AND type = 'EXPENSE' AND transaction_date >= date_trunc('month', CURRENT_DATE)
-
-Pergunta: "Gastos por categoria nos últimos 30 dias"
-SQL: SELECT c.name as category, SUM(t.amount) as total FROM transactions t JOIN categories c ON t.category_id = c.id WHERE t.user_id = (SELECT id FROM phone_users WHERE phone_number = :phone_number) AND t.type = 'EXPENSE' AND t.transaction_date >= CURRENT_DATE - INTERVAL '30 days' GROUP BY c.name ORDER BY total DESC"""
+            system_prompt = build_sql_prompt(db_schema=DB_SCHEMA, history=history_context)
 
             messages = [
                 SystemMessage(content=system_prompt),
@@ -329,7 +339,9 @@ SQL: SELECT c.name as category, SUM(t.amount) as total FROM transactions t JOIN 
         # Runtime user isolation validation
         if not validate_user_filter(sql, phone_number):
             logger.warning(f"Query rejected for missing user_id filter: {sql[:200]}")
-            state["error"] = "Não consegui buscar seus dados com segurança. Tente reformular a pergunta."
+            state["error"] = (
+                "Não consegui buscar seus dados com segurança. Tente reformular a pergunta."
+            )
             state["query_result"] = {"sql": sql, "error": "Missing user_id filter"}
             return state
 
@@ -351,7 +363,9 @@ SQL: SELECT c.name as category, SUM(t.amount) as total FROM transactions t JOIN 
 
     except Exception as e:
         logger.error(f"Error in text-to-SQL: {e}")
-        state["error"] = "Não consegui buscar seus dados. Tente reformular a pergunta de outra forma."
+        state["error"] = (
+            "Não consegui buscar seus dados. Tente reformular a pergunta de outra forma."
+        )
         state["query_result"] = {"error": str(e)}
 
     return state
@@ -359,7 +373,7 @@ SQL: SELECT c.name as category, SUM(t.amount) as total FROM transactions t JOIN 
 
 def generate_summary(question: str, rows: list[dict[str, Any]], description: str) -> str:
     """Generate natural language summary of query results."""
-    from app.agents.responses import transaction_list, category_list
+    from app.agents.responses import category_list, transaction_list
 
     if not rows:
         return "Não encontrei registros para o período."
@@ -390,8 +404,7 @@ def generate_summary(question: str, rows: list[dict[str, Any]], description: str
 
     # Detect category list
     is_category_list = bool(
-        first_keys & {"categoria", "category", "name"}
-        and first_keys & {"total", "amount", "sum"}
+        first_keys & {"categoria", "category", "name"} and first_keys & {"total", "amount", "sum"}
     )
     if is_category_list:
         return category_list(rows)
@@ -406,6 +419,7 @@ def generate_summary(question: str, rows: list[dict[str, Any]], description: str
                 parts.append(f"R$ {v:,.2f}")
             elif k_lower in {"data", "date", "transaction_date"}:
                 from app.agents.responses import _fmt_date
+
                 parts.append(str(_fmt_date(v)))
             elif k_lower in {"tipo", "type"}:
                 parts.append("Receita" if str(v).upper() == "INCOME" else "Gasto")

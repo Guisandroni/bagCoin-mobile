@@ -2,12 +2,13 @@
 
 Uses regex first, then LLM fallback for ambiguous cases.
 """
+
 import logging
 import re
-import unicodedata
 import time
+import unicodedata
+from datetime import date, datetime
 from typing import Any
-from datetime import datetime, date
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
@@ -18,34 +19,137 @@ logger = logging.getLogger(__name__)
 
 # Categories and descriptions
 CATEGORIES = [
-    "Alimentação", "Restaurante", "Delivery", "Transporte", "Moradia",
-    "Luz", "Água", "Internet", "Telefone", "Saúde", "Educação",
-    "Lazer", "Viagem", "Vestuário", "Beleza", "Tecnologia",
-    "Assinaturas", "Pet", "Doação", "Impostos", "Receita", "Outros",
+    "Alimentação",
+    "Restaurante",
+    "Delivery",
+    "Transporte",
+    "Moradia",
+    "Luz",
+    "Água",
+    "Internet",
+    "Telefone",
+    "Saúde",
+    "Educação",
+    "Lazer",
+    "Viagem",
+    "Vestuário",
+    "Beleza",
+    "Tecnologia",
+    "Assinaturas",
+    "Pet",
+    "Doação",
+    "Impostos",
+    "Receita",
+    "Outros",
 ]
 
 CATEGORY_KEYWORDS = {
-    "Alimentação": ["mercado", "supermercado", "padaria", "feira", "hortifruti", "lanches", "pao", "leite", "ovos", "arroz", "feijao"],
-    "Restaurante": ["restaurante", "bar", "cafeteria", "pastelaria", "lanchonete", "almoco", "jantar", "pizza", "hamburguer", "lanche"],
+    "Alimentação": [
+        "mercado",
+        "supermercado",
+        "padaria",
+        "feira",
+        "hortifruti",
+        "lanches",
+        "pao",
+        "leite",
+        "ovos",
+        "arroz",
+        "feijao",
+    ],
+    "Restaurante": [
+        "restaurante",
+        "bar",
+        "cafeteria",
+        "pastelaria",
+        "lanchonete",
+        "almoco",
+        "jantar",
+        "pizza",
+        "hamburguer",
+        "lanche",
+    ],
     "Delivery": ["ifood", "uber eats", "rappi", "delivery"],
-    "Transporte": ["uber", "99", "taxi", "gasolina", "combustivel", "onibus", "metro", "estacionamento", "pedagio", "passagem", "moto"],
+    "Transporte": [
+        "uber",
+        "99",
+        "taxi",
+        "gasolina",
+        "combustivel",
+        "onibus",
+        "metro",
+        "estacionamento",
+        "pedagio",
+        "passagem",
+        "moto",
+    ],
     "Moradia": ["aluguel", "condominio", "financiamento", "reforma", "manutencao"],
     "Luz": ["energia", "eletricidade", "conta de luz"],
     "Água": ["agua", "conta de agua", "esgoto"],
     "Internet": ["internet", "wifi", "banda larga", "provedor", "fibra"],
     "Telefone": ["celular", "plano movel", "recarga", "tim", "vivo", "claro", "oi"],
-    "Saúde": ["farmacia", "remedio", "medico", "dentista", "plano de saude", "exame", "consulta", "hospital", "psicologo"],
-    "Educação": ["curso", "livro", "material escolar", "faculdade", "universidade", "mensalidade", "idioma"],
+    "Saúde": [
+        "farmacia",
+        "remedio",
+        "medico",
+        "dentista",
+        "plano de saude",
+        "exame",
+        "consulta",
+        "hospital",
+        "psicologo",
+    ],
+    "Educação": [
+        "curso",
+        "livro",
+        "material escolar",
+        "faculdade",
+        "universidade",
+        "mensalidade",
+        "idioma",
+    ],
     "Lazer": ["cinema", "teatro", "show", "festa", "bar", "hobby", "streaming", "musica", "jogo"],
     "Viagem": ["passagem", "hotel", "hospedagem", "passeio", "turismo"],
-    "Vestuário": ["roupa", "calcado", "acessorio", "loja", "moda", "shopping", "camiseta", "calca", "sapato"],
+    "Vestuário": [
+        "roupa",
+        "calcado",
+        "acessorio",
+        "loja",
+        "moda",
+        "shopping",
+        "camiseta",
+        "calca",
+        "sapato",
+    ],
     "Beleza": ["salao", "barbearia", "manicure", "estetica", "cosmetico", "perfumaria"],
     "Tecnologia": ["eletronico", "computador", "tablet", "software", "app", "game", "console"],
-    "Assinaturas": ["netflix", "spotify", "youtube premium", "gym", "clube", "revista", "jornal", "saas", "mensalidade"],
+    "Assinaturas": [
+        "netflix",
+        "spotify",
+        "youtube premium",
+        "gym",
+        "clube",
+        "revista",
+        "jornal",
+        "saas",
+        "mensalidade",
+    ],
     "Pet": ["racao", "veterinario", "petshop", "remedio pet", "banho e tosa"],
     "Doação": ["caridade", "igreja", "ong", "vaquinha", "doacao"],
     "Impostos": ["irpf", "iptu", "ipva", "darf", "gps", "taxas governo"],
-    "Receita": ["salario", "freelance", "renda extra", "investimento", "bonus", "comissao", "aluguel recebido", "mesada", "presente", "pai", "mae"],
+    "Receita": [
+        "salario",
+        "freelance",
+        "renda extra",
+        "investimento",
+        "bonus",
+        "comissao",
+        "aluguel recebido",
+        "mesada",
+        "presente",
+        "pai",
+        "mae",
+    ],
 }
 
 
@@ -64,6 +168,7 @@ def _parse_flexible_date(date_str: str) -> date | None:
 
 def _suggest_category(text: str) -> str:
     """Suggest category based on keywords with unicode normalization."""
+
     def norm(s: str) -> str:
         return unicodedata.normalize("NFKD", s.lower()).encode("ASCII", "ignore").decode("ASCII")
 
@@ -103,7 +208,9 @@ def extract_transaction(state: dict[str, Any]) -> dict[str, Any]:
     }
 
     # 1. Regex for amount
-    amount_match = re.search(r"R?\$\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}|\d+(?:[.,]\d{1,2})?)", message)
+    amount_match = re.search(
+        r"R?\$\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}|\d+(?:[.,]\d{1,2})?)", message
+    )
     if not amount_match:
         amount_match = re.search(r"(?:^|\s)(\d+(?:[.,]\d{1,2})?)(?:\s|$)", message)
 
@@ -119,8 +226,21 @@ def extract_transaction(state: dict[str, Any]) -> dict[str, Any]:
             pass
 
     # 2. Type detection with context
-    income_signals = ["recebi", "ganhei", "salário", "renda", "entrada", "pagamento recebido",
-                      "me mandaram", "me mandou", "me enviaram", "depositaram", "caiu", "mesada", "aluguel recebido"]
+    income_signals = [
+        "recebi",
+        "ganhei",
+        "salário",
+        "renda",
+        "entrada",
+        "pagamento recebido",
+        "me mandaram",
+        "me mandou",
+        "me enviaram",
+        "depositaram",
+        "caiu",
+        "mesada",
+        "aluguel recebido",
+    ]
     transfer_signals = ["transferi", "enviei", "mandei", "fiz pix", "passei para", "transferência"]
 
     if any(w in msg_lower for w in income_signals):
@@ -148,7 +268,11 @@ def extract_transaction(state: dict[str, Any]) -> dict[str, Any]:
 
     if not extracted["description"]:
         clean = re.sub(r"R?\$\s*\d+(?:[.,]\d{1,2})?", "", msg_lower)
-        clean = re.sub(r"\b(gastei|paguei|comprei|recebi|ganhei|transferi|enviei|mandei|fiz|despesa|receita|pix|boleto)\b", "", clean)
+        clean = re.sub(
+            r"\b(gastei|paguei|comprei|recebi|ganhei|transferi|enviei|mandei|fiz|despesa|receita|pix|boleto)\b",
+            "",
+            clean,
+        )
         clean = clean.strip()
         if clean and len(clean) > 2:
             extracted["description"] = clean.capitalize()
@@ -181,28 +305,18 @@ def extract_transaction(state: dict[str, Any]) -> dict[str, Any]:
                 history = ""
                 try:
                     from app.agents.persistence import get_conversation_history
+
                     history = get_conversation_history(phone_number, limit=6)
                 except Exception:
                     pass
+                from app.agents.prompts.extract_transaction import build_extract_transaction_prompt
+
                 history_context = f"\n\nContexto da conversa recente:\n{history}" if history else ""
 
-                system_prompt = f"""Você é um especialista em extrair informações financeiras de mensagens em português.
-Extraia: tipo (EXPENSE/INCOME/TRANSFER), valor (número), moeda, categoria, descrição, data.
-Responda APENAS com JSON válido.
-
-Categorias disponíveis (escolha EXATAMENTE uma da lista):
-{', '.join(CATEGORIES)}
-
-Formato esperado:
-{{
-  "type": "EXPENSE",
-  "amount": 123.45,
-  "currency": "BRL",
-  "category": "Alimentação",
-  "description": "Almoço no restaurante",
-  "date": "2024-01-15",
-  "confidence": 0.95
-}}{history_context}"""
+                system_prompt = build_extract_transaction_prompt(
+                    categories=", ".join(CATEGORIES),
+                    history=history_context,
+                )
                 messages = [
                     SystemMessage(content=system_prompt),
                     HumanMessage(content=f"Mensagem: {message}"),

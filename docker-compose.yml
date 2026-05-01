@@ -1,0 +1,202 @@
+
+# Backend development configuration
+# Usage: docker-compose up -d
+
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: bagcoin_api_backend:dev
+    container_name: bagcoin_api_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app:ro
+      - ./backend/cli:/app/cli:ro
+      - media_data:/app/media
+      - reports_data:/app/reports
+    env_file:
+      - ./backend/.env
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=local
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      # BagCoin env vars
+      - GROQ_API_KEY=${GROQ_API_KEY:-coloque_sua_chave_groq_aqui}
+      - OPENCODE_API_KEY=${OPENCODE_API_KEY:-coloque_sua_chave_opencode_aqui}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-sua_chave_deepseek_aqui}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-coloque_sua_chave_tavily_aqui}
+      - DEFAULT_LLM_MODEL=${DEFAULT_LLM_MODEL:-deepseek-v4-flash}
+      - WHATSAPP_BRIDGE_URL=${WHATSAPP_BRIDGE_URL:-http://whatsapp-bridge:3001}
+      - WHATSAPP_API_KEY=${WHATSAPP_API_KEY:-bagcoin_webhook_secret_123}
+      - API_KEY=${API_KEY:-bagcoin_webhook_secret_123}
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      whatsapp-bridge:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: bagcoin_api_db
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-bagcoin}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-bagcoin123}
+      - POSTGRES_DB=${POSTGRES_DB:-bagcoin}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Port exposed only for local development - remove in production
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: bagcoin_api_redis
+    # Port exposed only for local development - remove in production
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  celery_worker:
+    image: bagcoin_api_backend:dev
+    container_name: bagcoin_api_celery_worker
+    volumes:
+      - ./backend/app:/app/app:ro
+      - media_data:/app/media
+      - reports_data:/app/reports
+    command: celery -A app.worker.celery_app worker --loglevel=debug
+    env_file:
+      - ./backend/.env
+    environment:
+      - DEBUG=true
+      - POSTGRES_HOST=db
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - backend
+    depends_on:
+      app:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery_beat:
+    image: bagcoin_api_backend:dev
+    container_name: bagcoin_api_celery_beat
+    volumes:
+      - ./backend/app:/app/app:ro
+    command: celery -A app.worker.celery_app beat --loglevel=debug
+    env_file:
+      - ./backend/.env
+    environment:
+      - DEBUG=true
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - backend
+    depends_on:
+      app:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  flower:
+    image: bagcoin_api_backend:dev
+    container_name: bagcoin_api_flower
+    command: celery -A app.worker.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DEBUG=true
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - backend
+    depends_on:
+      app:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  whatsapp-bridge:
+    build:
+      context: ./whatsapp-bridge
+      dockerfile: Dockerfile
+    image: bagcoin_whatsapp_bridge:dev
+    container_name: bagcoin_whatsapp_bridge
+    ports:
+      - "3001:3001"
+    volumes:
+      - whatsapp_data:/app/whatsapp-session
+    environment:
+      - FASTAPI_URL=http://app:8000/api/v1
+      - WHATSAPP_API_KEY=${WHATSAPP_API_KEY:-bagcoin_webhook_secret_123}
+      - PORT=3001
+    networks:
+      - backend
+    restart: unless-stopped
+
+  telegram-bridge:
+    build:
+      context: ./telegram-bridge
+      dockerfile: Dockerfile
+    image: bagcoin_telegram_bridge:dev
+    container_name: bagcoin_telegram_bridge
+    environment:
+      - BACKEND_URL=http://bagcoin_api_backend:8000
+      - API_KEY=${API_KEY:-bagcoin_webhook_secret_123}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+    networks:
+      - backend
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  media_data:
+  postgres_data:
+  redis_data:
+  reports_data:
+  whatsapp_data:

@@ -1,14 +1,15 @@
 """LLM service for BagCoin agents.
 
 Manages LLM provider selection with global caching.
-Priority: OpenCodeGo (deepseek-v4-flash) -> Groq (llama-3.3-70b-versatile).
+Priority: NVIDIA (nemotron-70b) -> OpenCodeGo (deepseek-v4-flash) -> Groq (llama-3.3-70b-versatile).
 """
+
 import logging
 import time
 
+from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
-from langchain_core.language_models.chat_models import BaseChatModel
 
 from app.core.config import settings
 
@@ -22,7 +23,9 @@ _cache_error: bool = False
 OPENCODE_MODELS = ["deepseek-v4-flash", "glm-5", "glm-5.1", "kimi-k2.6"]
 
 
-def _create_opencode_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatModel | None:
+def _create_opencode_llm(
+    temperature: float = 0.2, model: str | None = None
+) -> BaseChatModel | None:
     """Create an OpenCodeGo LLM instance."""
     if not settings.OPENCODE_API_KEY:
         return None
@@ -61,6 +64,28 @@ def _create_groq_llm(temperature: float = 0.2, model: str | None = None) -> Base
         return None
 
 
+def _create_nvidia_llm(
+    temperature: float = 0.2, model: str | None = None
+) -> BaseChatModel | None:
+    """Create an NVIDIA LLM instance (primary provider)."""
+    if not settings.NVIDIA_API_KEY:
+        return None
+    model_name = model or settings.NVIDIA_MODEL
+    try:
+        return ChatOpenAI(
+            api_key=settings.NVIDIA_API_KEY,
+            base_url=settings.NVIDIA_BASE_URL,
+            model=model_name,
+            temperature=temperature,
+            max_tokens=4096,
+            timeout=30,
+            max_retries=2,
+        )
+    except Exception as e:
+        logger.warning(f"Error creating NVIDIA LLM ({model_name}): {e}")
+        return None
+
+
 def _invalidate_cache() -> None:
     """Invalidate the LLM cache on error."""
     global _cached_llm, _cache_error
@@ -72,7 +97,7 @@ def _invalidate_cache() -> None:
 def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatModel | None:
     """Select the best available LLM.
 
-    Priority: OpenCodeGo -> Groq.
+    Priority: NVIDIA -> OpenCodeGo -> Groq.
     Cache is permanent — only invalidated on error.
     """
     global _cached_llm, _cache_error
@@ -85,7 +110,15 @@ def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatM
     if _cache_error:
         _cached_llm = None
 
-    # 1. OpenCodeGo (primary) — deepseek-v4-flash is fastest
+    # 1. NVIDIA (primary) — nemotron-70b via OpenAI-compatible API
+    nvidia = _create_nvidia_llm(temperature, model)
+    if nvidia:
+        logger.info(f"LLM selected: NVIDIA ({model or settings.NVIDIA_MODEL})")
+        _cached_llm = nvidia
+        _cache_error = False
+        return nvidia
+
+    # 2. OpenCodeGo (fallback 1) — deepseek-v4-flash is fastest
     models_to_try = [model] if model else OPENCODE_MODELS
     for model_name in models_to_try:
         opencode = _create_opencode_llm(temperature, model_name)
@@ -95,7 +128,7 @@ def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatM
             _cache_error = False
             return opencode
 
-    # 2. Fallback: Groq
+    # 3. Fallback: Groq
     groq = _create_groq_llm(temperature, model)
     if groq:
         logger.info(f"LLM fallback: Groq ({model or settings.DEFAULT_LLM_MODEL})")

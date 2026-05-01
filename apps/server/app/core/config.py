@@ -155,11 +155,14 @@ class Settings(BaseSettings):
     LLM_PROVIDER: str = "openai"
 
     # === BagCoin / LLM APIs ===
+    NVIDIA_API_KEY: str = ""
+    NVIDIA_BASE_URL: str = "https://integrate.api.nvidia.com/v1"
+    NVIDIA_MODEL: str = "deepseek-ai/deepseek-v4-flash"
     GROQ_API_KEY: str = ""
     DEEPSEEK_API_KEY: str = ""
     OPENCODE_API_KEY: str = ""
     TAVILY_API_KEY: str = ""
-    DEFAULT_LLM_MODEL: str = "llama-3.3-70b-versatile"
+    DEFAULT_LLM_MODEL: str = "deepseek-ai/deepseek-v4-flash"
 
     # === WhatsApp Bridge ===
     WHATSAPP_BRIDGE_URL: str = "http://whatsapp-bridge:3001"

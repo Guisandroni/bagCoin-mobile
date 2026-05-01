@@ -1,0 +1,5 @@
+node_modules/
+dist/
+whatsapp-session/
+.env
+*.tsbuildinfo

@@ -1,10 +1,12 @@
 {
   "name": "bagcoin-whatsapp-bridge",
-  "version": "1.0.0",
-  "description": "WhatsApp Bridge para BagCoin - Chatbot Financeiro Multi-Agent",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "WhatsApp Bridge para BagCoin — TypeScript",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node index.js"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
     "axios": "^1.7.0",
@@ -12,5 +14,12 @@
     "express": "^4.21.0",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.26.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "@types/qrcode-terminal": "^0.12.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
   }
 }

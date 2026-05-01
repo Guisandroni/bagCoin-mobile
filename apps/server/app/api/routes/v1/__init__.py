@@ -42,3 +42,8 @@ v1_router.include_router(
 
 # BagCoin Webhook routes (WhatsApp)
 v1_router.include_router(webhook.router, tags=["webhook"])
+
+# BagCoin Category REST routes (API Key auth)
+from app.api.routes.v1 import categories as categories_router
+
+v1_router.include_router(categories_router.router, prefix="/bagcoin", tags=["bagcoin"])

@@ -29,7 +29,7 @@ docker compose up -d
 ## Project Structure
 
 ```
-backend/app/
+apps/server/app/
 ├── main.py               # FastAPI app with lifespan (startup/shutdown)
 ├── api/
 │   ├── deps.py           # Annotated DI aliases (DBSession, CurrentUser, *Svc)

@@ -92,7 +92,7 @@ See `docs/howto/use-ratings.md` for full documentation.
 ## Project Structure
 
 ```
-backend/app/
+apps/server/app/
 ├── api/routes/v1/        # API endpoints
 ├── core/config.py        # Settings (from .env)
 ├── services/             # Business logic
@@ -115,7 +115,7 @@ backend/app/
 
 ## Environment Variables
 
-All config is in `backend/.env`. Key variables:
+All config is in `apps/server/.env`. Key variables:
 
 ```bash
 POSTGRES_HOST=localhost
@@ -123,7 +123,7 @@ POSTGRES_PASSWORD=postgres
 OPENAI_API_KEY=sk-...
 ```
 
-See `backend/.env.example` for all available variables.
+See `apps/server/.env.example` for all available variables.
 
 ---
 

@@ -22,16 +22,16 @@ jobs:
         run: uv python install 3.11
 
       - name: Install dependencies
-        run: uv sync --directory backend --dev
+        run: uv sync --directory apps/server --dev
 
       - name: Run ruff check
-        run: uv run --directory backend ruff check app tests cli
+        run: uv run --directory apps/server ruff check app tests cli
 
       - name: Run ruff format check
-        run: uv run --directory backend ruff format app tests cli --check
+        run: uv run --directory apps/server ruff format app tests cli --check
 
       - name: Run ty
-        run: uv run --directory backend ty check
+        run: uv run --directory apps/server ty check
 
   test:
     runs-on: ubuntu-latest
@@ -71,10 +71,10 @@ jobs:
         run: uv python install 3.11
 
       - name: Install dependencies
-        run: uv sync --directory backend --dev
+        run: uv sync --directory apps/server --dev
 
       - name: Run tests
-        run: uv run --directory backend pytest tests/ -v --cov=app --cov-report=xml
+        run: uv run --directory apps/server pytest tests/ -v --cov=app --cov-report=xml
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
@@ -87,7 +87,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: ./backend/coverage.xml
+          files: ./apps/server/coverage.xml
           fail_ci_if_error: false
 
   security:
@@ -105,14 +105,14 @@ jobs:
         run: uv python install 3.11
 
       - name: Install dependencies
-        run: uv sync --directory backend --dev
+        run: uv sync --directory apps/server --dev
 
       - name: Install pip-audit
         run: uv pip install pip-audit
 
       - name: Run pip-audit
         run: uv run pip-audit --require-hashes=false --progress-spinner=off
-        working-directory: backend
+        working-directory: apps/server
 
   docker:
     runs-on: ubuntu-latest
@@ -127,7 +127,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: ./apps/server
           push: false
           load: true
           tags: bagcoin_api:latest

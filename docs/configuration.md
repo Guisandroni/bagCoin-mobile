@@ -1,7 +1,7 @@
 # Configuration Reference
 
 All configuration is managed via environment variables, loaded from
-`backend/.env` using [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/).
+`apps/server/.env` using [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/).
 
 Settings are defined in `app/core/config.py` and accessed via the global
 `settings` object:

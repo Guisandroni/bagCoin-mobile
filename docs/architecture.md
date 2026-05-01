@@ -15,7 +15,7 @@ HTTP Request → API Route → Service → Repository → Database
 Routes never contain direct database calls. All data access goes through
 services, which in turn delegate to repositories.
 
-## Directory Structure (`backend/app/`)
+## Directory Structure (`apps/server/app/`)
 
 | Directory / File | Purpose |
 |-----------|---------|

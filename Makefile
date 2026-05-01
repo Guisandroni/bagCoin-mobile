@@ -5,11 +5,11 @@ quickstart: install docker-up
 	@echo "Waiting for database to be ready..."
 	@sleep 8
 	@echo "Creating initial migration..."
-	cd backend && uv run bagcoin_api db migrate -m "initial" || true
+	cd apps/server && uv run bagcoin_api db migrate -m "initial" || true
 	@echo "Applying migrations..."
-	cd backend && uv run bagcoin_api db upgrade
+	cd apps/server && uv run bagcoin_api db upgrade
 	@echo "Creating admin user (admin@example.com / admin123)..."
-	cd backend && uv run bagcoin_api user create --email admin@example.com --password admin123 --superuser 2>/dev/null || true
+	cd apps/server && uv run bagcoin_api user create --email admin@example.com --password admin123 --superuser 2>/dev/null || true
 	@echo ""
 	@echo "🚀 Ready! All services running:"
 	@echo "   API:      http://localhost:8000"
@@ -18,9 +18,9 @@ quickstart: install docker-up
 
 # === Setup ===
 install:
-	uv sync --directory backend --dev
+	uv sync --directory apps/server --dev
 	@if git rev-parse --git-dir > /dev/null 2>&1; then \
-		uv run --directory backend pre-commit install; \
+		uv run --directory apps/server pre-commit install; \
 	else \
 		echo "⚠️  Not a git repository - skipping pre-commit install"; \
 		echo "   Run 'git init && make install' to set up pre-commit hooks"; \
@@ -33,80 +33,80 @@ install:
 	@echo "  • make db-upgrade       # Apply migrations"
 	@echo "  • make run              # Start development server"
 	@echo ""
-	@echo "Note: backend/.env is pre-configured for development"
+	@echo "Note: apps/server/.env is pre-configured for development"
 
 # === Code Quality ===
 format:
-	uv run --directory backend ruff format app tests cli
-	uv run --directory backend ruff check app tests cli --fix
+	uv run --directory apps/server ruff format app tests cli
+	uv run --directory apps/server ruff check app tests cli --fix
 
 lint:
-	uv run --directory backend ruff check app tests cli
-	uv run --directory backend ruff format app tests cli --check
-	uv run --directory backend ty check
+	uv run --directory apps/server ruff check app tests cli
+	uv run --directory apps/server ruff format app tests cli --check
+	uv run --directory apps/server ty check
 
 # === Testing ===
 test:
-	uv run --directory backend pytest tests/ -v
+	uv run --directory apps/server pytest tests/ -v
 
 test-cov:
-	uv run --directory backend pytest tests/ -v --cov=app --cov-report=html --cov-report=term-missing
+	uv run --directory apps/server pytest tests/ -v --cov=app --cov-report=html --cov-report=term-missing
 
 # === Database ===
 db-init: docker-db
 	@echo "Waiting for PostgreSQL to be ready..."
 	@sleep 8
-	cd backend && uv run bagcoin_api db migrate -m "initial" || true
-	cd backend && uv run bagcoin_api db upgrade
+	cd apps/server && uv run bagcoin_api db migrate -m "initial" || true
+	cd apps/server && uv run bagcoin_api db upgrade
 	@echo ""
 	@echo "✅ Database initialized!"
 
 db-migrate:
 	@read -p "Migration message: " msg; \
-	uv run --directory backend bagcoin_api db migrate -m "$$msg"
+	uv run --directory apps/server bagcoin_api db migrate -m "$$msg"
 
 db-upgrade:
-	uv run --directory backend bagcoin_api db upgrade
+	uv run --directory apps/server bagcoin_api db upgrade
 
 db-downgrade:
-	uv run --directory backend bagcoin_api db downgrade
+	uv run --directory apps/server bagcoin_api db downgrade
 
 db-current:
-	uv run --directory backend bagcoin_api db current
+	uv run --directory apps/server bagcoin_api db current
 
 db-history:
-	uv run --directory backend bagcoin_api db history
+	uv run --directory apps/server bagcoin_api db history
 
 # === Server ===
 run:
-	uv run --directory backend bagcoin_api server run --reload
+	uv run --directory apps/server bagcoin_api server run --reload
 
 run-prod:
-	uv run --directory backend bagcoin_api server run --host 0.0.0.0 --port 8000
+	uv run --directory apps/server bagcoin_api server run --host 0.0.0.0 --port 8000
 
 routes:
-	uv run --directory backend bagcoin_api server routes
+	uv run --directory apps/server bagcoin_api server routes
 
 # === Users ===
 create-admin:
 	@echo "Creating admin user..."
-	uv run --directory backend bagcoin_api user create-admin
+	uv run --directory apps/server bagcoin_api user create-admin
 
 user-create:
-	uv run --directory backend bagcoin_api user create
+	uv run --directory apps/server bagcoin_api user create
 
 user-list:
-	uv run --directory backend bagcoin_api user list
+	uv run --directory apps/server bagcoin_api user list
 
 # === Celery ===
 celery-worker:
-	uv run --directory backend bagcoin_api celery worker
+	uv run --directory apps/server bagcoin_api celery worker
 
 celery-beat:
-	uv run --directory backend bagcoin_api celery beat
+	uv run --directory apps/server bagcoin_api celery beat
 
 celery-flower:
-	uv run --directory backend bagcoin_api celery flower
+	uv run --directory apps/server bagcoin_api celery flower
 	@echo ""
 	@echo "✅ Flower started at http://localhost:5555"
 

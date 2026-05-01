@@ -8,18 +8,18 @@
 services:
   app:
     build:
-      context: ./backend
+      context: ./apps/server
       dockerfile: Dockerfile
     image: bagcoin_api_backend:dev
     container_name: bagcoin_api_backend
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/app:/app/app:ro
-      - ./backend/cli:/app/cli:ro
+      - ./apps/server/app:/app/app:ro
+      - ./apps/server/cli:/app/cli:ro
       - media_data:/app/media
     env_file:
-      - ./backend/.env
+      - ./apps/server/.env
     environment:
       - DEBUG=true
       - ENVIRONMENT=local
@@ -76,11 +76,11 @@ services:
     image: bagcoin_api_backend:dev
     container_name: bagcoin_api_celery_worker
     volumes:
-      - ./backend/app:/app/app:ro
+      - ./apps/server/app:/app/app:ro
       - media_data:/app/media
     command: celery -A app.worker.celery_app worker --loglevel=debug
     env_file:
-      - ./backend/.env
+      - ./apps/server/.env
     environment:
       - DEBUG=true
       - POSTGRES_HOST=db
@@ -102,10 +102,10 @@ services:
     image: bagcoin_api_backend:dev
     container_name: bagcoin_api_celery_beat
     volumes:
-      - ./backend/app:/app/app:ro
+      - ./apps/server/app:/app/app:ro
     command: celery -A app.worker.celery_app beat --loglevel=debug
     env_file:
-      - ./backend/.env
+      - ./apps/server/.env
     environment:
       - DEBUG=true
       - REDIS_HOST=redis
@@ -127,7 +127,7 @@ services:
     ports:
       - "5555:5555"
     env_file:
-      - ./backend/.env
+      - ./apps/server/.env
     environment:
       - DEBUG=true
       - REDIS_HOST=redis

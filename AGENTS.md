@@ -28,7 +28,7 @@ uv run alembic revision --autogenerate -m "Description"
 ## Project Structure
 
 ```
-backend/app/
+apps/server/app/
 ├── api/routes/v1/    # Endpoints
 ├── services/         # Business logic
 ├── repositories/     # Data access

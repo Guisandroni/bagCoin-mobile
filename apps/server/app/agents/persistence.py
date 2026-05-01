@@ -217,6 +217,19 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
         except Exception:
             pass
 
+        # Learn usage patterns (non-blocking)
+        try:
+            from app.services.pattern_learning_service import learn_from_transaction
+
+            learn_from_transaction(
+                phone_number,
+                float(extracted["amount"]),
+                category_name,
+                extracted.get("description", ""),
+            )
+        except Exception:
+            pass
+
     except Exception as e:
         db.rollback()
         logger.error(f"Error saving transaction: {e}")

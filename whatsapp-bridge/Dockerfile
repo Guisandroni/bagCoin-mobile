@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:18-slim AS builder
 
 WORKDIR /app
 
@@ -26,15 +26,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Define o executável do Chromium para o Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-COPY package*.json ./
+# --- Estágio 1: instalar dependências e compilar ---
+COPY package.json package-lock.json* ./
 RUN npm install
 
-COPY index.js ./
+COPY tsconfig.json ./
+COPY src/ ./src/
+RUN npm run build
+
+# --- Estágio 2: runtime leve ---
+FROM node:18-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY package.json ./
 
 EXPOSE 3001
 
-CMD ["node", "index.js"]
+CMD ["node", "dist/index.js"]

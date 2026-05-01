@@ -129,6 +129,29 @@ def generate_recommendations(state: dict[str, Any]) -> dict[str, Any]:
     history = get_conversation_history(phone_number, limit=6)
     history_context = f"\n\nÚltimas mensagens da conversa:\n{history}" if history else ""
 
+    # Injeta padrões aprendidos do usuário
+    from app.db.session import sync_session_maker
+    from app.agents.persistence import get_or_create_user
+
+    db_sync = sync_session_maker()
+    patterns_context = ""
+    try:
+        user = get_or_create_user(phone_number, db_sync)
+        prefs = user.preferences or {}
+        learned = prefs.get("learned_patterns")
+        if learned:
+            patterns_context = (
+                f"\n\nPadrões de uso aprendidos:\n"
+                f"- Categorias favoritas: {', '.join(learned.get('top_categories', []))}\n"
+                f"- Horário preferido para registrar: {learned.get('preferred_period', 'n/a')}\n"
+                f"- Palavras-chave comuns: {', '.join(learned.get('common_keywords', []))}\n"
+                f"- Ticket médio: R$ {learned.get('average_ticket', 0):.2f}"
+            )
+    except Exception:
+        pass
+    finally:
+        db_sync.close()
+
     from app.agents.prompts.other import RECOMMENDATIONS_PROMPT
 
     system_prompt = RECOMMENDATIONS_PROMPT
@@ -139,7 +162,12 @@ def generate_recommendations(state: dict[str, Any]) -> dict[str, Any]:
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(
-                content=f"Dados financeiros do usuário (últimos 30 dias):\n{context}\n\n{history_context if history_context else ''}\n\nGere recomendações personalizadas baseadas nos dados e no contexto da conversa."
+                content=(
+                    f"Dados financeiros do usuário (últimos 30 dias):\n{context}\n"
+                    f"{patterns_context}\n"
+                    f"{history_context if history_context else ''}\n\n"
+                    f"Gere recomendações personalizadas baseadas nos dados e no contexto da conversa."
+                )
             ),
         ]
 

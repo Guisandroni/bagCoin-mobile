@@ -1,6 +1,5 @@
 """Common BagCoin schemas — webhooks, agent state, etc."""
 
-from datetime import datetime
 
 from pydantic import Field
 
@@ -10,6 +9,7 @@ from app.schemas.enums import IntentType, SourceFormat
 
 class WebhookPayload(BaseSchema):
     """Incoming webhook payload from WhatsApp bridge."""
+
     phone_number: str
     message: str
     type: str = "chat"
@@ -21,6 +21,7 @@ class WebhookPayload(BaseSchema):
 
 class WhatsAppResponse(BaseSchema):
     """Outgoing response to the WhatsApp bridge."""
+
     reply: str
     document: dict | None = None
     actions: list[dict] | None = None
@@ -28,6 +29,7 @@ class WhatsAppResponse(BaseSchema):
 
 class TelegramWebhookPayload(BaseSchema):
     """Incoming webhook payload from Telegram bridge."""
+
     chat_id: str
     message: str
     username: str | None = None
@@ -36,12 +38,14 @@ class TelegramWebhookPayload(BaseSchema):
 
 class TelegramResponse(BaseSchema):
     """Outgoing response to the Telegram caller."""
+
     reply: str
     actions: list
 
 
 class ExtractedTransaction(BaseSchema):
     """Transaction data extracted by the AI agent from natural language."""
+
     type: str
     amount: float | None = None
     currency: str = "BRL"
@@ -54,6 +58,7 @@ class ExtractedTransaction(BaseSchema):
 
 class QueryResult(BaseSchema):
     """Result of a natural-language database query."""
+
     sql: str | None = None
     results: list[dict] | None = None
     summary: str | None = None
@@ -62,6 +67,7 @@ class QueryResult(BaseSchema):
 
 class ReportRequest(BaseSchema):
     """Request to generate a financial report."""
+
     period_start: str | None = None
     period_end: str | None = None
     category_id: int | None = None
@@ -69,6 +75,7 @@ class ReportRequest(BaseSchema):
 
 class AgentState(BaseSchema):
     """State that flows through the LangGraph agent graph."""
+
     phone_number: str
     user_id: int | None = None
     message: str

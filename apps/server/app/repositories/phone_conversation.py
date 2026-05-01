@@ -2,6 +2,7 @@
 
 Tracks WhatsApp/Telegram conversation context for BagCoin agents.
 """
+
 from datetime import datetime
 from typing import Any
 
@@ -105,11 +106,13 @@ async def save_message(
 ) -> PhoneConversation:
     """Append a message to the conversation history."""
     history = list(conv.message_history or [])
-    history.append({
-        "role": role,
-        "content": content,
-        "timestamp": datetime.utcnow().isoformat(),
-    })
+    history.append(
+        {
+            "role": role,
+            "content": content,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
     conv.message_history = history[-max_history:]
     flag_modified(conv, "message_history")
     await db.flush()

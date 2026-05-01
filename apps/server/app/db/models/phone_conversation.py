@@ -27,7 +27,10 @@ class PhoneConversation(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("phone_users.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("phone_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     channel: Mapped[str] = mapped_column(String(20), default="whatsapp", nullable=False)
     last_intent: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -38,7 +41,4 @@ class PhoneConversation(Base, TimestampMixin):
     phone_user: Mapped["PhoneUser"] = relationship("PhoneUser", back_populates="conversations")
 
     def __repr__(self) -> str:
-        return (
-            f"<PhoneConversation(id={self.id}, user_id={self.user_id}, "
-            f"channel={self.channel})>"
-        )
+        return f"<PhoneConversation(id={self.id}, user_id={self.user_id}, channel={self.channel})>"

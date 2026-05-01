@@ -5,8 +5,9 @@ Principles:
 - Minimal emoji usage
 - WhatsApp-friendly formatting
 """
-from typing import Any
+
 from datetime import datetime
+from typing import Any
 
 
 def _fmt_date(raw) -> str:
@@ -90,7 +91,12 @@ def report_summary(period_label: str, income: float, expense: float, balance: fl
 
 
 def budget_created(name: str, limit: float, period: str, updated: bool = False) -> str:
-    period_label = {"monthly": "Mensal", "weekly": "Semanal", "daily": "Diário", "yearly": "Anual"}.get(period, period)
+    period_label = {
+        "monthly": "Mensal",
+        "weekly": "Semanal",
+        "daily": "Diário",
+        "yearly": "Anual",
+    }.get(period, period)
     verb = "atualizado" if updated else "criado"
     return (
         f"Orçamento {verb}! 📊\n\n"
@@ -106,7 +112,13 @@ def budget_list(budgets: list[dict[str, Any]]) -> str:
         return "Você ainda não tem orçamentos. Para criar um orcamento me envie uma mensagem como: 'Crie um orcamento de 3000 reais para alimentação'"
     lines = ["Seus orçamentos:"]
     for b in budgets:
-        status = "Ultrapassado" if b["percentage"] >= 100 else "Atenção" if b["percentage"] >= 80 else "OK"
+        status = (
+            "Ultrapassado"
+            if b["percentage"] >= 100
+            else "Atenção"
+            if b["percentage"] >= 80
+            else "OK"
+        )
         lines.append(
             f"\n- {b['name']} ({b['period']})\n"
             f"  R$ {b['total_spent']:,.2f} / R$ {b['total_limit']:,.2f} ({b['percentage']}%)\n"
@@ -133,10 +145,7 @@ def goal_list(goals: list[dict[str, Any]]) -> str:
 def goal_created(title: str, target: float, deadline: str | None = None) -> str:
     dl = f"\nPrazo: {_fmt_date(deadline)}" if deadline else ""
     return (
-        f"Meta criada!\n\n"
-        f"Objetivo: {title}\n"
-        f"Valor: R$ {target:,.2f}{dl}\n\n"
-        f"Bora começar a guardar!"
+        f"Meta criada!\n\nObjetivo: {title}\nValor: R$ {target:,.2f}{dl}\n\nBora começar a guardar!"
     )
 
 
@@ -212,5 +221,7 @@ def error_message(error: str) -> str:
     if "não foi possível identificar o valor" in error_lower:
         return "Não consegui identificar o valor. Pode me dizer quanto foi? Ex: 'Gastei R$ 50 no mercado'"
     if "connection" in error_lower or "timeout" in error_lower:
-        return "Parece que estou com dificuldades de conexão. Pode tentar de novo em alguns segundos?"
+        return (
+            "Parece que estou com dificuldades de conexão. Pode tentar de novo em alguns segundos?"
+        )
     return "Ops, tive um problema ao processar sua solicitação. Pode tentar de outra forma?"

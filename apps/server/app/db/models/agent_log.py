@@ -25,7 +25,10 @@ class AgentLog(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("phone_users.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("phone_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     agent_name: Mapped[str] = mapped_column(String(50), nullable=False)
     request_payload: Mapped[dict | None] = mapped_column(JSON, default=dict, nullable=True)

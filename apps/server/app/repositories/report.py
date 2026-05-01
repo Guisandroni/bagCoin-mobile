@@ -2,6 +2,7 @@
 
 Handles generated financial reports for BagCoin users.
 """
+
 from datetime import datetime
 from typing import Any
 

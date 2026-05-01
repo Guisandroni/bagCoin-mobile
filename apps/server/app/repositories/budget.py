@@ -2,15 +2,16 @@
 
 Handles spending plans and per-category limits for BagCoin users.
 """
-from datetime import datetime, date, timedelta
+
+from datetime import date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select, func, delete as sql_delete
+from sqlalchemy import delete as sql_delete
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.budget import Budget, BudgetItem
 from app.db.models.transaction import Transaction
-
 
 # =====================================================================
 # BudgetItemRepository
@@ -24,9 +25,7 @@ async def get_budget_item_by_id(db: AsyncSession, item_id: int) -> BudgetItem | 
 
 async def get_budget_items_by_budget(db: AsyncSession, budget_id: int) -> list[BudgetItem]:
     """Get all items for a budget."""
-    result = await db.execute(
-        select(BudgetItem).where(BudgetItem.budget_id == budget_id)
-    )
+    result = await db.execute(select(BudgetItem).where(BudgetItem.budget_id == budget_id))
     return list(result.scalars().all())
 
 
@@ -77,8 +76,7 @@ async def get_by_id(db: AsyncSession, budget_id: int) -> Budget | None:
 async def get_multi_by_user(db: AsyncSession, user_id: int) -> list[Budget]:
     """Get all budgets for a user."""
     result = await db.execute(
-        select(Budget).where(Budget.user_id == user_id)
-        .order_by(Budget.created_at.desc())
+        select(Budget).where(Budget.user_id == user_id).order_by(Budget.created_at.desc())
     )
     return list(result.scalars().all())
 
@@ -143,9 +141,7 @@ async def delete(db: AsyncSession, budget_id: int) -> Budget | None:
 
 async def delete_all_by_user(db: AsyncSession, user_id: int) -> int:
     """Delete all budgets for a user. Returns count of deleted rows."""
-    result = await db.execute(
-        sql_delete(Budget).where(Budget.user_id == user_id)
-    )
+    result = await db.execute(sql_delete(Budget).where(Budget.user_id == user_id))
     await db.flush()
     return result.rowcount
 

@@ -10,6 +10,7 @@ from app.schemas.enums import GoalStatus
 
 class GoalCreate(BaseSchema):
     """Schema for creating a new savings goal."""
+
     user_id: int
     title: str = Field(max_length=200)
     target_amount: float = Field(gt=0)
@@ -20,6 +21,7 @@ class GoalCreate(BaseSchema):
 
 class GoalUpdate(BaseSchema):
     """Schema for updating an existing goal."""
+
     title: str | None = Field(default=None, max_length=200)
     target_amount: float | None = Field(default=None, gt=0)
     current_amount: float | None = Field(default=None, ge=0)
@@ -29,6 +31,7 @@ class GoalUpdate(BaseSchema):
 
 class GoalResponse(GoalCreate, TimestampSchema):
     """Schema for reading a goal."""
+
     id: int
     created_at: datetime
     updated_at: datetime | None = None

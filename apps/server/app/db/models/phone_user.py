@@ -1,6 +1,6 @@
 """PhoneUser model - BagCoin user identified by phone number."""
 
-from sqlalchemy import Float, String
+from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,31 +38,43 @@ class PhoneUser(Base, TimestampMixin):
     telegram_chat_id: Mapped[str | None] = mapped_column(
         String(50), unique=True, nullable=True, index=True
     )
-    platform: Mapped[str] = mapped_column(
-        String(20), default="whatsapp", nullable=False
-    )
+    platform: Mapped[str] = mapped_column(String(20), default="whatsapp", nullable=False)
 
     # Relationships
     categories: Mapped[list["Category"]] = relationship(
-        "Category", back_populates="phone_user", cascade="all, delete-orphan",
+        "Category",
+        back_populates="phone_user",
+        cascade="all, delete-orphan",
     )
     transactions: Mapped[list["Transaction"]] = relationship(
-        "Transaction", back_populates="phone_user", cascade="all, delete-orphan",
+        "Transaction",
+        back_populates="phone_user",
+        cascade="all, delete-orphan",
     )
     budgets: Mapped[list["Budget"]] = relationship(
-        "Budget", back_populates="phone_user", cascade="all, delete-orphan",
+        "Budget",
+        back_populates="phone_user",
+        cascade="all, delete-orphan",
     )
     goals: Mapped[list["Goal"]] = relationship(
-        "Goal", back_populates="phone_user", cascade="all, delete-orphan",
+        "Goal",
+        back_populates="phone_user",
+        cascade="all, delete-orphan",
     )
     reports: Mapped[list["Report"]] = relationship(
-        "Report", back_populates="phone_user", cascade="all, delete-orphan",
+        "Report",
+        back_populates="phone_user",
+        cascade="all, delete-orphan",
     )
     conversations: Mapped[list["PhoneConversation"]] = relationship(
-        "PhoneConversation", back_populates="phone_user", cascade="all, delete-orphan",
+        "PhoneConversation",
+        back_populates="phone_user",
+        cascade="all, delete-orphan",
     )
     agent_logs: Mapped[list["AgentLog"]] = relationship(
-        "AgentLog", back_populates="phone_user", cascade="all, delete-orphan",
+        "AgentLog",
+        back_populates="phone_user",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:

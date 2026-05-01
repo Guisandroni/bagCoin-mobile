@@ -2,15 +2,16 @@
 
 Uses sync_session_maker for database operations.
 """
-import logging
-from typing import Any
-from datetime import datetime
 
-from app.db.session import sync_session_maker
-from app.db.models.transaction import Transaction
-from app.db.models.category import Category
-from app.agents.statement_parser import parse_statement, detect_statement
+import logging
+from datetime import datetime
+from typing import Any
+
 from app.agents.persistence import get_or_create_user
+from app.agents.statement_parser import parse_statement
+from app.db.models.category import Category
+from app.db.models.transaction import Transaction
+from app.db.session import sync_session_maker
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,9 @@ def import_transactions(state: dict[str, Any]) -> dict[str, Any]:
     # Parse do extrato
     transactions = parse_statement(media)
     if not transactions:
-        state["error"] = "Não consegui extrair transações do documento. Verifique se é um extrato bancário válido (CSV, OFX ou PDF)."
+        state["error"] = (
+            "Não consegui extrair transações do documento. Verifique se é um extrato bancário válido (CSV, OFX ou PDF)."
+        )
         return state
 
     logger.info(f"Importando {len(transactions)} transações de extrato para {phone_number}")
@@ -107,27 +110,43 @@ def import_transactions(state: dict[str, Any]) -> dict[str, Any]:
                 tx_date = datetime.strptime(tx["date"], "%Y-%m-%d")
 
                 # Evita duplicatas por descrição + data + valor
-                existing = db.query(Transaction).filter(
-                    Transaction.user_id == user_id,
-                    Transaction.transaction_date == tx_date,
-                    Transaction.amount == tx["amount"],
-                    Transaction.description == tx["description"]
-                ).first()
+                existing = (
+                    db.query(Transaction)
+                    .filter(
+                        Transaction.user_id == user_id,
+                        Transaction.transaction_date == tx_date,
+                        Transaction.amount == tx["amount"],
+                        Transaction.description == tx["description"],
+                    )
+                    .first()
+                )
                 if existing:
                     skipped += 1
                     continue
 
                 # Busca ou cria a categoria para o usuário
                 cat_name = _map_category_to_db(tx.get("category", "Outros"))
-                category = db.query(Category).filter(
-                    Category.user_id == user_id,
-                    Category.name == cat_name
-                ).first()
+                category = (
+                    db.query(Category)
+                    .filter(Category.user_id == user_id, Category.name == cat_name)
+                    .first()
+                )
                 if not category:
                     category = Category(
                         user_id=user_id,
                         name=cat_name,
-                        is_default=(cat_name in ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Educação", "Outros"])
+                        is_default=(
+                            cat_name
+                            in [
+                                "Alimentação",
+                                "Transporte",
+                                "Moradia",
+                                "Lazer",
+                                "Saúde",
+                                "Educação",
+                                "Outros",
+                            ]
+                        ),
                     )
                     db.add(category)
                     db.commit()
@@ -142,7 +161,7 @@ def import_transactions(state: dict[str, Any]) -> dict[str, Any]:
                     description=tx["description"],
                     transaction_date=tx_date,
                     source_format="statement_import",
-                    raw_input=tx.get("raw", "")
+                    raw_input=tx.get("raw", ""),
                 )
                 db.add(db_tx)
                 imported += 1
@@ -178,7 +197,7 @@ def import_transactions(state: dict[str, Any]) -> dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Erro na importação de extrato: {e}", exc_info=True)
-        state["error"] = f"Erro ao importar extrato: {str(e)}"
+        state["error"] = f"Erro ao importar extrato: {e!s}"
     finally:
         db.close()
 

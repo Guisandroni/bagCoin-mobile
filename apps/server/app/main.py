@@ -44,9 +44,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[LifespanState, None]:
 
     # Create BagCoin tables if they don't exist
     try:
-        from app.db.session import sync_engine
-        from app.db.base import Base
         import app.db.models  # noqa: F401 - import all models to register them
+        from app.db.base import Base
+        from app.db.session import sync_engine
+
         Base.metadata.create_all(bind=sync_engine)
         logger.info("BagCoin tables created/verified")
     except Exception as e:

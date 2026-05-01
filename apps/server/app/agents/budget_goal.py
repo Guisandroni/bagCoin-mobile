@@ -593,6 +593,8 @@ def update_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
 
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
+    extracted = state.get("extracted_data") or {}
+
     db = sync_session_maker()
     try:
         user = get_or_create_user(phone_number, db)
@@ -607,27 +609,33 @@ def update_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
         tx_id = None
         if conv and conv.context_json:
             tx_id = conv.context_json.get("last_transaction_id")
-        amount = _extract_number(message)
-        desc = None
-        desc_patterns = [
-            r"(?:para|em|no|na|de)\s+(.+?)$",
-        ]
-        for p in desc_patterns:
-            m = re.search(p, message, re.IGNORECASE)
-            if m:
-                desc = m.group(1).strip().capitalize()
-                break
-        category = None
-        for cat, words in {
-            "Alimentação": ["mercado", "supermercado", "padaria", "feira"],
-            "Transporte": ["uber", "gasolina", "ônibus", "metrô"],
-            "Moradia": ["aluguel", "condomínio"],
-            "Saúde": ["farmácia", "médico", "dentista"],
-            "Lazer": ["cinema", "netflix", "spotify"],
-        }.items():
-            if any(w in message.lower() for w in words):
-                category = cat
-                break
+        amount = extracted.get("amount") or _extract_number(message)
+        desc = extracted.get("description")
+        category = extracted.get("category_name")
+        
+        # Fallback: extract desc from message if not in extracted_data
+        if not desc:
+            desc_patterns = [
+                r"(?:para|em|no|na|de)\s+(.+?)$",
+            ]
+            for p in desc_patterns:
+                m = re.search(p, message, re.IGNORECASE)
+                if m:
+                    desc = m.group(1).strip().capitalize()
+                    break
+        
+        # Fallback: infer category from message keywords if not in extracted_data
+        if not category:
+            for cat, words in {
+                "Alimentação": ["mercado", "supermercado", "padaria", "feira"],
+                "Transporte": ["uber", "gasolina", "ônibus", "metrô"],
+                "Moradia": ["aluguel", "condomínio"],
+                "Saúde": ["farmácia", "médico", "dentista"],
+                "Lazer": ["cinema", "netflix", "spotify"],
+            }.items():
+                if any(w in message.lower() for w in words):
+                    category = cat
+                    break
         if tx_id:
             result = update_transaction(
                 phone_number, tx_id, amount=amount, description=desc, category_name=category

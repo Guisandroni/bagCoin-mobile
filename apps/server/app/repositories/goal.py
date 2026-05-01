@@ -2,14 +2,15 @@
 
 Handles financial savings goals for BagCoin users.
 """
-from datetime import datetime, date
+
+from datetime import date
 from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.goal import Goal
 from app.db.models.enums import GoalStatus
+from app.db.models.goal import Goal
 
 
 async def get_by_id(db: AsyncSession, goal_id: int) -> Goal | None:

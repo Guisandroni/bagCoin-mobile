@@ -3,13 +3,14 @@
 Supports Nubank CSV, generic Brazilian CSV, OFX, and PDF text extraction.
 Pure logic — no database access needed.
 """
-import logging
+
+import base64
 import csv
 import io
-import base64
+import logging
 import re
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +110,7 @@ def _parse_brazilian_value(value_str: str) -> float | None:
         if "," in val:
             val = val.replace(".", "").replace(",", ".")
         return float(val)
-    except (ValueError):
+    except ValueError:
         return None
 
 
@@ -154,14 +155,16 @@ def parse_nubank_csv(content: str) -> list[dict[str, Any]]:
             if date is None or amount is None:
                 continue
             tx_type = "INCOME" if amount > 0 else "EXPENSE"
-            transactions.append({
-                "date": date,
-                "amount": abs(amount),
-                "type": tx_type,
-                "description": desc,
-                "category": _guess_category(desc),
-                "raw": f"{date_str} | {value_str} | {desc}"
-            })
+            transactions.append(
+                {
+                    "date": date,
+                    "amount": abs(amount),
+                    "type": tx_type,
+                    "description": desc,
+                    "category": _guess_category(desc),
+                    "raw": f"{date_str} | {value_str} | {desc}",
+                }
+            )
         except Exception as e:
             logger.warning(f"Erro ao parsear linha Nubank: {e}")
             continue
@@ -209,11 +212,16 @@ def parse_generic_csv(content: str) -> list[dict[str, Any]]:
                 v_stripped = v.strip() if v else ""
                 if "data" in k_lower and not date_str:
                     date_str = v_stripped
-                elif any(x in k_lower for x in ["histórico", "historico", "descrição", "descricao"]) and not desc:
+                elif (
+                    any(x in k_lower for x in ["histórico", "historico", "descrição", "descricao"])
+                    and not desc
+                ):
                     desc = v_stripped
                 elif any(x in k_lower for x in ["crédito", "credito", "entrada"]) and not credit:
                     credit = v_stripped
-                elif any(x in k_lower for x in ["débito", "debito", "saída", "saida"]) and not debit:
+                elif (
+                    any(x in k_lower for x in ["débito", "debito", "saída", "saida"]) and not debit
+                ):
                     debit = v_stripped
 
             # Validações básicas
@@ -223,7 +231,9 @@ def parse_generic_csv(content: str) -> list[dict[str, Any]]:
             if date is None:
                 continue
             # Evita linhas de metadados
-            if not desc or any(x in desc.lower() for x in ["filtro", "resultados", "últimos", "ultimos"]):
+            if not desc or any(
+                x in desc.lower() for x in ["filtro", "resultados", "últimos", "ultimos"]
+            ):
                 continue
             # Deve ter pelo menos um valor em crédito ou débito
             if not (credit and credit.strip()) and not (debit and debit.strip()):
@@ -241,14 +251,16 @@ def parse_generic_csv(content: str) -> list[dict[str, Any]]:
                     tx_type = "EXPENSE"
             if amount is None or amount <= 0:
                 continue
-            transactions.append({
-                "date": date,
-                "amount": amount,
-                "type": tx_type,
-                "description": desc or "Transação bancária",
-                "category": _guess_category(desc),
-                "raw": f"{date_str} | {desc} | {credit or debit}"
-            })
+            transactions.append(
+                {
+                    "date": date,
+                    "amount": amount,
+                    "type": tx_type,
+                    "description": desc or "Transação bancária",
+                    "category": _guess_category(desc),
+                    "raw": f"{date_str} | {desc} | {credit or debit}",
+                }
+            )
         except Exception as e:
             logger.warning(f"Erro ao parsear linha genérica: {e}")
             continue
@@ -275,7 +287,11 @@ def parse_ofx(content: str) -> list[dict[str, Any]]:
             date_str = dtposted.group(1)
             date = datetime.strptime(date_str, "%Y%m%d").strftime("%Y-%m-%d")
             amount = float(trnamt.group(1).strip())
-            desc = memo.group(1).strip() if memo else (fitid.group(1).strip() if fitid else "Transação OFX")
+            desc = (
+                memo.group(1).strip()
+                if memo
+                else (fitid.group(1).strip() if fitid else "Transação OFX")
+            )
             trn_type = trntype.group(1).strip().upper() if trntype else ""
             if trn_type == "CREDIT" or trn_type == "DEP":
                 tx_type = "INCOME"
@@ -283,14 +299,16 @@ def parse_ofx(content: str) -> list[dict[str, Any]]:
                 tx_type = "EXPENSE" if amount < 0 else "INCOME"
             else:
                 tx_type = "INCOME" if amount > 0 else "EXPENSE"
-            transactions.append({
-                "date": date,
-                "amount": abs(amount),
-                "type": tx_type,
-                "description": desc,
-                "category": _guess_category(desc),
-                "raw": f"{date} | {amount} | {desc}"
-            })
+            transactions.append(
+                {
+                    "date": date,
+                    "amount": abs(amount),
+                    "type": tx_type,
+                    "description": desc,
+                    "category": _guess_category(desc),
+                    "raw": f"{date} | {amount} | {desc}",
+                }
+            )
         except Exception as e:
             logger.warning(f"Erro ao parsear bloco OFX: {e}")
             continue
@@ -331,14 +349,16 @@ def parse_pdf_statement(content: str) -> list[dict[str, Any]]:
                 if not desc:
                     desc = "Transação bancária"
                 tx_type = "INCOME" if amount > 0 else "EXPENSE"
-                transactions.append({
-                    "date": date,
-                    "amount": abs(amount),
-                    "type": tx_type,
-                    "description": desc,
-                    "category": _guess_category(desc),
-                    "raw": line
-                })
+                transactions.append(
+                    {
+                        "date": date,
+                        "amount": abs(amount),
+                        "type": tx_type,
+                        "description": desc,
+                        "category": _guess_category(desc),
+                        "raw": line,
+                    }
+                )
             except Exception as e:
                 logger.warning(f"Erro ao parsear linha PDF: {e}")
                 continue
@@ -366,6 +386,7 @@ def parse_statement(media: dict[str, Any]) -> list[dict[str, Any]]:
             # Extrai texto do PDF
             try:
                 import PyPDF2
+
                 reader = PyPDF2.PdfReader(io.BytesIO(decoded))
                 for page in reader.pages:
                     page_text = page.extract_text()
@@ -437,7 +458,18 @@ def detect_statement(state: dict[str, Any]) -> bool:
     if filename.endswith((".csv", ".ofx", ".qfx")):
         return True
     if filename.endswith(".pdf"):
-        keywords_in_name = ["extrato", "fatura", "movimento", "conta", "banco", "nubank", "itau", "bradesco", "caixa", "santander"]
+        keywords_in_name = [
+            "extrato",
+            "fatura",
+            "movimento",
+            "conta",
+            "banco",
+            "nubank",
+            "itau",
+            "bradesco",
+            "caixa",
+            "santander",
+        ]
         if any(k in filename for k in keywords_in_name):
             return True
 

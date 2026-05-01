@@ -2,9 +2,11 @@
 
 Handles transaction categories for BagCoin users.
 """
+
 from typing import Any
 
-from sqlalchemy import select, delete as sql_delete
+from sqlalchemy import delete as sql_delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.category import Category
@@ -79,8 +81,13 @@ async def get_or_create(
 
     if is_default is None:
         default_names = [
-            "Alimentação", "Transporte", "Moradia", "Lazer",
-            "Saúde", "Educação", "Outros",
+            "Alimentação",
+            "Transporte",
+            "Moradia",
+            "Lazer",
+            "Saúde",
+            "Educação",
+            "Outros",
         ]
         is_default = name in default_names
 

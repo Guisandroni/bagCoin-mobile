@@ -3,19 +3,19 @@
 Provides sync (non-async) operations for budget/goal CRUD and alerts.
 These are used by agents that run in sync context via sync_session_maker.
 """
+
 import logging
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func
 
-from app.db.session import sync_session_maker
 from app.db.models.budget import Budget
-from app.db.models.goal import Goal
-from app.db.models.transaction import Transaction
 from app.db.models.category import Category
 from app.db.models.enums import GoalStatus
-from app.agents.tenant_context import assert_valid_tenant_phone
+from app.db.models.goal import Goal
+from app.db.models.transaction import Transaction
+from app.db.session import sync_session_maker
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,7 @@ def _period_start(period: str) -> datetime | None:
 def _get_or_create_user(phone_number: str):
     """Get or create a phone user (sync)."""
     from app.agents.persistence import get_or_create_user_sync
+
     return get_or_create_user_sync(phone_number)
 
 
@@ -62,10 +63,14 @@ def create_budget(
     try:
         user = _get_or_create_user(phone_number)
 
-        category = db.query(Category).filter(
-            Category.user_id == user.id,
-            Category.name.ilike(name),
-        ).first()
+        category = (
+            db.query(Category)
+            .filter(
+                Category.user_id == user.id,
+                Category.name.ilike(name),
+            )
+            .first()
+        )
         if not category:
             # Normaliza o nome para Title Case
             name = name.strip().capitalize()
@@ -116,17 +121,21 @@ def get_budgets(phone_number: str) -> list[dict[str, Any]]:
         for budget in budgets:
             spent = get_budget_spent(db, budget.id, user.id, budget.period)
             cat_name = budget.category.name if budget.category else budget.name
-            result.append({
-                "id": budget.id,
-                "name": budget.name,
-                "category_id": budget.category_id,
-                "category_name": cat_name,
-                "total_limit": budget.total_limit,
-                "total_spent": spent,
-                "total_remaining": budget.total_limit - spent,
-                "percentage": round((spent / budget.total_limit) * 100, 1) if budget.total_limit > 0 else 0,
-                "period": budget.period,
-            })
+            result.append(
+                {
+                    "id": budget.id,
+                    "name": budget.name,
+                    "category_id": budget.category_id,
+                    "category_name": cat_name,
+                    "total_limit": budget.total_limit,
+                    "total_spent": spent,
+                    "total_remaining": budget.total_limit - spent,
+                    "percentage": round((spent / budget.total_limit) * 100, 1)
+                    if budget.total_limit > 0
+                    else 0,
+                    "period": budget.period,
+                }
+            )
         return result
     finally:
         db.close()
@@ -138,19 +147,27 @@ def get_budget_spent(db, budget_id: int, user_id: int, period: str) -> float:
     if not date_from:
         return 0.0
 
-    budget = db.query(Budget).filter(
-        Budget.id == budget_id,
-        Budget.user_id == user_id,
-    ).first()
+    budget = (
+        db.query(Budget)
+        .filter(
+            Budget.id == budget_id,
+            Budget.user_id == user_id,
+        )
+        .first()
+    )
     if not budget:
         return 0.0
 
-    result = db.query(func.coalesce(func.sum(Transaction.amount), 0)).filter(
-        Transaction.type == "EXPENSE",
-        Transaction.user_id == user_id,
-        Transaction.category_id == budget.category_id,
-        Transaction.transaction_date >= date_from,
-    ).scalar()
+    result = (
+        db.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(
+            Transaction.type == "EXPENSE",
+            Transaction.user_id == user_id,
+            Transaction.category_id == budget.category_id,
+            Transaction.transaction_date >= date_from,
+        )
+        .scalar()
+    )
     return float(result or 0)
 
 
@@ -159,16 +176,26 @@ def delete_budget_by_name(phone_number: str, name: str) -> int:
     db = sync_session_maker()
     try:
         user = _get_or_create_user(phone_number)
-        budgets = db.query(Budget).filter(
-            Budget.user_id == user.id,
-            Budget.name.ilike(f"%{name}%"),
-        ).all()
-        if not budgets:
-            budgets = db.query(Budget).filter(
+        budgets = (
+            db.query(Budget)
+            .filter(
                 Budget.user_id == user.id,
-            ).join(Category, Budget.category_id == Category.id).filter(
-                Category.name.ilike(f"%{name}%"),
-            ).all()
+                Budget.name.ilike(f"%{name}%"),
+            )
+            .all()
+        )
+        if not budgets:
+            budgets = (
+                db.query(Budget)
+                .filter(
+                    Budget.user_id == user.id,
+                )
+                .join(Category, Budget.category_id == Category.id)
+                .filter(
+                    Category.name.ilike(f"%{name}%"),
+                )
+                .all()
+            )
         count = 0
         for budget in budgets:
             db.delete(budget)
@@ -196,16 +223,26 @@ def update_budget_limit(phone_number: str, name: str, new_limit: float) -> dict[
     db = sync_session_maker()
     try:
         user = _get_or_create_user(phone_number)
-        budget = db.query(Budget).filter(
-            Budget.user_id == user.id,
-            Budget.name.ilike(f"%{name}%"),
-        ).first()
-        if not budget:
-            budget = db.query(Budget).filter(
+        budget = (
+            db.query(Budget)
+            .filter(
                 Budget.user_id == user.id,
-            ).join(Category, Budget.category_id == Category.id).filter(
-                Category.name.ilike(f"%{name}%"),
-            ).first()
+                Budget.name.ilike(f"%{name}%"),
+            )
+            .first()
+        )
+        if not budget:
+            budget = (
+                db.query(Budget)
+                .filter(
+                    Budget.user_id == user.id,
+                )
+                .join(Category, Budget.category_id == Category.id)
+                .filter(
+                    Category.name.ilike(f"%{name}%"),
+                )
+                .first()
+            )
         if not budget:
             return None
         budget.total_limit = new_limit
@@ -278,10 +315,14 @@ def update_goal_progress(phone_number: str, goal_id: int, amount: float) -> dict
     db = sync_session_maker()
     try:
         user = _get_or_create_user(phone_number)
-        goal = db.query(Goal).filter(
-            Goal.id == goal_id,
-            Goal.user_id == user.id,
-        ).first()
+        goal = (
+            db.query(Goal)
+            .filter(
+                Goal.id == goal_id,
+                Goal.user_id == user.id,
+            )
+            .first()
+        )
 
         if not goal:
             raise ValueError("Goal not found")
@@ -298,8 +339,10 @@ def update_goal_progress(phone_number: str, goal_id: int, amount: float) -> dict
             "title": goal.title,
             "current_amount": goal.current_amount,
             "target_amount": goal.target_amount,
-            "percentage": round((goal.current_amount / goal.target_amount) * 100, 1) if goal.target_amount > 0 else 0,
-            "status": goal.status.value if hasattr(goal.status, 'value') else str(goal.status),
+            "percentage": round((goal.current_amount / goal.target_amount) * 100, 1)
+            if goal.target_amount > 0
+            else 0,
+            "status": goal.status.value if hasattr(goal.status, "value") else str(goal.status),
         }
     except Exception as e:
         db.rollback()
@@ -314,10 +357,14 @@ def get_goals(phone_number: str) -> list[dict[str, Any]]:
     db = sync_session_maker()
     try:
         user = _get_or_create_user(phone_number)
-        goals = db.query(Goal).filter(
-            Goal.user_id == user.id,
-            Goal.status == GoalStatus.ACTIVE.value,
-        ).all()
+        goals = (
+            db.query(Goal)
+            .filter(
+                Goal.user_id == user.id,
+                Goal.status == GoalStatus.ACTIVE.value,
+            )
+            .all()
+        )
 
         return [
             {
@@ -326,8 +373,10 @@ def get_goals(phone_number: str) -> list[dict[str, Any]]:
                 "target_amount": g.target_amount,
                 "current_amount": g.current_amount,
                 "deadline": g.deadline.isoformat() if g.deadline else None,
-                "percentage": round((g.current_amount / g.target_amount) * 100, 1) if g.target_amount > 0 else 0,
-                "status": g.status.value if hasattr(g.status, 'value') else str(g.status),
+                "percentage": round((g.current_amount / g.target_amount) * 100, 1)
+                if g.target_amount > 0
+                else 0,
+                "status": g.status.value if hasattr(g.status, "value") else str(g.status),
             }
             for g in goals
         ]
@@ -340,10 +389,14 @@ def delete_goal(phone_number: str, goal_identifier: str) -> bool:
     db = sync_session_maker()
     try:
         user = _get_or_create_user(phone_number)
-        goals = db.query(Goal).filter(
-            Goal.user_id == user.id,
-            Goal.status == GoalStatus.ACTIVE.value,
-        ).all()
+        goals = (
+            db.query(Goal)
+            .filter(
+                Goal.user_id == user.id,
+                Goal.status == GoalStatus.ACTIVE.value,
+            )
+            .all()
+        )
         target = None
         for g in goals:
             if goal_identifier.lower() in g.title.lower():
@@ -376,10 +429,14 @@ def update_goal(
     db = sync_session_maker()
     try:
         user = _get_or_create_user(phone_number)
-        goals = db.query(Goal).filter(
-            Goal.user_id == user.id,
-            Goal.status == GoalStatus.ACTIVE.value,
-        ).all()
+        goals = (
+            db.query(Goal)
+            .filter(
+                Goal.user_id == user.id,
+                Goal.status == GoalStatus.ACTIVE.value,
+            )
+            .all()
+        )
         target = None
         for g in goals:
             if goal_identifier.lower() in g.title.lower():
@@ -408,8 +465,12 @@ def update_goal(
             "target_amount": target.target_amount,
             "current_amount": target.current_amount,
             "deadline": target.deadline.isoformat() if target.deadline else None,
-            "percentage": round((target.current_amount / target.target_amount) * 100, 1) if target.target_amount > 0 else 0,
-            "status": target.status.value if hasattr(target.status, 'value') else str(target.status),
+            "percentage": round((target.current_amount / target.target_amount) * 100, 1)
+            if target.target_amount > 0
+            else 0,
+            "status": target.status.value
+            if hasattr(target.status, "value")
+            else str(target.status),
         }
     except Exception as e:
         db.rollback()
@@ -444,6 +505,7 @@ def set_financial_alerts_enabled(phone_number: str, enabled: bool) -> None:
         prefs["financial_alerts_enabled"] = bool(enabled)
         user.preferences = prefs
         from sqlalchemy.orm.attributes import flag_modified
+
         flag_modified(user, "preferences")
         db.commit()
     except Exception:
@@ -463,25 +525,29 @@ def check_budget_alerts(phone_number: str) -> list[dict[str, Any]]:
     for budget in budgets:
         pct = budget["percentage"]
         if pct >= 100:
-            alerts.append({
-                "type": "budget_exceeded",
-                "severity": "high",
-                "budget_name": budget["name"],
-                "message": (
-                    f"📊 Orçamento de **{budget['name']}** estourado! "
-                    f"R$ {budget['total_spent']:,.2f} usado de R$ {budget['total_limit']:,.2f} ({pct}%)"
-                ),
-            })
+            alerts.append(
+                {
+                    "type": "budget_exceeded",
+                    "severity": "high",
+                    "budget_name": budget["name"],
+                    "message": (
+                        f"📊 Orçamento de **{budget['name']}** estourado! "
+                        f"R$ {budget['total_spent']:,.2f} usado de R$ {budget['total_limit']:,.2f} ({pct}%)"
+                    ),
+                }
+            )
         elif pct >= 80:
-            alerts.append({
-                "type": "budget_warning",
-                "severity": "medium",
-                "budget_name": budget["name"],
-                "message": (
-                    f"📊 Atenção: orçamento de **{budget['name']}** está em {pct}% "
-                    f"(R$ {budget['total_spent']:,.2f} de R$ {budget['total_limit']:,.2f})"
-                ),
-            })
+            alerts.append(
+                {
+                    "type": "budget_warning",
+                    "severity": "medium",
+                    "budget_name": budget["name"],
+                    "message": (
+                        f"📊 Atenção: orçamento de **{budget['name']}** está em {pct}% "
+                        f"(R$ {budget['total_spent']:,.2f} de R$ {budget['total_limit']:,.2f})"
+                    ),
+                }
+            )
 
     return alerts
 
@@ -496,28 +562,32 @@ def check_goal_alerts(phone_number: str) -> list[dict[str, Any]]:
 
     for goal in goals:
         if goal["percentage"] >= 100:
-            alerts.append({
-                "type": "goal_completed",
-                "severity": "info",
-                "goal_title": goal["title"],
-                "message": (
-                    f"Parabéns! Meta '{goal['title']}' atingida! "
-                    f"R$ {goal['current_amount']:,.2f} de R$ {goal['target_amount']:,.2f}"
-                ),
-            })
+            alerts.append(
+                {
+                    "type": "goal_completed",
+                    "severity": "info",
+                    "goal_title": goal["title"],
+                    "message": (
+                        f"Parabéns! Meta '{goal['title']}' atingida! "
+                        f"R$ {goal['current_amount']:,.2f} de R$ {goal['target_amount']:,.2f}"
+                    ),
+                }
+            )
         elif goal.get("deadline"):
             deadline = date.fromisoformat(goal["deadline"])
             days_left = (deadline - today).days
             if days_left <= 7 and days_left > 0 and goal["percentage"] < 100:
-                alerts.append({
-                    "type": "goal_deadline",
-                    "severity": "medium",
-                    "goal_title": goal["title"],
-                    "message": (
-                        f"Meta '{goal['title']}' vence em {days_left} dias. "
-                        f"Progresso: {goal['percentage']}% "
-                        f"(R$ {goal['current_amount']:,.2f} de R$ {goal['target_amount']:,.2f})"
-                    ),
-                })
+                alerts.append(
+                    {
+                        "type": "goal_deadline",
+                        "severity": "medium",
+                        "goal_title": goal["title"],
+                        "message": (
+                            f"Meta '{goal['title']}' vence em {days_left} dias. "
+                            f"Progresso: {goal['percentage']}% "
+                            f"(R$ {goal['current_amount']:,.2f} de R$ {goal['target_amount']:,.2f})"
+                        ),
+                    }
+                )
 
     return alerts

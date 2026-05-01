@@ -6,6 +6,7 @@ All financial data access must originate from a valid contact identifier
 Every node that accesses sensitive data should call assert_valid_tenant_phone()
 or check tenant_phone_error() early.
 """
+
 from __future__ import annotations
 
 # Minimum digits to consider a usable identifier
@@ -21,8 +22,7 @@ def tenant_phone_error(phone_number: str | None) -> str | None:
     digits = "".join(c for c in str(phone_number) if c.isdigit())
     if len(digits) < MIN_PHONE_DIGITS:
         return (
-            "Identificador de contato inválido ou incompleto. "
-            "Verifique o número e tente novamente."
+            "Identificador de contato inválido ou incompleto. Verifique o número e tente novamente."
         )
     return None
 

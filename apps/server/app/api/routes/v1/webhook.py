@@ -3,20 +3,25 @@
 Receives messages from WhatsApp Bridge, validates, deduplicates,
 and processes via the LangGraph orchestrator.
 """
-import os
+
 import base64
 import logging
+import os
 import re
-import time
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, Header, HTTPException
 
-from app.core.config import settings
-from app.schemas.common import WebhookPayload, WhatsAppResponse, TelegramWebhookPayload, TelegramResponse
 from app.agents.orchestrator import orchestrator
-from app.agents.tenant_context import tenant_phone_error
 from app.agents.persistence import get_or_create_user_sync
+from app.agents.tenant_context import tenant_phone_error
 from app.api.deps import verify_api_key as verify_telegram_api_key
+from app.core.config import settings
+from app.schemas.common import (
+    TelegramResponse,
+    TelegramWebhookPayload,
+    WebhookPayload,
+    WhatsAppResponse,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhook", tags=["webhook"])
@@ -25,6 +30,7 @@ router = APIRouter(prefix="/webhook", tags=["webhook"])
 _redis = None
 try:
     import redis as redis_module
+
     _redis = redis_module.from_url(settings.REDIS_URL, decode_responses=True)
     _redis.ping()
     logger.info("Redis conectado para deduplicação")
@@ -89,9 +95,12 @@ async def receive_whatsapp_message(
     try:
         # 3. Determina formato da fonte
         source_format = (
-            "audio" if payload.type in ["ptt", "audio"]
-            else "image" if payload.type in ["image"]
-            else "document" if payload.type in ["document"]
+            "audio"
+            if payload.type in ["ptt", "audio"]
+            else "image"
+            if payload.type in ["image"]
+            else "document"
+            if payload.type in ["document"]
             else "text"
         )
 

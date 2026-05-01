@@ -2,13 +2,14 @@
 
 Handles BagCoin users identified by phone number.
 """
+
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.phone_user import PhoneUser
 from app.db.models.enums import UserStatus
+from app.db.models.phone_user import PhoneUser
 
 
 async def get_by_id(db: AsyncSession, user_id: int) -> PhoneUser | None:
@@ -18,9 +19,7 @@ async def get_by_id(db: AsyncSession, user_id: int) -> PhoneUser | None:
 
 async def get_by_phone_number(db: AsyncSession, phone_number: str) -> PhoneUser | None:
     """Get phone user by phone number."""
-    result = await db.execute(
-        select(PhoneUser).where(PhoneUser.phone_number == phone_number)
-    )
+    result = await db.execute(select(PhoneUser).where(PhoneUser.phone_number == phone_number))
     return result.scalar_one_or_none()
 
 
@@ -100,6 +99,7 @@ async def update_preferences(
     user = await get_by_id(db, user_id)
     if user is None:
         from app.core.exceptions import NotFoundError
+
         raise NotFoundError(
             message="Phone user not found",
             details={"user_id": user_id},
@@ -121,6 +121,7 @@ async def update_financial_profile(
     user = await get_by_id(db, user_id)
     if user is None:
         from app.core.exceptions import NotFoundError
+
         raise NotFoundError(
             message="Phone user not found",
             details={"user_id": user_id},

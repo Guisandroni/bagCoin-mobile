@@ -23,7 +23,10 @@ class Report(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("phone_users.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("phone_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     period_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     period_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

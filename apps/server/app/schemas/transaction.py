@@ -10,6 +10,7 @@ from app.schemas.enums import SourceFormat, TransactionType
 
 class TransactionCreate(BaseSchema):
     """Schema for creating a new transaction."""
+
     user_id: int
     type: TransactionType
     amount: float = Field(gt=0)
@@ -24,6 +25,7 @@ class TransactionCreate(BaseSchema):
 
 class TransactionUpdate(BaseSchema):
     """Schema for updating an existing transaction."""
+
     type: TransactionType | None = None
     amount: float | None = Field(default=None, gt=0)
     currency: str | None = Field(default=None, max_length=3)
@@ -37,6 +39,7 @@ class TransactionUpdate(BaseSchema):
 
 class TransactionResponse(TransactionCreate, TimestampSchema):
     """Schema for reading a transaction."""
+
     id: int
     created_at: datetime
     updated_at: datetime | None = None

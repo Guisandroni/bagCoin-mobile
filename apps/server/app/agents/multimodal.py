@@ -2,11 +2,12 @@
 
 Uses Groq API for audio transcription and vision analysis.
 """
-import logging
+
 import base64
 import io
-import tempfile
+import logging
 import os
+import tempfile
 from typing import Any
 
 from groq import Groq
@@ -58,13 +59,14 @@ def process_audio(media: dict[str, Any]) -> str:
         try:
             with open(tmp_path, "rb") as audio_file:
                 transcription = client.audio.transcriptions.create(
-                    file=audio_file,
-                    model="whisper-large-v3",
-                    language="pt",
-                    response_format="text"
+                    file=audio_file, model="whisper-large-v3", language="pt", response_format="text"
                 )
 
-            text = transcription.strip() if isinstance(transcription, str) else str(transcription).strip()
+            text = (
+                transcription.strip()
+                if isinstance(transcription, str)
+                else str(transcription).strip()
+            )
             logger.info(f"Áudio transcrito: {text[:80]}...")
             return text
         finally:
@@ -109,17 +111,14 @@ def process_image(media: dict[str, Any]) -> str:
                                 "Se for uma nota fiscal, comprovante ou recibo, "
                                 "liste: estabelecimento, data, valor total, itens. "
                                 "Responda em português."
-                            )
+                            ),
                         },
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": data_uri}
-                        }
-                    ]
+                        {"type": "image_url", "image_url": {"url": data_uri}},
+                    ],
                 }
             ],
             max_tokens=1024,
-            temperature=0.2
+            temperature=0.2,
         )
 
         text = response.choices[0].message.content.strip()

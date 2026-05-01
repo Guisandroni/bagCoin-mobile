@@ -30,20 +30,28 @@ class Transaction(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("phone_users.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("phone_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     type: Mapped[TransactionType] = mapped_column(
-        String(20), nullable=False,
+        String(20),
+        nullable=False,
     )
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="BRL", nullable=False)
     category_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True,
+        Integer,
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_format: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
     transaction_date: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     confidence_score: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
     raw_input: Mapped[str | None] = mapped_column(Text, nullable=True)

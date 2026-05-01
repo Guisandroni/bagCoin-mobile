@@ -22,10 +22,15 @@ class Budget(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("phone_users.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("phone_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     category_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False,
+        Integer,
+        ForeignKey("categories.id", ondelete="CASCADE"),
+        nullable=False,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     period: Mapped[str] = mapped_column(String(20), nullable=False)
@@ -35,7 +40,9 @@ class Budget(Base, TimestampMixin):
     phone_user: Mapped["PhoneUser"] = relationship("PhoneUser", back_populates="budgets")
     category: Mapped["Category"] = relationship("Category", back_populates="budgets")
     items: Mapped[list["BudgetItem"]] = relationship(
-        "BudgetItem", back_populates="budget", cascade="all, delete-orphan",
+        "BudgetItem",
+        back_populates="budget",
+        cascade="all, delete-orphan",
     )
 
     def __repr__(self) -> str:
@@ -59,10 +66,15 @@ class BudgetItem(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     budget_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("budgets.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("budgets.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     category_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True,
+        Integer,
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
     )
     limit_amount: Mapped[float] = mapped_column(Float, nullable=False)
 

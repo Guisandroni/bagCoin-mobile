@@ -6,6 +6,7 @@ from enum import StrEnum
 
 class IntentType(StrEnum):
     """Intent types recognized by the BagCoin agent orchestrator."""
+
     REGISTER_EXPENSE = "register_expense"
     REGISTER_INCOME = "register_income"
     QUERY_DATA = "query_data"
@@ -37,6 +38,7 @@ class IntentType(StrEnum):
 
 class SourceFormat(StrEnum):
     """Source format for transaction input."""
+
     TEXT = "text"
     AUDIO = "audio"
     IMAGE = "image"
@@ -45,6 +47,7 @@ class SourceFormat(StrEnum):
 
 class TransactionType(str, enum.Enum):
     """Transaction type enumeration."""
+
     EXPENSE = "EXPENSE"
     INCOME = "INCOME"
     TRANSFER = "TRANSFER"
@@ -53,6 +56,7 @@ class TransactionType(str, enum.Enum):
 
 class GoalStatus(str, enum.Enum):
     """Goal status enumeration."""
+
     ACTIVE = "active"
     COMPLETED = "completed"
     CANCELLED = "cancelled"

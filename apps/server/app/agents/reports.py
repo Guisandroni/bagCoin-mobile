@@ -2,17 +2,18 @@
 
 Uses sync_session_maker for database access.
 """
-import logging
-from typing import Any
-from datetime import datetime, timedelta
 
-from app.db.session import sync_session_maker
-from app.db.models.transaction import Transaction
-from app.db.models.budget import Budget
-from app.db.models.goal import Goal
-from app.db.models.enums import GoalStatus
-from app.services.pdf_generator import generate_financial_report
+import logging
+from datetime import datetime, timedelta
+from typing import Any
+
 from app.agents.persistence import get_or_create_user
+from app.db.models.budget import Budget
+from app.db.models.enums import GoalStatus
+from app.db.models.goal import Goal
+from app.db.models.transaction import Transaction
+from app.db.session import sync_session_maker
+from app.services.pdf_generator import generate_financial_report
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,10 @@ def _get_period_from_message(message: str) -> tuple:
         return period_start, period_end, "ontem"
 
     # Esta semana / últimos 7 dias
-    if any(p in msg_lower for p in ["esta semana", "essa semana", "últimos 7 dias", "ultimos 7 dias", "semana"]):
+    if any(
+        p in msg_lower
+        for p in ["esta semana", "essa semana", "últimos 7 dias", "ultimos 7 dias", "semana"]
+    ):
         period_start = today - timedelta(days=7)
         period_end = today
         return period_start, period_end, "últimos 7 dias"
@@ -50,10 +54,14 @@ def _get_period_from_message(message: str) -> tuple:
     # Mês passado
     if any(p in msg_lower for p in ["mês passado", "mes passado", "último mês", "ultimo mes"]):
         if today.month == 1:
-            period_start = today.replace(year=today.year-1, month=12, day=1, hour=0, minute=0, second=0)
-            period_end = today.replace(year=today.year-1, month=12, day=31, hour=23, minute=59, second=59)
+            period_start = today.replace(
+                year=today.year - 1, month=12, day=1, hour=0, minute=0, second=0
+            )
+            period_end = today.replace(
+                year=today.year - 1, month=12, day=31, hour=23, minute=59, second=59
+            )
         else:
-            period_start = today.replace(month=today.month-1, day=1, hour=0, minute=0, second=0)
+            period_start = today.replace(month=today.month - 1, day=1, hour=0, minute=0, second=0)
             # Último dia do mês anterior
             prev_month_end = today.replace(day=1) - timedelta(days=1)
             period_end = prev_month_end.replace(hour=23, minute=59, second=59)
@@ -89,11 +97,16 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
         period_start, period_end, period_label = _get_period_from_message(message)
 
         # Busca transações do período
-        transactions = db.query(Transaction).filter(
-            Transaction.user_id == user.id,
-            Transaction.transaction_date >= period_start,
-            Transaction.transaction_date <= period_end
-        ).order_by(Transaction.transaction_date.desc()).all()
+        transactions = (
+            db.query(Transaction)
+            .filter(
+                Transaction.user_id == user.id,
+                Transaction.transaction_date >= period_start,
+                Transaction.transaction_date <= period_end,
+            )
+            .order_by(Transaction.transaction_date.desc())
+            .all()
+        )
 
         # Calcula totais
         total_income = sum(t.amount for t in transactions if t.type.value == "INCOME")
@@ -118,15 +131,18 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
                 "type": t.type.value,
                 "category": t.category.name if t.category else "Outros",
                 "description": t.description or "-",
-                "amount": t.amount
+                "amount": t.amount,
             }
             for t in transactions
         ]
 
         # Busca orçamento ativo
-        budget = db.query(Budget).filter(
-            Budget.user_id == user.id
-        ).order_by(Budget.created_at.desc()).first()
+        budget = (
+            db.query(Budget)
+            .filter(Budget.user_id == user.id)
+            .order_by(Budget.created_at.desc())
+            .first()
+        )
 
         budget_info = None
         if budget:
@@ -134,14 +150,15 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
             budget_info = {
                 "limit": budget.total_limit,
                 "spent": budget_expenses,
-                "name": budget.name
+                "name": budget.name,
             }
 
         # Busca metas
-        goals = db.query(Goal).filter(
-            Goal.user_id == user.id,
-            Goal.status == GoalStatus.ACTIVE.value
-        ).all()
+        goals = (
+            db.query(Goal)
+            .filter(Goal.user_id == user.id, Goal.status == GoalStatus.ACTIVE.value)
+            .all()
+        )
 
         goals_info = [
             {"title": g.title, "target": g.target_amount, "current": g.current_amount}
@@ -158,24 +175,27 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
             total_income=total_income,
             total_expense=total_expense,
             budget_info=budget_info,
-            goals_info=goals_info
+            goals_info=goals_info,
         )
 
         # Gera CSV também
         csv_path = report_path.replace(".pdf", ".csv")
         try:
             import csv as csv_module
+
             with open(csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv_module.writer(f)
                 writer.writerow(["Data", "Tipo", "Categoria", "Descrição", "Valor"])
                 for tx in tx_formatted:
-                    writer.writerow([
-                        tx["date"],
-                        "Receita" if tx["type"] == "INCOME" else "Gasto",
-                        tx["category"],
-                        tx["description"],
-                        f"R$ {tx['amount']:,.2f}"
-                    ])
+                    writer.writerow(
+                        [
+                            tx["date"],
+                            "Receita" if tx["type"] == "INCOME" else "Gasto",
+                            tx["category"],
+                            tx["description"],
+                            f"R$ {tx['amount']:,.2f}",
+                        ]
+                    )
                 writer.writerow([])
                 writer.writerow(["Resumo", "", "", "", ""])
                 writer.writerow(["Receitas", "", "", "", f"R$ {total_income:,.2f}"])
@@ -199,7 +219,7 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Erro ao gerar relatório: {e}")
-        state["error"] = f"Erro ao gerar relatório: {str(e)}"
+        state["error"] = f"Erro ao gerar relatório: {e!s}"
     finally:
         db.close()
 

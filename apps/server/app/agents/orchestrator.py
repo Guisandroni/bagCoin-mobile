@@ -354,20 +354,51 @@ def intro_handler_node(state: AgentState) -> AgentState:
 
 
 def correction_handler_node(state: AgentState) -> AgentState:
-    """Nó de correção de transação — redireciona para atualização."""
+    """Nó de correção de transação — suporta valor, categoria, descrição."""
+    import re as regex
+
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
 
-    import re as regex
-
+    # 1. Correção de valor: "R$ 50" ou "na verdade foi R$ 60"
     amount_match = regex.search(
         r"R?\$\s*(\d{1,3}(?:[.,]\d{3})*[.,]\d{1,2}|\d+(?:[.,]\d{1,2})?)", message
     )
-
     if amount_match:
         return update_transaction_handler_node(state)
-    else:
-        state["response"] = "Qual valor correto? Envie a correção, ex: 'na verdade foi R$ 60'"
+
+    # 2. Correção de categoria: "era Alimentação" / "categoria certa é Transporte"
+    msg_lower = message.lower()
+    cat_match = regex.search(
+        r"(?:era|categoria\s+(?:certa|correta)\s+[ée])\s+([a-zA-ZÀ-ÿ\s]+)", msg_lower
+    )
+    if not cat_match:
+        cat_match = regex.search(
+            r"(?:corrige|muda)\s+(?:a\s+)?categoria\s+(?:para|como)\s+([a-zA-ZÀ-ÿ\s]+)", msg_lower
+        )
+    if cat_match:
+        state["extracted_data"] = {
+            "category_name": cat_match.group(1).strip().capitalize()
+        }
+        return update_transaction_handler_node(state)
+
+    # 3. Correção de descrição: "o nome é Mercado" / "descrição certa é Padaria"
+    desc_match = regex.search(r"(?:o\s+)?nome\s+(?:[ée]|certo\s+[ée])\s+(.+)", msg_lower)
+    if not desc_match:
+        desc_match = regex.search(r"descrição\s+(?:certa\s+)?[ée]\s+(.+)", msg_lower)
+    if desc_match:
+        state["extracted_data"] = {
+            "description": desc_match.group(1).strip().capitalize()
+        }
+        return update_transaction_handler_node(state)
+
+    # Fallback: pergunta o que corrigir
+    state["response"] = (
+        "O que você quer corrigir?\n"
+        "• Valor: 'era R$ 60'\n"
+        "• Categoria: 'era Alimentação'\n"
+        "• Descrição: 'o nome é Mercado'"
+    )
     return state
 
 

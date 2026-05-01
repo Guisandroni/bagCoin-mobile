@@ -23,27 +23,37 @@ class Category(Base, TimestampMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("phone_users.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("phone_users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     parent_category_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True,
+        Integer,
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
     )
     is_default: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     phone_user: Mapped["PhoneUser"] = relationship("PhoneUser", back_populates="categories")
     parent: Mapped["Category | None"] = relationship(
-        "Category", remote_side="Category.id", backref="children",
+        "Category",
+        remote_side="Category.id",
+        backref="children",
     )
     transactions: Mapped[list["Transaction"]] = relationship(
-        "Transaction", back_populates="category",
+        "Transaction",
+        back_populates="category",
     )
     budgets: Mapped[list["Budget"]] = relationship(
-        "Budget", back_populates="category",
+        "Budget",
+        back_populates="category",
     )
     budget_items: Mapped[list["BudgetItem"]] = relationship(
-        "BudgetItem", back_populates="category",
+        "BudgetItem",
+        back_populates="category",
     )
 
     def __repr__(self) -> str:

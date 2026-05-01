@@ -2,15 +2,17 @@
 
 Handles financial transaction records for BagCoin users.
 """
+
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select, func, delete as sql_delete
+from sqlalchemy import delete as sql_delete
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.transaction import Transaction
 from app.db.models.category import Category
 from app.db.models.enums import TransactionType
+from app.db.models.transaction import Transaction
 
 
 async def get_by_id(db: AsyncSession, transaction_id: int) -> Transaction | None:
@@ -46,7 +48,9 @@ async def get_multi_by_user(
     return list(result.scalars().all())
 
 
-async def get_by_user_and_id(db: AsyncSession, user_id: int, transaction_id: int) -> Transaction | None:
+async def get_by_user_and_id(
+    db: AsyncSession, user_id: int, transaction_id: int
+) -> Transaction | None:
     """Get a transaction by user ID and transaction ID."""
     result = await db.execute(
         select(Transaction).where(
@@ -179,8 +183,7 @@ async def get_category_totals(
     query = query.group_by(Category.name).order_by(func.sum(Transaction.amount).desc()).limit(limit)
     result = await db.execute(query)
     return [
-        {"name": row.name, "total": float(row.total), "count": row.count}
-        for row in result.all()
+        {"name": row.name, "total": float(row.total), "count": row.count} for row in result.all()
     ]
 
 

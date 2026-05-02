@@ -105,18 +105,45 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
 
     # Detect: just a single word (likely a category name)
     # Ex: "Alimentação", "transporte", "Mercado"
+    # BUT: skip known greetings, commands, and feature names — send those to LLM
     words = message.strip().split()
     if len(words) == 1 and re.match(r"^[a-zA-ZÀ-ÿ]+$", words[0]):
-        state["intent"] = IntentType.CHAT
-        state["confidence"] = 1.0
-        state["response"] = (
-            f"'{words[0]}' — isso é uma categoria que você quer usar?\n"
-            "Me conta mais: é um gasto ou receita? Qual o valor?\n"
-            "Ex: 'Gastei R$ 30 em {words[0]}' ou 'Quero ver meus gastos com {words[0]}'"
-        ).replace("{words[0]}", words[0])
-        elapsed = (time.time() - start_time) * 1000
-        logger.info(f"[classify_intent] Fast-path: single word => chat ({elapsed:.0f}ms)")
-        return state
+        word_lower = words[0].lower()
+        # Whitelist: words that should NOT be treated as categories
+        _non_category_words = {
+            # Saudações
+            "oi", "olá", "ola", "eai", "eae", "salve", "hello", "hey", "bom", "boa",
+            # Comandos / ajuda
+            "ajuda", "help", "menu", "comandos", "tutorial", "start", "inicio", "início",
+            # Features — devem ir pro LLM classificar como query/consulta
+            "metas", "meta", "orçamentos", "orçamento", "orcamentos", "orcamento",
+            "relatório", "relatorio", "categorias", "saldo", "gastos", "receitas",
+            "transações", "transacoes", "extratos", "resumo", "gráfico", "grafico",
+            "balanço", "balanco", "orçamentária", "orcamentaria",
+            # Respostas comuns
+            "obrigado", "obrigada", "valeu", "ok", "certo", "blz", "beleza",
+            "cancelar", "sair", "voltar", "esquece", "desistir",
+            # Perguntas
+            "quem", "como", "onde", "quando", "porque", "porque", "qual", "quais",
+        }
+        if word_lower in _non_category_words:
+            # Let it flow to LLM classification
+            elapsed = (time.time() - start_time) * 1000
+            logger.info(
+                f"[classify_intent] Fast-path: single word '{words[0]}' bypassed "
+                f"(in whitelist) → LLM ({elapsed:.0f}ms)"
+            )
+        else:
+            state["intent"] = IntentType.CHAT
+            state["confidence"] = 1.0
+            state["response"] = (
+                f"'{words[0]}' — isso é uma categoria que você quer usar?\n"
+                "Me conta mais: é um gasto ou receita? Qual o valor?\n"
+                "Ex: 'Gastei R$ 30 em {words[0]}' ou 'Quero ver meus gastos com {words[0]}'"
+            ).replace("{words[0]}", words[0])
+            elapsed = (time.time() - start_time) * 1000
+            logger.info(f"[classify_intent] Fast-path: single word => chat ({elapsed:.0f}ms)")
+            return state
 
     # =====================================================================
     # LLM PRIMARY CLASSIFIER

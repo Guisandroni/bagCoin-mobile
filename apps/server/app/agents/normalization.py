@@ -216,7 +216,35 @@ def extract_transaction(state: dict[str, Any]) -> dict[str, Any]:
 
     if amount_match:
         try:
-            amount_str = amount_match.group(1).replace(".", "").replace(",", ".")
+            amount_str = amount_match.group(1)
+            # Smart parsing: handle Brazilian number formats
+            # "1.000,50" → dot=thousands, comma=decimal → 1000.50
+            # "3.40"     → dot=decimal (only one dot, at len-3) → 3.40
+            # "12,50"    → comma=decimal → 12.50
+            # "340"      → no separator → 340
+            has_dot = "." in amount_str
+            has_comma = "," in amount_str
+
+            if has_dot and has_comma:
+                # Both: last separator is decimal, first is thousands
+                # "1.000,50" → remove dots, replace last comma with dot
+                last_sep_pos = max(amount_str.rfind("."), amount_str.rfind(","))
+                before = amount_str[:last_sep_pos].replace(".", "").replace(",", "")
+                after = amount_str[last_sep_pos + 1:]
+                amount_str = before + "." + after
+            elif has_dot:
+                # Only dot: check if it looks like decimal (at len-3, e.g. "3.40")
+                dot_pos = amount_str.rfind(".")
+                if dot_pos == len(amount_str) - 3 and len(amount_str) <= 5:
+                    # Single dot at decimal position → treat as decimal
+                    amount_str = amount_str.replace(".", ".")
+                else:
+                    # Multiple dots or not at decimal pos → remove all, assume integer
+                    amount_str = amount_str.replace(".", "")
+            elif has_comma:
+                # Only comma: replace with dot (decimal)
+                amount_str = amount_str.replace(",", ".")
+
             if amount_str.count(".") > 1:
                 parts = amount_str.split(".")
                 amount_str = "".join(parts[:-1]) + "." + parts[-1]

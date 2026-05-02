@@ -764,7 +764,22 @@ def build_response_node(state: AgentState) -> AgentState:
                     HumanMessage(content=message),
                 ]
                 r, _ = timed_invoke(llm, msgs, operation="build_response")
-                state["response"] = r.content[:500]
+                response_text = r.content[:500]
+
+                # Filter: detect LLM-generated error/generic responses
+                _bad_llm_patterns = [
+                    "sorry, i couldn't", "i couldn't process",
+                    "i'm sorry", "i am sorry", "sorry, i can't",
+                    "i cannot", "i'm unable", "i am unable",
+                    "as an ai", "as a language model",
+                ]
+                if any(p in response_text.lower() for p in _bad_llm_patterns):
+                    logger.warning(
+                        f"[build_response] LLM returned generic error: {response_text[:100]}"
+                    )
+                    state["response"] = resp.unknown_intent()
+                else:
+                    state["response"] = response_text
             except Exception:
                 state["response"] = resp.unknown_intent()
         else:

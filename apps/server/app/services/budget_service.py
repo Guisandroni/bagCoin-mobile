@@ -57,38 +57,52 @@ def create_budget(
     name: str,
     total_limit: float,
     period: str = "monthly",
+    budget_type: str = "category",
 ) -> dict[str, Any]:
-    """Create a new budget for the user, linked to a category."""
+    """Create a new budget for the user.
+
+    Args:
+        phone_number: User's phone identifier.
+        name: Budget name.
+        total_limit: Spending limit or account balance.
+        period: Budget period (monthly, weekly, yearly).
+        budget_type: "general" (conta/saldo) or "category" (limite por categoria).
+    """
     db = sync_session_maker()
     try:
         user = _get_or_create_user(phone_number)
 
-        category = (
-            db.query(Category)
-            .filter(
-                Category.user_id == user.id,
-                Category.name.ilike(name),
+        # For "general" type, category is optional
+        category = None
+        category_id = None
+        if budget_type == "category":
+            category = (
+                db.query(Category)
+                .filter(
+                    Category.user_id == user.id,
+                    Category.name.ilike(name),
+                )
+                .first()
             )
-            .first()
-        )
-        if not category:
-            # Normaliza o nome para Title Case
-            name = name.strip().capitalize()
-            category = Category(
-                user_id=user.id,
-                name=name,
-                is_default=False,
-            )
-            db.add(category)
-            db.commit()
-            db.refresh(category)
+            if not category:
+                name = name.strip().capitalize()
+                category = Category(
+                    user_id=user.id,
+                    name=name,
+                    is_default=False,
+                )
+                db.add(category)
+                db.commit()
+                db.refresh(category)
+            category_id = category.id
 
         budget = Budget(
             user_id=user.id,
-            category_id=category.id,
+            category_id=category_id,
             name=name,
             period=period,
             total_limit=total_limit,
+            budget_type=budget_type,
         )
         db.add(budget)
         db.commit()
@@ -97,10 +111,11 @@ def create_budget(
         return {
             "id": budget.id,
             "name": budget.name,
-            "category_id": category.id,
-            "category_name": category.name,
+            "category_id": budget.category_id,
+            "category_name": category.name if category else None,
             "total_limit": budget.total_limit,
             "period": budget.period,
+            "budget_type": budget.budget_type,
         }
     except Exception as e:
         db.rollback()

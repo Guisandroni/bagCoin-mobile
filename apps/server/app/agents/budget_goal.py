@@ -143,11 +143,16 @@ def create_budget_node(state: dict[str, Any]) -> dict[str, Any]:
             name=name,
             total_limit=float(amount),
             period=period,
+            budget_type="category",  # single-turn always category type
         )
 
         state["budget_data"] = budget
-        state["response"] = resp.budget_created(
-            budget["name"], budget["total_limit"], budget["period"]
+        budget_label = "Conta" if budget.get("budget_type") == "general" else "Orçamento"
+        state["response"] = (
+            f"{budget_label} criado! 📊\n\n"
+            f"{'Nome' if budget_label == 'Conta' else 'Categoria'}: {budget['name']}\n"
+            f"{'Saldo' if budget_label == 'Conta' else 'Limite'}: R$ {budget['total_limit']:,.2f}\n"
+            f"Período: {budget['period']}"
         )
         logger.info(f"Budget created: {budget['id']} — {budget['name']}")
 

@@ -12,10 +12,11 @@ class Budget(Base, TimestampMixin):
     Attributes:
         id: Auto-increment primary key.
         user_id: FK to phone_users.
-        category_id: FK to categories.
+        category_id: FK to categories (nullable for general-type budgets).
         name: Budget name (e.g. "Mercado Mensal").
         period: Budget period (monthly, weekly, yearly).
         total_limit: Total spending limit for the period.
+        budget_type: "general" (conta/saldo) or "category" (limite por categoria).
     """
 
     __tablename__ = "budgets"
@@ -27,14 +28,17 @@ class Budget(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
-    category_id: Mapped[int] = mapped_column(
+    category_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("categories.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     period: Mapped[str] = mapped_column(String(20), nullable=False)
     total_limit: Mapped[float] = mapped_column(Float, nullable=False)
+    budget_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="category"
+    )
 
     # Relationships
     phone_user: Mapped["PhoneUser"] = relationship("PhoneUser", back_populates="budgets")

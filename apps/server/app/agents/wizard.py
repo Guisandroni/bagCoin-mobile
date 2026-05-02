@@ -22,14 +22,29 @@ logger = logging.getLogger(__name__)
 # Schemas de cada wizard (campos obrigatórios)
 WIZARD_SCHEMAS = {
     "create_budget": {
-        "fields": ["name", "total_limit", "period"],
+        "fields": ["budget_type", "name", "total_limit"],
         "defaults": {"period": "monthly"},
         "labels": {
-            "name": "categoria/nome do orçamento",
-            "total_limit": "limite mensal (valor em R$)",
-            "period": "período (mensal, semanal, anual)",
+            "budget_type": "tipo de orçamento",
+            "name": "nome do orçamento",
+            "total_limit": "valor (em R$)",
         },
-        "examples": ["alimentação, 3000, mensal", "transporte 800", "lazer R$ 500"],
+        "options": {
+            "budget_type": {
+                "1": "general",
+                "2": "category",
+            },
+        },
+        "option_labels": {
+            "budget_type": {
+                "1": "Conta/Saldo — para acompanhar quanto dinheiro você tem (ex: conta bancária, cartão de crédito)",
+                "2": "Limite por categoria — para controlar gastos em uma categoria específica (ex: alimentação, lazer)",
+            },
+        },
+        "examples": [
+            "1 (Conta/Saldo) — Nubank, 3000",
+            "2 (Categoria) — Alimentação, 800",
+        ],
     },
     "create_goal": {
         "fields": ["title", "target_amount"],
@@ -316,6 +331,60 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
     return state
 
 
+def _parse_option_choice(message: str, valid_keys: list[str]) -> str | None:
+    """Extrai escolha de opção da mensagem do usuário.
+
+    Aceita:
+    - Dígito: "1", "2"
+    - Palavras: "primeira", "segunda", "um", "dois", "opção 1", "opcao 2"
+    - Frases com número: "quero a 1", "a primeira"
+
+    Returns: a chave da opção (ex: "1") ou None se inválido.
+    """
+    msg = message.lower().strip()
+    # Mapeamento de palavras para números
+    word_to_num = {
+        "um": "1", "uma": "1", "primeira": "1", "primeiro": "1",
+        "dois": "2", "duas": "2", "segunda": "2", "segundo": "2",
+        "três": "3", "tres": "3", "terceira": "3", "terceiro": "3",
+    }
+    # Extrai número da mensagem
+    num_match = re.search(r"\b([123])\b", msg)
+    if num_match:
+        key = num_match.group(1)
+        if key in valid_keys:
+            return key
+    # Tenta palavras
+    for word, num in word_to_num.items():
+        if word in msg.split() or f" {word} " in f" {msg} ":
+            if num in valid_keys:
+                return num
+    return None
+
+
+def _build_option_prompt(field: str, opt_labels: dict[str, str], is_retry: bool = False) -> str:
+    """Constrói prompt de opções para um campo do wizard.
+
+    Args:
+        field: Nome do campo
+        opt_labels: Dict com labels das opções (ex: {"1": "descrição da opção 1"})
+        is_retry: Se True, inclui mensagem de erro de validação
+
+    Returns: string formatada com as opções.
+    """
+    prefix = (
+        "Não entendi sua resposta. Poderia confirmar qual opção?\n\n"
+        if is_retry
+        else "Que tipo de orçamento você quer criar?\n\n"
+    )
+    lines = [prefix]
+    for key in sorted(opt_labels.keys(), key=int):
+        emoji = ["1️⃣", "2️⃣", "3️⃣"][int(key) - 1]
+        lines.append(f"{emoji} {opt_labels[key]}")
+    lines.append("\nResponda 1 ou 2.")
+    return "\n".join(lines)
+
+
 def _handle_collecting(
     state: dict[str, Any], wizard: dict[str, Any], message: str, phone_number: str, llm: Any
 ) -> dict[str, Any]:
@@ -325,6 +394,8 @@ def _handle_collecting(
     fields = schema["fields"]
     labels = schema["labels"]
     examples = schema["examples"]
+    options = schema.get("options", {})
+    option_labels = schema.get("option_labels", {})
 
     # Verifica cancelamento em qualquer fase
     msg_lower = message.lower().strip()
@@ -336,17 +407,25 @@ def _handle_collecting(
         )
         return state
 
-    # Se é a primeira interação e não há dados reais (só defaults), apresenta o wizard
-    has_real_data = any(
-        field not in schema.get("defaults", {}) for field in wizard.get("collected", {}).keys()
-    )
     # Detecta se a mensagem é apenas o comando (ex: "criar orçamento") sem dados
     msg_words = message.lower().split()
     is_just_command = len(msg_words) <= 3 and any(
         w in message.lower() for w in ["criar", "crie", "novo", "nova", "quero"]
     )
+
+    # Se é a primeira interação e não há dados reais (só defaults), apresenta o wizard
+    has_real_data = any(
+        field not in schema.get("defaults", {}) for field in wizard.get("collected", {}).keys()
+    )
     if not has_real_data and is_just_command:
         # Primeira mensagem só com "criar orçamento" - explica o que precisa
+        first_missing = wizard["missing"][0] if wizard["missing"] else None
+        if first_missing and first_missing in option_labels:
+            state["response"] = _build_option_prompt(first_missing, option_labels[first_missing])
+            wizard["updated_at"] = datetime.utcnow().isoformat()
+            _save_wizard_state(phone_number, wizard)
+            return state
+
         missing_labels = [labels[f] for f in wizard["missing"]]
         type_name = {
             "create_budget": "orçamento",
@@ -366,15 +445,49 @@ def _handle_collecting(
         _save_wizard_state(phone_number, wizard)
         return state
 
-    # Usa LLM para extrair dados da mensagem
-    msg_has_data = bool(re.search(r"\d", message)) or any(
-        w in message.lower() for w in ["r$", "reais", "para", "de", "até", "ate"]
-    )
-    if llm and msg_has_data:
-        extracted = _extract_fields_with_llm(llm, message, wizard_type, wizard["missing"], labels)
-    else:
-        # Fallback sem LLM - parse simples
-        extracted = _extract_fields_simple(message, wizard_type, wizard["missing"])
+    # ── VALIDAÇÃO DE OPÇÕES (só quando wizard já está em andamento) ──
+    # Se o primeiro campo pendente tem opções, valida a resposta do usuário
+    if wizard["missing"] and wizard["missing"][0] in options:
+        field = wizard["missing"][0]
+        field_options = options[field]
+        field_opt_labels = option_labels.get(field, {})
+        # Tenta extrair opção da mensagem
+        selected = _parse_option_choice(message, list(field_options.keys()))
+        if selected:
+            wizard["collected"][field] = field_options[selected]
+            wizard["missing"].remove(field)
+            logger.info(f"Wizard {wizard_type}: opção '{field}' = {selected} → {field_options[selected]}")
+            # Se ainda faltam campos, mostra próximo prompt (não extrai dados da mesma msg)
+            if wizard["missing"]:
+                first_missing = wizard["missing"][0]
+                if first_missing in option_labels:
+                    state["response"] = _build_option_prompt(first_missing, option_labels[first_missing])
+                else:
+                    collected_summary = _format_collected(wizard["collected"], labels)
+                    response = ""
+                    if collected_summary:
+                        response += f"Já tenho:\n{collected_summary}\n\n"
+                    missing_labels = [labels[f] for f in wizard["missing"]]
+                    response += "Ainda preciso de:\n"
+                    for label in missing_labels:
+                        response += f"- {label}\n"
+                    state["response"] = response
+                wizard["updated_at"] = datetime.utcnow().isoformat()
+                _save_wizard_state(phone_number, wizard)
+                return state
+            # Todos os campos coletados
+            wizard["status"] = "confirming"
+            return _handle_confirming(state, wizard, message, phone_number, llm)
+        else:
+            # Resposta inválida — re-prompt com a pergunta de opções
+            state["response"] = _build_option_prompt(field, field_opt_labels, is_retry=True)
+            wizard["updated_at"] = datetime.utcnow().isoformat()
+            _save_wizard_state(phone_number, wizard)
+            return state
+
+    # ── EXTRAÇÃO DE DADOS ──
+    # Primeiro tenta parse simples (rápido, deterministico)
+    extracted = _extract_fields_simple(message, wizard_type, wizard["missing"])
 
     # Mescla dados extraídos
     for field, value in extracted.items():
@@ -382,6 +495,21 @@ def _handle_collecting(
             wizard["collected"][field] = value
             wizard["missing"].remove(field)
             logger.info(f"Wizard {wizard_type}: campo '{field}' = {value}")
+
+    # Se ainda faltam campos e a mensagem tem dados complexos, tenta LLM
+    if wizard["missing"] and llm:
+        msg_has_data = bool(re.search(r"\d", message)) or any(
+            w in message.lower() for w in ["r$", "reais", "para", "de", "até", "ate"]
+        )
+        if msg_has_data:
+            llm_extracted = _extract_fields_with_llm(
+                llm, message, wizard_type, wizard["missing"], labels
+            )
+            for field, value in llm_extracted.items():
+                if field in wizard["missing"] and value is not None:
+                    wizard["collected"][field] = value
+                    wizard["missing"].remove(field)
+                    logger.info(f"Wizard {wizard_type}: campo '{field}' = {value} (via LLM)")
 
     # Verifica se ainda faltam campos
     if wizard["missing"]:
@@ -392,9 +520,14 @@ def _handle_collecting(
         if collected_summary:
             response += f"Já tenho:\n{collected_summary}\n\n"
 
-        response += "Ainda preciso de:\n"
-        for label in missing_labels:
-            response += f"- {label}\n"
+        # Se o próximo campo pendente tem opções, mostra menu de opções
+        first_missing = wizard["missing"][0] if wizard["missing"] else None
+        if first_missing and first_missing in option_labels:
+            response += _build_option_prompt(first_missing, option_labels[first_missing])
+        else:
+            response += "Ainda preciso de:\n"
+            for label in missing_labels:
+                response += f"- {label}\n"
 
         state["response"] = response
         wizard["updated_at"] = datetime.utcnow().isoformat()
@@ -488,17 +621,26 @@ def _handle_executing(
         if wizard_type == "create_budget":
             from app.services.budget_service import create_budget
 
+            total_limit_value = collected.get("total_limit", 0)
+            if not isinstance(total_limit_value, (int, float)):
+                total_limit_value = _parse_value(str(total_limit_value)) or 0
             budget = create_budget(
                 phone_number=phone_number,
                 name=collected.get("name", "Geral"),
-                total_limit=_parse_value(collected.get("total_limit", 0)) or 0,
+                total_limit=float(total_limit_value),
                 period=collected.get("period", "monthly"),
+                budget_type=collected.get("budget_type", "category"),
             )
             state["budget_data"] = budget
             from app.agents import responses as resp
 
-            state["response"] = resp.budget_created(
-                budget["name"], budget["total_limit"], budget["period"]
+            budget_label = "Conta" if budget.get("budget_type") == "general" else "Orçamento"
+            verb = "criada" if budget_label == "Conta" else "criado"
+            state["response"] = (
+                f"{budget_label} {verb}! 📊\n\n"
+                f"{'Nome' if budget_label == 'Conta' else 'Categoria'}: {budget['name']}\n"
+                f"{'Saldo' if budget_label == 'Conta' else 'Limite'}: R$ {budget['total_limit']:,.2f}\n"
+                f"Período: {budget['period']}"
             )
 
         elif wizard_type == "create_goal":
@@ -616,6 +758,16 @@ def _extract_fields_simple(message: str, wizard_type: str, missing_fields: list)
     if is_just_command:
         return result
 
+    # Se a mensagem é só um número e o único campo pendente é numérico
+    only_number = re.match(r"^\s*R?\$?\s*(\d+(?:[.,]\d{1,2})?)\s*$", message)
+    if only_number and len(missing_fields) == 1:
+        only_field = missing_fields[0]
+        if only_field in ["total_limit", "target_amount", "amount"]:
+            val = _parse_value(only_number.group(1))
+            if val is not None:
+                result[only_field] = val
+                return result
+
     # Tenta extrair valor numérico
     if any(f in missing_fields for f in ["total_limit", "target_amount", "amount"]):
         value_match = re.search(
@@ -701,10 +853,15 @@ def _format_confirmation(wizard: dict) -> str:
         name = collected.get("name", "")
         limit = collected.get("total_limit", 0)
         period = collected.get("period", "monthly")
+        budget_type = collected.get("budget_type", "category")
+        type_label = "Conta/Saldo" if budget_type == "general" else "Limite por Categoria"
+        value_label = "Saldo" if budget_type == "general" else "Limite"
+        name_label = "Nome" if budget_type == "general" else "Categoria"
         return (
             f"Resumo do Orçamento:\n\n"
-            f"Categoria: {name}\n"
-            f"Limite: R$ {float(limit):,.2f}\n"
+            f"Tipo: {type_label}\n"
+            f"{name_label}: {name}\n"
+            f"{value_label}: R$ {float(limit):,.2f}\n"
             f"Período: {_period_label(period)}"
         )
 

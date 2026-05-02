@@ -224,6 +224,8 @@ def get_fallback_query(message: str, phone_number: str) -> tuple[str | None, str
         "categorias",
         "gastos em cada categoria",
         "quanto gastei em cada",
+        "resumo por categoria",
+        "resumo de categoria",
     ]
     if _in(category_phrases):
         sql = (

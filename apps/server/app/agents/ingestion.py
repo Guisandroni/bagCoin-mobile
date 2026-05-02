@@ -80,6 +80,45 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
             return state
 
     # =====================================================================
+    # FAST-PATH: Ambiguous input — clarify instead of guessing
+    # =====================================================================
+    # Messages that are just a number or single word shouldn't go to LLM
+    # The LLM might guess (register as expense) when it should ask.
+
+    # Detect: just a number + optional currency suffix
+    # Ex: "52", "52 reais", "52 pila", "R$52", "r$ 52"
+    only_number = re.match(
+        r"^\s*(?:r\$|R\$)?\s*(\d+(?:[.,]\d{1,2})?)\s*(?:reais|real|pila|conto|pau)?\s*$",
+        message,
+    )
+    if only_number:
+        state["intent"] = IntentType.CHAT
+        state["confidence"] = 1.0
+        state["response"] = (
+            "Só o valor não dá pra saber o que fazer! 😅\n"
+            "Isso foi um gasto ou uma receita? E em qual categoria?\n"
+            "Ex: 'Gastei R$ 52 no mercado' ou 'Recebi R$ 100 de freelas'"
+        )
+        elapsed = (time.time() - start_time) * 1000
+        logger.info(f"[classify_intent] Fast-path: just number => chat ({elapsed:.0f}ms)")
+        return state
+
+    # Detect: just a single word (likely a category name)
+    # Ex: "Alimentação", "transporte", "Mercado"
+    words = message.strip().split()
+    if len(words) == 1 and re.match(r"^[a-zA-ZÀ-ÿ]+$", words[0]):
+        state["intent"] = IntentType.CHAT
+        state["confidence"] = 1.0
+        state["response"] = (
+            f"'{words[0]}' — isso é uma categoria que você quer usar?\n"
+            "Me conta mais: é um gasto ou receita? Qual o valor?\n"
+            "Ex: 'Gastei R$ 30 em {words[0]}' ou 'Quero ver meus gastos com {words[0]}'"
+        ).replace("{words[0]}", words[0])
+        elapsed = (time.time() - start_time) * 1000
+        logger.info(f"[classify_intent] Fast-path: single word => chat ({elapsed:.0f}ms)")
+        return state
+
+    # =====================================================================
     # LLM PRIMARY CLASSIFIER
     # =====================================================================
     llm_start = time.time()

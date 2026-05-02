@@ -1,10 +1,13 @@
 """LLM service for BagCoin agents.
 
 Manages LLM provider selection with global caching.
-Priority: NVIDIA (nemotron-70b) -> OpenCodeGo (deepseek-v4-flash) -> Groq (llama-3.3-70b-versatile).
+Priority: OpenCodeGo (multi-model) -> Groq (fallback).
+
+Supports BAGCOIN_MODEL env var for model override without restart.
 """
 
 import logging
+import os
 import time
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -19,8 +22,38 @@ logger = logging.getLogger(__name__)
 _cached_llm: BaseChatModel | None = None
 _cache_error: bool = False
 
-# OpenCodeGo models in priority order
-OPENCODE_MODELS = ["deepseek-v4-flash", "glm-5", "glm-5.1", "kimi-k2.6"]
+# OpenCodeGo models in priority order (ranked by latency)
+OPENCODE_MODELS = [
+    "minimax-m2.7",       # 🥇 2.0s, 119 tok
+    "mimo-v2.5",          # 🥈 3.5s, 104 tok
+    "mimo-v2-omni",       # 🥉 4.0s, 103 tok
+    "mimo-v2-pro",        # 4.4s, 104 tok
+    "kimi-k2.6",          # 4.6s, 230 tok (reasoning)
+    "kimi-k2.5",          # 4.8s, 258 tok (reasoning)
+    "qwen3.6-plus",       # 5.6s, 307 tok
+    "deepseek-v4-flash",  # 1.4-7s*, 181 tok (reasoning, varia)
+    "mimo-v2.5-pro",      # 8.0s, 105 tok
+    "qwen3.5-plus",       # 8.2s, 448 tok
+    "deepseek-v4-pro",    # variable, 208 tok (reasoning)
+    "glm-5.1",            # variable, 223 tok (reasoning)
+    "glm-5",              # variable, 230 tok (reasoning)
+]
+
+
+def _get_model_override() -> str | None:
+    """Check for model override from env var or shared file."""
+    override = os.environ.get("BAGCOIN_MODEL")
+    if override:
+        return override
+    # Fallback: check shared file (allows hot-swap without restart)
+    try:
+        fp = "/app/model_override.txt"
+        if os.path.exists(fp):
+            with open(fp) as f:
+                return f.read().strip() or None
+    except Exception:
+        pass
+    return None
 
 
 def _create_opencode_llm(
@@ -29,16 +62,21 @@ def _create_opencode_llm(
     """Create an OpenCodeGo LLM instance."""
     if not settings.OPENCODE_API_KEY:
         return None
-    model_name = model or OPENCODE_MODELS[0]
+    model_name = model or _get_model_override() or OPENCODE_MODELS[0]
     try:
+        extra = {}
+        # Disable thinking for models that support it (reduces token waste)
+        if any(m in model_name.lower() for m in ["deepseek", "kimi", "glm"]):
+            extra = {"extra_body": {"thinking": {"type": "disabled"}}}
         return ChatOpenAI(
             api_key=settings.OPENCODE_API_KEY,
             base_url="https://opencode.ai/zen/go/v1",
             model=model_name,
             temperature=temperature,
             max_tokens=2048,
-            timeout=15,
+            timeout=30,
             max_retries=1,
+            model_kwargs=extra,
         )
     except Exception as e:
         logger.warning(f"Error creating OpenCodeGo LLM ({model_name}): {e}")
@@ -64,43 +102,31 @@ def _create_groq_llm(temperature: float = 0.2, model: str | None = None) -> Base
         return None
 
 
-def _create_nvidia_llm(
-    temperature: float = 0.2, model: str | None = None
-) -> BaseChatModel | None:
-    """Create an NVIDIA LLM instance (primary provider)."""
-    if not settings.NVIDIA_API_KEY:
-        return None
-    model_name = model or settings.NVIDIA_MODEL
-    try:
-        return ChatOpenAI(
-            api_key=settings.NVIDIA_API_KEY,
-            base_url=settings.NVIDIA_BASE_URL,
-            model=model_name,
-            temperature=temperature,
-            max_tokens=4096,
-            timeout=30,
-            max_retries=2,
-        )
-    except Exception as e:
-        logger.warning(f"Error creating NVIDIA LLM ({model_name}): {e}")
-        return None
-
-
 def _invalidate_cache() -> None:
-    """Invalidate the LLM cache on error."""
+    """Invalidate the LLM cache on error or model change."""
     global _cached_llm, _cache_error
     _cached_llm = None
     _cache_error = True
-    logger.info("LLM cache invalidated due to error.")
+    logger.info("LLM cache invalidated.")
 
 
 def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatModel | None:
     """Select the best available LLM.
 
-    Priority: NVIDIA -> OpenCodeGo -> Groq.
-    Cache is permanent — only invalidated on error.
+    Priority: OpenCodeGo (model list) -> Groq (fallback).
+    Cache is invalidated when BAGCOIN_MODEL changes.
     """
     global _cached_llm, _cache_error
+
+    override = _get_model_override()
+    if override:
+        # Model override active — always create fresh (no cache)
+        opencode = _create_opencode_llm(temperature, override)
+        if opencode:
+            logger.info(f"LLM selected: OpenCodeGo/{override} (override)")
+            _cached_llm = opencode
+            _cache_error = False
+            return opencode
 
     # Return cached LLM if available and no error state
     if _cached_llm and not _cache_error:
@@ -110,15 +136,7 @@ def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatM
     if _cache_error:
         _cached_llm = None
 
-    # 1. NVIDIA (primary) — nemotron-70b via OpenAI-compatible API
-    nvidia = _create_nvidia_llm(temperature, model)
-    if nvidia:
-        logger.info(f"LLM selected: NVIDIA ({model or settings.NVIDIA_MODEL})")
-        _cached_llm = nvidia
-        _cache_error = False
-        return nvidia
-
-    # 2. OpenCodeGo (fallback 1) — deepseek-v4-flash is fastest
+    # 1. OpenCodeGo — try models in priority order
     models_to_try = [model] if model else OPENCODE_MODELS
     for model_name in models_to_try:
         opencode = _create_opencode_llm(temperature, model_name)
@@ -128,7 +146,7 @@ def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatM
             _cache_error = False
             return opencode
 
-    # 3. Fallback: Groq
+    # 2. Fallback: Groq
     groq = _create_groq_llm(temperature, model)
     if groq:
         logger.info(f"LLM fallback: Groq ({model or settings.DEFAULT_LLM_MODEL})")
@@ -136,7 +154,7 @@ def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatM
         _cache_error = False
         return groq
 
-    # 3. No LLM available
+    # No LLM available
     logger.warning("No LLM available. Running in offline mode (fast-path only).")
     _cached_llm = None
     return None

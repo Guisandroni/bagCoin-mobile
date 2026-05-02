@@ -805,6 +805,10 @@ def route_by_intent(state: AgentState) -> str:
     if error:
         return "build_response"
 
+    # Fast-path: response already set by classify_intent (e.g. ambiguous input)
+    if state.get("response"):
+        return "build_response"
+
     routing_map = {
         IntentType.REGISTER_EXPENSE.value: "extract_data",
         IntentType.REGISTER_INCOME.value: "extract_data",

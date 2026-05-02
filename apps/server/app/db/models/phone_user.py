@@ -28,7 +28,7 @@ class PhoneUser(Base, TimestampMixin):
     __tablename__ = "phone_users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    phone_number: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
+    phone_number: Mapped[str] = mapped_column(String(80), unique=True, index=True, nullable=False)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[UserStatus] = mapped_column(
         String(20), default=UserStatus.ACTIVE.value, nullable=False

@@ -109,13 +109,13 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
         )
 
         # Calcula totais
-        total_income = sum(t.amount for t in transactions if t.type.value == "INCOME")
-        total_expense = sum(t.amount for t in transactions if t.type.value == "EXPENSE")
+        total_income = sum(t.amount for t in transactions if str(t.type) == "INCOME")
+        total_expense = sum(t.amount for t in transactions if str(t.type) == "EXPENSE")
 
         # Agrupa por categoria
         category_totals = {}
         for t in transactions:
-            if t.type.value == "EXPENSE":
+            if str(t.type) == "EXPENSE":
                 cat_name = t.category.name if t.category else "Outros"
                 category_totals[cat_name] = category_totals.get(cat_name, 0) + t.amount
 
@@ -128,7 +128,7 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
         tx_formatted = [
             {
                 "date": t.transaction_date.strftime("%d/%m/%Y"),
-                "type": t.type.value,
+                "type": str(t.type),
                 "category": t.category.name if t.category else "Outros",
                 "description": t.description or "-",
                 "amount": t.amount,
@@ -146,7 +146,7 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
 
         budget_info = None
         if budget:
-            budget_expenses = sum(t.amount for t in transactions if t.type.value == "EXPENSE")
+            budget_expenses = sum(t.amount for t in transactions if str(t.type) == "EXPENSE")
             budget_info = {
                 "limit": budget.total_limit,
                 "spent": budget_expenses,

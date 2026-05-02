@@ -183,13 +183,28 @@ def _parse_value(value_str: str) -> float | None:
     """Extrai valor numérico de uma string."""
     if not value_str:
         return None
-    # Remove R$, pontos de milhar, converte vírgula decimal
-    cleaned = re.sub(r"R?\$?\s*", "", str(value_str))
-    cleaned = cleaned.replace(".", "").replace(",", ".")
-    # Se ficou com múltiplos pontos, o último é decimal
-    if cleaned.count(".") > 1:
-        parts = cleaned.split(".")
-        cleaned = "".join(parts[:-1]) + "." + parts[-1]
+    # Remove R$, espaços
+    original = re.sub(r"R?\$?\s*", "", str(value_str))
+
+    has_dot = "." in original
+    has_comma = "," in original
+
+    if has_dot and has_comma:
+        # Ambos: último separador é decimal (ex: "1.500,50" → 1500.50)
+        cleaned = original.replace(".", "").replace(",", ".")
+    elif has_dot:
+        # Só ponto. Heurística: se estiver a 3 chars do final com ≤5 chars
+        # totais, é decimal (ex: "50.40", "3.40"). Caso contrário, milhar.
+        dot_pos = original.rfind(".")
+        if dot_pos == len(original) - 3 and len(original) <= 6:
+            cleaned = original.replace(".", ".")  # mantém como decimal
+        else:
+            cleaned = original.replace(".", "")  # remove milhar
+    elif has_comma:
+        cleaned = original.replace(",", ".")
+    else:
+        cleaned = original
+
     try:
         return float(cleaned)
     except ValueError:
@@ -398,9 +413,23 @@ def _handle_collecting(
     option_labels = schema.get("option_labels", {})
 
     # Verifica cancelamento em qualquer fase
+    # Só cancela se a mensagem é EXPLICITAMENTE de cancelamento
+    # (palavra isolada ou comando curto, não frases como "não sei")
     msg_lower = message.lower().strip()
-    cancel_words = ["não", "nao", "no", "cancelar", "cancela", "esquece", "errado", "desistir"]
-    if any(w in msg_lower for w in cancel_words):
+    msg_words_token = msg_lower.split()
+    cancel_words = ["cancelar", "cancela", "esquece", "desistir", "desisto", "para", "pare"]
+    is_cancel = any(w in msg_words_token for w in cancel_words)
+
+    # "não" só cancela se for palavra única ou "não quero"
+    if not is_cancel:
+        if msg_words_token == ["não"] or msg_words_token == ["nao"]:
+            is_cancel = True
+        elif len(msg_words_token) == 2 and msg_words_token[0] in ["não", "nao"] and msg_words_token[1] in ["quero", "obrigado", "valeu"]:
+            is_cancel = True
+        elif len(msg_words_token) <= 2 and any(w in ["errado", "desiste"] for w in msg_words_token):
+            is_cancel = True
+
+    if is_cancel:
         _clear_wizard_state(phone_number)
         state["response"] = (
             "Cancelado. Se quiser tentar de novo, é só mandar 'criar orçamento' ou 'criar meta'."

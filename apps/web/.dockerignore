@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+.env.local
+.env*.local
+e2e
+test-results
+playwright-report
+public/reference
+src/__tests__
+vitest.config.ts
+playwright.config.ts

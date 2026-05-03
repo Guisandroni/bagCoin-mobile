@@ -17,8 +17,7 @@ from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, 
 
 logger = logging.getLogger(__name__)
 
-REPORTS_DIR = "/app/reports"
-os.makedirs(REPORTS_DIR, exist_ok=True)
+REPORTS_DIR = os.path.join(os.getcwd(), "reports")
 
 
 def generate_financial_report(

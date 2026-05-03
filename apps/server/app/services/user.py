@@ -8,11 +8,16 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AlreadyExistsError, AuthenticationError, NotFoundError
-from app.core.security import get_password_hash, verify_password
+from app.core.exceptions import (
+    AlreadyExistsError,
+    AuthenticationError,
+    BadRequestError,
+    NotFoundError,
+)
+from app.core.security import get_password_hash, verify_google_token, verify_password
 from app.db.models.user import User
 from app.repositories import user_repo
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.user import GoogleLoginRequest, UserCreate, UserUpdate
 
 if TYPE_CHECKING:
     from app.schemas.conversation_share import AdminUserList
@@ -113,7 +118,53 @@ class UserService:
             email=user_in.email,
             hashed_password=hashed_password,
             full_name=user_in.full_name,
+            phone_number=user_in.phone_number,
             role=user_in.role.value,
+        )
+
+    async def google_auth(self, request: GoogleLoginRequest) -> User:
+        """Authenticate or register a user via Google OAuth.
+
+        Verifies the Google ID token, then either:
+        - Returns existing user with matching google_id
+        - Returns existing user with matching email (links Google account)
+        - Creates a new user
+
+        Raises:
+            AuthenticationError: If the Google token is invalid.
+        """
+        google_payload = verify_google_token(request.id_token)
+        if not google_payload:
+            raise AuthenticationError(message="Invalid Google token")
+
+        google_id = google_payload.get("sub")
+        email = google_payload.get("email", "").lower()
+        name = google_payload.get("name")
+
+        if not email:
+            raise BadRequestError(message="Google account has no email address")
+
+        existing = await user_repo.get_by_google_id(self.db, google_id)
+        if existing:
+            return existing
+
+        existing_email = await user_repo.get_by_email(self.db, email)
+        if existing_email:
+            if not existing_email.google_id:
+                await user_repo.update(
+                    self.db,
+                    db_user=existing_email,
+                    update_data={"google_id": google_id, "auth_provider": "google"},
+                )
+            return existing_email
+
+        return await user_repo.create(
+            self.db,
+            email=email,
+            hashed_password=None,
+            full_name=name,
+            google_id=google_id,
+            auth_provider="google",
         )
 
     async def authenticate(self, email: str, password: str) -> User:

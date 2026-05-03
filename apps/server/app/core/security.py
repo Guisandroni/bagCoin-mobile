@@ -1,10 +1,12 @@
-"""Security utilities for JWT authentication."""
+"""Security utilities for JWT authentication and Google OAuth."""
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import bcrypt
 import jwt
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 
 from app.core.config import settings
 
@@ -64,3 +66,21 @@ def get_password_hash(password: str) -> str:
         password.encode("utf-8"),
         bcrypt.gensalt(),
     ).decode("utf-8")
+
+
+def verify_google_token(token: str) -> dict[str, Any] | None:
+    """Verify a Google ID token and return the payload.
+
+    Returns None if the token is invalid or expired.
+    Returns dict with keys: sub (google_id), email, name, picture.
+    """
+    try:
+        id_info = google_id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            settings.GOOGLE_CLIENT_ID,
+            clock_skew_in_seconds=10,
+        )
+        return id_info
+    except ValueError:
+        return None

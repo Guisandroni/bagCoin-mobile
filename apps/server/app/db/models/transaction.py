@@ -1,12 +1,22 @@
 """Transaction model for financial records."""
 
+from __future__ import annotations
+
+import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
 from app.db.models.enums import TransactionType
+
+if TYPE_CHECKING:
+    from app.db.models.category import Category
+    from app.db.models.phone_user import PhoneUser
+    from app.db.models.user import User
 
 
 class Transaction(Base, TimestampMixin):
@@ -14,7 +24,8 @@ class Transaction(Base, TimestampMixin):
 
     Attributes:
         id: Auto-increment primary key.
-        user_id: FK to phone_users.
+        user_id: FK to phone_users (for WhatsApp/Telegram users).
+        user_uuid: FK to users (for web app authenticated users).
         type: Transaction type (EXPENSE, INCOME, TRANSFER, ADJUSTMENT).
         amount: Transaction amount.
         currency: Currency code (default "BRL").
@@ -22,7 +33,7 @@ class Transaction(Base, TimestampMixin):
         description: Optional description.
         source_format: Origin format (text, audio, image, document).
         transaction_date: When the transaction occurred.
-        confidence_score: AI extraction confidence (0.0–1.0).
+        confidence_score: AI extraction confidence (0.0-1.0).
         raw_input: Original raw input from the user.
     """
 
@@ -32,7 +43,13 @@ class Transaction(Base, TimestampMixin):
     user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("phone_users.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
+        index=True,
+    )
+    user_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
         index=True,
     )
     type: Mapped[TransactionType] = mapped_column(
@@ -57,8 +74,9 @@ class Transaction(Base, TimestampMixin):
     raw_input: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Relationships
-    phone_user: Mapped["PhoneUser"] = relationship("PhoneUser", back_populates="transactions")
-    category: Mapped["Category | None"] = relationship("Category", back_populates="transactions")
+    phone_user: Mapped[PhoneUser | None] = relationship("PhoneUser", back_populates="transactions")
+    category: Mapped[Category | None] = relationship("Category", back_populates="transactions")
+    user: Mapped[User | None] = relationship("User", back_populates="transactions")
 
     def __repr__(self) -> str:
         return (

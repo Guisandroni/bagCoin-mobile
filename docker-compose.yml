@@ -34,6 +34,8 @@ services:
       - WHATSAPP_BRIDGE_URL=${WHATSAPP_BRIDGE_URL:-http://whatsapp-bridge:3001}
       - WHATSAPP_API_KEY=${WHATSAPP_API_KEY:-bagcoin_webhook_secret_123}
       - API_KEY=${API_KEY:-bagcoin_webhook_secret_123}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - backend
@@ -42,8 +44,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      whatsapp-bridge:
-        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/v1/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   db:
@@ -85,6 +91,7 @@ services:
     restart: unless-stopped
 
   celery_worker:
+    profiles: ["full"]
     image: bagcoin_api_backend:dev
     container_name: bagcoin_api_celery_worker
     volumes:
@@ -118,6 +125,7 @@ services:
     restart: unless-stopped
 
   celery_beat:
+    profiles: ["full"]
     image: bagcoin_api_backend:dev
     container_name: bagcoin_api_celery_beat
     volumes:
@@ -146,6 +154,7 @@ services:
     restart: unless-stopped
 
   flower:
+    profiles: ["full"]
     image: bagcoin_api_backend:dev
     container_name: bagcoin_api_flower
     command: celery -A app.worker.celery_app flower --port=5555
@@ -174,6 +183,7 @@ services:
     restart: unless-stopped
 
   whatsapp-bridge:
+    profiles: ["full"]
     build:
       context: ./apps/whatsapp-bridge
       dockerfile: Dockerfile
@@ -192,6 +202,7 @@ services:
     restart: unless-stopped
 
   telegram-bridge:
+    profiles: ["full"]
     build:
       context: ./apps/telegram-bridge
       dockerfile: Dockerfile
@@ -206,6 +217,29 @@ services:
     depends_on:
       app:
         condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      target: dev
+    image: bagcoin_web:dev
+    container_name: bagcoin_web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/web/src:/app/src:ro
+      - ./apps/web/public:/app/public:ro
+      - ./apps/web/package.json:/app/package.json:ro
+      - ./apps/web/next.config.ts:/app/next.config.ts:ro
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - NEXT_TELEMETRY_DISABLED=1
+    networks:
+      - backend
+    depends_on:
+      - app
     restart: unless-stopped
 
 networks:

@@ -24,6 +24,12 @@ async def get_by_email(db: AsyncSession, email: str) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def get_by_google_id(db: AsyncSession, google_id: str) -> User | None:
+    """Get user by Google ID."""
+    result = await db.execute(select(User).where(User.google_id == google_id))
+    return result.scalar_one_or_none()
+
+
 async def get_multi(
     db: AsyncSession,
     *,
@@ -46,6 +52,9 @@ async def create(
     email: str,
     hashed_password: str | None,
     full_name: str | None = None,
+    phone_number: str | None = None,
+    google_id: str | None = None,
+    auth_provider: str = "email",
     is_active: bool = True,
     role: str = "user",
 ) -> User:
@@ -57,6 +66,9 @@ async def create(
         email=email,
         hashed_password=hashed_password,
         full_name=full_name,
+        phone_number=phone_number,
+        google_id=google_id,
+        auth_provider=auth_provider,
         is_active=is_active,
         role=role,
     )

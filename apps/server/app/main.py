@@ -42,16 +42,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[LifespanState, None]:
     await redis_client.connect()
     state["redis"] = redis_client
 
-    # Create BagCoin tables if they don't exist
+    # Tables are managed by Alembic migrations (run via entrypoint.sh).
+    # create_all is kept as fallback for environments without Alembic.
     try:
-        import app.db.models  # noqa: F401 - import all models to register them
+        import app.db.models  # noqa: F401 - register all models
         from app.db.base import Base
         from app.db.session import sync_engine
+        from sqlalchemy import inspect
 
-        Base.metadata.create_all(bind=sync_engine)
-        logger.info("BagCoin tables created/verified")
+        if sync_engine is not None:
+            inspector = inspect(sync_engine)
+            existing = inspector.get_table_names()
+            if not existing:
+                Base.metadata.create_all(bind=sync_engine)
+                logger.info("BagCoin tables created (fallback)")
+            else:
+                logger.info("BagCoin tables already exist, skipping create_all")
     except Exception as e:
-        logger.warning(f"Could not create BagCoin tables: {e}")
+        logger.warning(f"Could not verify/create BagCoin tables: {e}")
 
     yield state
 

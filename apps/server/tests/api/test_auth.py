@@ -33,6 +33,9 @@ class MockUser:
         self.is_active = is_active
         self.role = role
         self.hashed_password = "hashed"
+        self.phone_number = None
+        self.google_id = None
+        self.auth_provider = "email"
         self.avatar_url = None
         self.created_at = datetime.now(UTC)
         self.updated_at = datetime.now(UTC)
@@ -52,6 +55,7 @@ def mock_user_service(mock_user: MockUser) -> MagicMock:
     service.register = ServiceMock(return_value=mock_user)
     service.get_by_id = ServiceMock(return_value=mock_user)
     service.get_by_email = ServiceMock(return_value=mock_user)
+    service.google_auth = ServiceMock(return_value=mock_user)
     return service
 
 
@@ -229,3 +233,82 @@ async def test_get_current_user(
     assert response.status_code == 200
     data = response.json()
     assert data["email"] == mock_user.email
+
+
+@pytest.mark.anyio
+async def test_google_login_success(
+    client_with_mock_service: AsyncClient,
+    mock_user: MockUser,
+    mock_user_service: MagicMock,
+):
+    """Test successful Google login."""
+    mock_user_service.google_auth = ServiceMock(return_value=mock_user)
+
+    response = await client_with_mock_service.post(
+        f"{settings.API_V1_STR}/auth/google",
+        json={"id_token": "valid-google-id-token"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert data["token_type"] == "bearer"
+
+
+@pytest.mark.anyio
+async def test_google_login_invalid_token(
+    client_with_mock_service: AsyncClient,
+    mock_user_service: MagicMock,
+):
+    """Test Google login with invalid token."""
+    from app.core.exceptions import AuthenticationError
+
+    mock_user_service.google_auth = ServiceMock(
+        side_effect=AuthenticationError(message="Invalid Google token")
+    )
+
+    response = await client_with_mock_service.post(
+        f"{settings.API_V1_STR}/auth/google",
+        json={"id_token": "invalid-token"},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_register_with_phone(
+    client_with_mock_service: AsyncClient,
+    mock_user_service: MagicMock,
+):
+    """Test registration with phone number."""
+    mock_user_service.register = ServiceMock(return_value=mock_user_service.authenticate.return_value)
+
+    response = await client_with_mock_service.post(
+        f"{settings.API_V1_STR}/auth/register",
+        json={
+            "email": "new@example.com",
+            "password": "password123",
+            "full_name": "New User",
+            "phone_number": "+5511999999999",
+        },
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["email"] == "test@example.com"
+
+
+@pytest.mark.anyio
+async def test_register_inactive_user_google(
+    client_with_mock_service: AsyncClient,
+    mock_user_service: MagicMock,
+):
+    """Test Google login for inactive user."""
+    from app.core.exceptions import AuthenticationError
+
+    inactive_user = MockUser(is_active=False)
+    mock_user_service.google_auth = ServiceMock(return_value=inactive_user)
+
+    response = await client_with_mock_service.post(
+        f"{settings.API_V1_STR}/auth/google",
+        json={"id_token": "valid-token"},
+    )
+    assert response.status_code == 401

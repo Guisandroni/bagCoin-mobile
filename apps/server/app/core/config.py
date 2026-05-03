@@ -160,6 +160,10 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: str = ""
     DEFAULT_LLM_MODEL: str = "minimax-m2.7"
 
+    # === Google OAuth ===
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+
     # === WhatsApp Bridge ===
     WHATSAPP_BRIDGE_URL: str = "http://whatsapp-bridge:3001"
     WHATSAPP_API_KEY: str = "bagcoin_webhook_secret_123"

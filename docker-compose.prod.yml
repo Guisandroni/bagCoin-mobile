@@ -250,6 +250,46 @@ services:
           cpus: '0.25'
           memory: 128M
 
+  web:
+    build:
+      context: ./apps/web
+      target: prod
+    container_name: bagcoin_web
+    environment:
+      - NEXT_PUBLIC_API_URL=https://api.${DOMAIN:-bagcoin.app}/api/v1
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - NEXT_TELEMETRY_DISABLED=1
+      - NODE_ENV=production
+    networks:
+      - traefik-public
+      - backend-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bagcoin_web.rule=Host(`${DOMAIN:-bagcoin.app}`)"
+      - "traefik.http.routers.bagcoin_web.entrypoints=websecure"
+      - "traefik.http.routers.bagcoin_web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.bagcoin_web.middlewares=bagcoin_web-security-headers@docker"
+      - "traefik.http.services.bagcoin_web.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.bagcoin_web-security-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.bagcoin_web-security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.bagcoin_web-security-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.bagcoin_web-security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.bagcoin_web-security-headers.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.bagcoin_web-security-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.bagcoin_web-security-headers.headers.frameDeny=true"
+      - "traefik.docker.network=traefik-public"
+    depends_on:
+      - app
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
 networks:
   traefik-public:
     driver: bridge

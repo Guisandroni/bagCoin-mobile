@@ -20,6 +20,7 @@ class UserBase(BaseSchema):
 
     email: EmailStr = Field(max_length=255)
     full_name: str | None = Field(default=None, max_length=255)
+    phone_number: str | None = Field(default=None, max_length=20)
     is_active: bool = True
 
     @field_validator("email")
@@ -34,6 +35,7 @@ class UserCreate(BaseSchema):
     email: EmailStr = Field(max_length=255)
     password: str = Field(min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=255)
+    phone_number: str | None = Field(default=None, max_length=20)
     role: UserRole = UserRole.USER
 
     @field_validator("email")
@@ -48,6 +50,7 @@ class UserUpdate(BaseSchema):
     email: EmailStr | None = Field(default=None, max_length=255)
     password: str | None = Field(default=None, min_length=8, max_length=128)
     full_name: str | None = Field(default=None, max_length=255)
+    phone_number: str | None = Field(default=None, max_length=20)
     is_active: bool | None = None
     role: UserRole | None = None
 
@@ -63,9 +66,16 @@ class UserRead(UserBase, TimestampSchema):
     id: UUID
     role: UserRole = UserRole.USER
     avatar_url: str | None = None
+    auth_provider: str = "email"
 
 
 class UserInDB(UserRead):
     """User schema with hashed password (internal use)."""
 
     hashed_password: str
+
+
+class GoogleLoginRequest(BaseSchema):
+    """Schema for Google OAuth login."""
+
+    id_token: str = Field(min_length=1, description="Google ID token from OAuth credential")

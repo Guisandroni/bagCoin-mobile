@@ -26,17 +26,26 @@ from app.schemas.common import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhook", tags=["webhook"])
 
-# Redis client para deduplicação
+# Redis client para deduplicação (lazy init)
 _redis = None
-try:
-    import redis as redis_module
+_redis_initialized = False
 
-    _redis = redis_module.from_url(settings.REDIS_URL, decode_responses=True)
-    _redis.ping()
-    logger.info("Redis conectado para deduplicação")
-except Exception as e:
-    logger.warning(f"Redis indisponível para deduplicação: {e}")
-    _redis = None
+
+def _get_redis():
+    global _redis, _redis_initialized
+    if _redis_initialized:
+        return _redis
+    _redis_initialized = True
+    try:
+        import redis as redis_module
+
+        _redis = redis_module.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=2)
+        _redis.ping()
+        logger.info("Redis conectado para deduplicação")
+    except Exception as e:
+        logger.warning(f"Redis indisponível para deduplicação: {e}")
+        _redis = None
+    return _redis
 
 
 def normalize_whatsapp_id(chat_id: str) -> str:
@@ -49,12 +58,13 @@ def normalize_whatsapp_id(chat_id: str) -> str:
 
 def is_duplicate_message(message_id: str) -> bool:
     """Retorna True se a mensagem já foi processada nos últimos 60 segundos."""
-    if not message_id or not _redis:
+    r = _get_redis()
+    if not message_id or not r:
         return False
     key = f"msg:processed:{message_id}"
-    if _redis.exists(key):
+    if r.exists(key):
         return True
-    _redis.setex(key, 60, "1")
+    r.setex(key, 60, "1")
     return False
 
 
@@ -241,5 +251,6 @@ async def receive_telegram_message(
 @router.get("/health")
 async def webhook_health():
     """Health check do webhook."""
-    redis_status = "ok" if (_redis and _redis.ping()) else "unavailable"
+    r = _get_redis()
+    redis_status = "ok" if (r and r.ping()) else "unavailable"
     return {"status": "ok", "service": "webhook", "redis": redis_status}

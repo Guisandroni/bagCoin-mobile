@@ -160,6 +160,29 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  web:
+    build:
+      context: ./apps/web
+      target: dev
+    image: bagcoin_web:dev
+    container_name: bagcoin_web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/web/src:/app/src:ro
+      - ./apps/web/public:/app/public:ro
+      - ./apps/web/package.json:/app/package.json:ro
+      - ./apps/web/next.config.ts:/app/next.config.ts:ro
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - NEXT_TELEMETRY_DISABLED=1
+    networks:
+      - backend
+    depends_on:
+      - app
+    restart: unless-stopped
+
 networks:
   backend:
     driver: bridge

@@ -1,13 +1,19 @@
 """User database model."""
 
+from __future__ import annotations
+
 import uuid
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.db.models.transaction import Transaction
 
 
 class UserRole(StrEnum):
@@ -31,9 +37,17 @@ class User(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    auth_provider: Mapped[str] = mapped_column(String(20), default="email", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     role: Mapped[str] = mapped_column(String(50), default=UserRole.USER.value, nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Relationships
+    transactions: Mapped[list[Transaction]] = relationship(
+        "Transaction", back_populates="user", cascade="all, delete-orphan"
+    )
 
     @property
     def user_role(self) -> UserRole:

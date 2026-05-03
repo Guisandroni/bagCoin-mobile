@@ -10,7 +10,7 @@ from app.api.deps import CurrentUser, UserSvc
 from app.core.exceptions import AuthenticationError
 from app.core.security import create_access_token, create_refresh_token, verify_token
 from app.schemas.token import RefreshTokenRequest, Token
-from app.schemas.user import UserCreate, UserRead
+from app.schemas.user import GoogleLoginRequest, UserCreate, UserRead
 
 router = APIRouter()
 
@@ -73,6 +73,24 @@ async def refresh_token(
     access_token = create_access_token(subject=str(user.id))
     new_refresh_token = create_refresh_token(subject=str(user.id))
     return Token(access_token=access_token, refresh_token=new_refresh_token)
+
+
+@router.post("/google", response_model=Token)
+async def google_login(
+    body: GoogleLoginRequest,
+    user_service: UserSvc,
+) -> Any:
+    """Login or register via Google OAuth.
+
+    Receives a Google ID token from the client, verifies it,
+    and returns JWT access + refresh tokens.
+    """
+    user = await user_service.google_auth(body)
+    if not user.is_active:
+        raise AuthenticationError(message="User account is disabled")
+    access_token = create_access_token(subject=str(user.id))
+    refresh_token = create_refresh_token(subject=str(user.id))
+    return Token(access_token=access_token, refresh_token=refresh_token)
 
 
 @router.get("/me", response_model=UserRead)

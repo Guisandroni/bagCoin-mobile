@@ -4,42 +4,57 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 
-# === Async Engine & Session ===
+# === Lazy engine initialization (avoids import-time connection hang) ===
 
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.DEBUG,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_timeout=settings.DB_POOL_TIMEOUT,
-)
+_async_engine: AsyncEngine | None = None
+_sync_engine: object | None = None
 
-async_session_maker = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
 
-# === Sync Engine & Session (for agents/tools that need sync access) ===
+def _get_config():
+    return {
+        "echo": settings.DEBUG,
+        "pool_size": settings.DB_POOL_SIZE,
+        "max_overflow": settings.DB_MAX_OVERFLOW,
+        "pool_timeout": settings.DB_POOL_TIMEOUT,
+        "connect_args": {"timeout": 5},
+    }
 
-sync_engine = create_engine(
-    settings.DATABASE_URL_SYNC,
-    echo=settings.DEBUG,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
-    pool_timeout=settings.DB_POOL_TIMEOUT,
-)
 
-sync_session_maker = sessionmaker(
-    bind=sync_engine,
-    class_=Session,
-    expire_on_commit=False,
-)
+def _get_async_engine() -> AsyncEngine:
+    global _async_engine
+    if _async_engine is None:
+        _async_engine = create_async_engine(settings.DATABASE_URL, **_get_config())
+    return _async_engine
+
+
+def _get_sync_engine():
+    global _sync_engine
+    if _sync_engine is None:
+        _sync_engine = create_engine(settings.DATABASE_URL_SYNC, **_get_config())
+    return _sync_engine
+
+
+# Backward-compatible lazy module-level attributes via __getattr__
+def __getattr__(name: str):
+    if name == "engine":
+        return _get_async_engine()
+    if name == "sync_engine":
+        return _get_sync_engine()
+    if name == "async_session_maker":
+        return async_sessionmaker(_get_async_engine(), class_=AsyncSession, expire_on_commit=False)
+    if name == "sync_session_maker":
+        return sessionmaker(bind=_get_sync_engine(), class_=Session, expire_on_commit=False)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -47,7 +62,10 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
     Use this with FastAPI Depends().
     """
-    async with async_session_maker() as session:
+    sessionmaker = async_sessionmaker(
+        _get_async_engine(), class_=AsyncSession, expire_on_commit=False
+    )
+    async with sessionmaker() as session:
         try:
             yield session
             await session.commit()
@@ -62,7 +80,10 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
 
     Use this with 'async with' for manual session management (e.g., WebSockets).
     """
-    async with async_session_maker() as session:
+    sessionmaker = async_sessionmaker(
+        _get_async_engine(), class_=AsyncSession, expire_on_commit=False
+    )
+    async with sessionmaker() as session:
         try:
             yield session
             await session.commit()
@@ -104,4 +125,10 @@ async def get_worker_db_context() -> AsyncGenerator[AsyncSession, None]:
 
 async def close_db() -> None:
     """Close database connections."""
-    await engine.dispose()
+    global _async_engine, _sync_engine
+    if _async_engine is not None:
+        await _async_engine.dispose()
+        _async_engine = None
+    if _sync_engine is not None:
+        _sync_engine.dispose()
+        _sync_engine = None

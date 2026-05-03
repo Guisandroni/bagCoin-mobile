@@ -10,6 +10,7 @@ from app.api.routes.v1 import admin_conversations
 from app.api.routes.v1 import agent
 from app.api.routes.v1 import files
 from app.api.routes.v1 import webhook
+from app.api.routes.v1 import transactions
 
 v1_router = APIRouter()
 
@@ -47,3 +48,6 @@ v1_router.include_router(webhook.router, tags=["webhook"])
 from app.api.routes.v1 import categories as categories_router
 
 v1_router.include_router(categories_router.router, prefix="/bagcoin", tags=["bagcoin"])
+
+# Transaction REST routes for web frontend (JWT auth)
+v1_router.include_router(transactions.router, prefix="/transactions", tags=["transactions"])

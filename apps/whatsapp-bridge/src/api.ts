@@ -33,7 +33,7 @@ export async function sendToFastApi(payload: WebhookPayload): Promise<WebhookRes
 }
 
 export function isDocumentResponse(data: WebhookResponse | null): data is WebhookResponse & { document: NonNullable<WebhookResponse['document']> } {
-  return data !== null && 'document' in data && data.document !== undefined;
+  return data !== null && 'document' in data && data.document != null;
 }
 
 export function hasReply(data: WebhookResponse | null): data is WebhookResponse & { reply: string } {

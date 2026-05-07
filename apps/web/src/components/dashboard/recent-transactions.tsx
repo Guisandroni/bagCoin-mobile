@@ -7,13 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAppStore } from "@/lib/store"
 import { useTransactionSummary } from "@/hooks/use-transactions"
 import { CATEGORIES } from "@/lib/constants"
-import { cn } from "@/lib/utils"
-
-function formatCurrency(v: number) {
-  const abs = Math.abs(v)
-  const formatted = abs.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
-  return (v < 0 ? "-R$ " : "R$ ") + formatted
-}
+import { cn, formatCurrency } from "@/lib/utils"
 
 export function RecentTransactions() {
   const openModal = useAppStore((s) => s.openModal)

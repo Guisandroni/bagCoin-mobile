@@ -153,5 +153,25 @@ apiClient.interceptors.response.use(
   },
 )
 
+// ---- typed convenience wrapper ----
+
+export const api = {
+  get: async <T>(url: string) => {
+    const { data } = await apiClient.get<T>(url)
+    return data
+  },
+  post: async <T>(url: string, body?: unknown) => {
+    const { data } = await apiClient.post<T>(url, body)
+    return data
+  },
+  patch: async <T>(url: string, body?: unknown) => {
+    const { data } = await apiClient.patch<T>(url, body)
+    return data
+  },
+  delete: async (url: string) => {
+    await apiClient.delete(url)
+  },
+}
+
 export { setAuthCookies, clearAuthCookies }
 export default apiClient

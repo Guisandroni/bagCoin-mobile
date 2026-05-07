@@ -2,7 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, List, Plus, Wallet, Settings } from "lucide-react"
+import {
+  Home,
+  List,
+  BarChart3,
+  Target,
+  FileText,
+  Plus,
+  Wallet,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
 import { MOBILE_NAV_ITEMS } from "@/lib/constants"
@@ -10,9 +18,11 @@ import { MOBILE_NAV_ITEMS } from "@/lib/constants"
 const iconMap: Record<string, React.ElementType> = {
   Home,
   List,
+  BarChart3,
+  Target,
+  FileText,
   Plus,
   Wallet,
-  Settings,
 }
 
 export function BottomNav() {
@@ -21,7 +31,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/95 backdrop-blur-md lg:hidden">
-      <div className="flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)] pt-1">
+      <div className="flex items-center gap-1 overflow-x-auto px-2 pb-[env(safe-area-inset-bottom)] pt-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = iconMap[item.icon]
           const isActive =
@@ -36,7 +46,7 @@ export function BottomNav() {
               <button
                 key={item.id}
                 onClick={() => openModal("new-transaction")}
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg transition-transform active:scale-95"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-lg transition-transform active:scale-95"
               >
                 <Plus className="h-5 w-5" />
               </button>
@@ -50,11 +60,11 @@ export function BottomNav() {
               key={item.id}
               href={href}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-3 py-2 text-[10px] font-semibold transition-colors",
+                "flex shrink-0 flex-col items-center gap-0.5 px-3 py-2 text-[10px] font-semibold transition-colors",
                 isActive ? "text-brand" : "text-muted-foreground"
               )}
             >
-              <Icon className="h-5 w-5" />
+              {Icon && <Icon className="h-5 w-5" />}
               {item.label}
             </Link>
           )

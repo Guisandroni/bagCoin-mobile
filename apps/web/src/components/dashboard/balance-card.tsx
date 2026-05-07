@@ -1,22 +1,22 @@
 "use client"
 
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
-import { useTransactionSummary } from "@/hooks/use-transactions"
 import { Badge } from "@/components/ui/badge"
+import type { TransactionSummary } from "@/lib/api-server"
 
-function formatCurrency(v: number) {
-  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
+interface Props {
+  summary?: TransactionSummary | null
 }
 
-export function BalanceCard() {
-  const { data, isLoading } = useTransactionSummary()
-  const balance = data?.balance ?? 0
+export function BalanceCard({ summary }: Props) {
+  const balance = summary?.balance ?? 0
+  const txCount = summary?.transaction_count ?? 0
 
-  const balanceStr = formatCurrency(Math.abs(balance))
+  const balanceStr = Math.abs(balance).toLocaleString("pt-BR", { minimumFractionDigits: 2 })
   const mainPart = balanceStr.split(",")[0]
   const decimalPart = balanceStr.split(",")[1] || "00"
 
-  const chartData = data?.recent_transactions
+  const chartData = summary?.recent_transactions
     ?.map((_, i, arr) => {
       const incomeSum = arr
         .slice(0, i + 1)
@@ -37,13 +37,13 @@ export function BalanceCard() {
         </p>
         <div className="mt-3 flex items-center gap-2">
           <Badge className="border-0 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30">
-            {data ? `${data.transaction_count} transações` : "Carregando..."}
+            {txCount > 0 ? `${txCount} transações` : "Carregando..."}
           </Badge>
         </div>
       </div>
-      {!isLoading && (
+      {summary && (
         <div className="absolute inset-x-0 bottom-0 z-0 h-[80px]">
-          <ResponsiveContainer width="100%" height={80}>
+          <ResponsiveContainer width="100%" height={80} minWidth={0}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">

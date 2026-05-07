@@ -3,10 +3,7 @@
 import { TrendingUp, TrendingDown, PiggyBank } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useTransactionSummary } from "@/hooks/use-transactions"
-
-function formatCurrency(v: number) {
-  return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-}
+import { formatCurrency } from "@/lib/utils"
 
 export function StatCards() {
   const { data, isLoading } = useTransactionSummary()

@@ -15,15 +15,9 @@ import { Badge } from "@/components/ui/badge"
 import { CATEGORIES, SOURCE_LABELS, STATUS_LABELS } from "@/lib/constants"
 import { useAppStore } from "@/lib/store"
 import { useDeleteTransaction, useUpdateTransaction } from "@/hooks/use-transactions"
-import { cn } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 import { MessageSquare } from "lucide-react"
 import { toast } from "sonner"
-
-function formatCurrency(v: number) {
-  const abs = Math.abs(v)
-  const formatted = abs.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
-  return (v < 0 ? "-R$ " : "R$ ") + formatted
-}
 
 export function TransactionDetailModal() {
   const { activeModal, selectedTransaction: t, closeModal } = useAppStore()

@@ -92,7 +92,7 @@ export function FilterModal() {
                     }}
                   />
                   {c.emoji} {c.name}
-                  </button>
+                </button>
               ))}
             </div>
           </div>

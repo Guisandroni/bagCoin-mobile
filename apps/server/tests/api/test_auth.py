@@ -302,7 +302,6 @@ async def test_register_inactive_user_google(
     mock_user_service: MagicMock,
 ):
     """Test Google login for inactive user."""
-    from app.core.exceptions import AuthenticationError
 
     inactive_user = MockUser(is_active=False)
     mock_user_service.google_auth = ServiceMock(return_value=inactive_user)

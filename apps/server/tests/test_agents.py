@@ -1,12 +1,11 @@
 """Tests for BagCoin agent features — correction dedup, pattern learning, category routes."""
 
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from app.services.deduplication_service import is_duplicate
-
 
 # ═══════════════════════════════════════════════════════════════
 # MOCK HELPERS
@@ -16,7 +15,15 @@ from app.services.deduplication_service import is_duplicate
 class MockTransaction:
     """Minimal mock for SQLAlchemy Transaction model."""
 
-    def __init__(self, id=1, amount=0.0, description="", transaction_date=None, type="EXPENSE", category_name=""):
+    def __init__(
+        self,
+        id=1,
+        amount=0.0,
+        description="",
+        transaction_date=None,
+        type="EXPENSE",
+        category_name="",
+    ):
         self.id = id
         self.amount = amount
         self.description = description
@@ -44,7 +51,7 @@ class TestDeduplicationService:
     @patch("app.services.deduplication_service.get_user_transactions")
     def test_is_duplicate_fuzzy_match(self, mock_get_tx):
         """Similar descriptions (85%+) = dedup.
-        
+
         'Mercado São Paulo' vs 'Mercado São Paulo Extra' — 86% match.
         """
         mock_get_tx.return_value = [
@@ -55,13 +62,15 @@ class TestDeduplicationService:
     @patch("app.services.deduplication_service.get_user_transactions")
     def test_is_duplicate_fuzzy_match_supermercado(self, mock_get_tx):
         """'Supermercado Cidades' vs 'Supermercado Cidades Jardim' = dedup.
-        
+
         Ratio: 85.1% >= 85% threshold.
         """
         mock_get_tx.return_value = [
             MockTransaction(id=1, amount=50.0, description="Supermercado Cidades")
         ]
-        assert is_duplicate("5511999999999", 50.0, "Supermercado Cidades Jardim") is True
+        assert (
+            is_duplicate("5511999999999", 50.0, "Supermercado Cidades Jardim") is True
+        )
 
     @patch("app.services.deduplication_service.get_user_transactions")
     def test_is_duplicate_wrong_amount(self, mock_get_tx):
@@ -131,7 +140,10 @@ class TestCorrectionHandler:
         """'corrige categoria para Transporte' should trigger category correction."""
         from app.agents.orchestrator import correction_handler_node
 
-        state = {"phone_number": "5511999999999", "message": "corrige categoria para Transporte"}
+        state = {
+            "phone_number": "5511999999999",
+            "message": "corrige categoria para Transporte",
+        }
         correction_handler_node(state)
         mock_update.assert_called_once()
         assert state["extracted_data"]["category_name"] == "Transporte"
@@ -151,7 +163,10 @@ class TestCorrectionHandler:
         """'descrição certa é Padaria' should trigger description correction."""
         from app.agents.orchestrator import correction_handler_node
 
-        state = {"phone_number": "5511999999999", "message": "descrição certa é Padaria"}
+        state = {
+            "phone_number": "5511999999999",
+            "message": "descrição certa é Padaria",
+        }
         correction_handler_node(state)
         mock_update.assert_called_once()
         assert state["extracted_data"]["description"] == "Padaria"

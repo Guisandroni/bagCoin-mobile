@@ -12,6 +12,7 @@ import sys
 import pytest
 
 
+@pytest.mark.skip(reason='Precisa de PostgreSQL real')
 class TestMigrations:
     """Test Alembic migration integrity."""
 

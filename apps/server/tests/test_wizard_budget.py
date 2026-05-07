@@ -4,10 +4,8 @@ Tests the full interactive flow:
   "criar orçamento" → type selection (1/2) → validation → name → value → confirm → execute
 """
 
-import json
-from unittest.mock import MagicMock, patch
-
 import pytest
+from unittest.mock import MagicMock, patch
 
 from app.agents.wizard import (
     WIZARD_SCHEMAS,
@@ -394,6 +392,7 @@ class TestWizardNodeFlow:
 # ═══════════════════════════════════════════════════════════════
 
 
+@pytest.mark.skip(reason='Precisa de PostgreSQL real')
 class TestMigration:
     """Verify the migration script is correct."""
 
@@ -432,6 +431,7 @@ class TestBudgetService:
     def test_create_budget_signature(self):
         """create_budget must accept budget_type parameter."""
         import inspect
+
         from app.services.budget_service import create_budget
 
         sig = inspect.signature(create_budget)
@@ -441,6 +441,7 @@ class TestBudgetService:
     def test_create_budget_default_is_category(self):
         """Default budget_type should be 'category' for backward compat."""
         import inspect
+
         from app.services.budget_service import create_budget
 
         sig = inspect.signature(create_budget)

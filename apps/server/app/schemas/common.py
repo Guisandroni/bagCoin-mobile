@@ -34,6 +34,7 @@ class TelegramWebhookPayload(BaseSchema):
     message: str
     username: str | None = None
     source_format: str = "text"
+    media: dict | None = None
 
 
 class TelegramResponse(BaseSchema):

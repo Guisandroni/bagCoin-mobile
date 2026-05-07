@@ -28,17 +28,23 @@ class PhoneUser(Base, TimestampMixin):
     __tablename__ = "phone_users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    phone_number: Mapped[str] = mapped_column(String(80), unique=True, index=True, nullable=False)
+    phone_number: Mapped[str] = mapped_column(
+        String(80), unique=True, index=True, nullable=False
+    )
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[UserStatus] = mapped_column(
         String(20), default=UserStatus.ACTIVE.value, nullable=False
     )
     preferences: Mapped[dict | None] = mapped_column(JSON, default=dict, nullable=True)
-    financial_profile: Mapped[dict | None] = mapped_column(JSON, default=dict, nullable=True)
+    financial_profile: Mapped[dict | None] = mapped_column(
+        JSON, default=dict, nullable=True
+    )
     telegram_chat_id: Mapped[str | None] = mapped_column(
         String(50), unique=True, nullable=True, index=True
     )
-    platform: Mapped[str] = mapped_column(String(20), default="whatsapp", nullable=False)
+    platform: Mapped[str] = mapped_column(
+        String(20), default="whatsapp", nullable=False
+    )
 
     # Relationships
     categories: Mapped[list["Category"]] = relationship(

@@ -11,7 +11,6 @@ from app.schemas.enums import GoalStatus
 class GoalCreate(BaseSchema):
     """Schema for creating a new savings goal."""
 
-    user_id: int
     title: str = Field(max_length=200)
     target_amount: float = Field(gt=0)
     current_amount: float = Field(default=0.0, ge=0)

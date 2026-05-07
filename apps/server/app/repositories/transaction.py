@@ -3,7 +3,7 @@
 Handles financial transaction records for BagCoin users.
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any
 
 from sqlalchemy import delete as sql_delete
@@ -84,7 +84,7 @@ async def create(
         category_id=category_id,
         description=description,
         source_format=source_format,
-        transaction_date=transaction_date or datetime.utcnow(),
+        transaction_date=transaction_date or datetime.now(UTC),
         confidence_score=confidence_score,
         raw_input=raw_input,
     )

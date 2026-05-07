@@ -1,187 +1,146 @@
-"""Budget and BudgetItem repositories (PostgreSQL async).
+"""Budget repository (PostgreSQL async).
 
-Handles spending plans and per-category limits for BagCoin users.
+Contains database operations for Budget and BudgetItem entities.
 """
 
-from datetime import date, datetime, timedelta
-from typing import Any
+from uuid import UUID
 
-from sqlalchemy import delete as sql_delete
-from sqlalchemy import func, select
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.models.budget import Budget, BudgetItem
-from app.db.models.transaction import Transaction
-
-# =====================================================================
-# BudgetItemRepository
-# =====================================================================
 
 
-async def get_budget_item_by_id(db: AsyncSession, item_id: int) -> BudgetItem | None:
-    """Get budget item by ID."""
-    return await db.get(BudgetItem, item_id)
-
-
-async def get_budget_items_by_budget(db: AsyncSession, budget_id: int) -> list[BudgetItem]:
-    """Get all items for a budget."""
-    result = await db.execute(select(BudgetItem).where(BudgetItem.budget_id == budget_id))
-    return list(result.scalars().all())
-
-
-async def create_budget_item(
+async def get_budget_by_id(
     db: AsyncSession,
-    *,
     budget_id: int,
-    category_id: int | None = None,
-    limit_amount: float,
-) -> BudgetItem:
-    """Create a new budget item."""
-    item = BudgetItem(
-        budget_id=budget_id,
-        category_id=category_id,
-        limit_amount=limit_amount,
-    )
-    db.add(item)
-    await db.flush()
-    await db.refresh(item)
-    return item
-
-
-async def update_budget_item(
-    db: AsyncSession,
     *,
-    db_item: BudgetItem,
-    update_data: dict[str, Any],
-) -> BudgetItem:
-    """Update a budget item."""
-    for field, value in update_data.items():
-        setattr(db_item, field, value)
-    db.add(db_item)
-    await db.flush()
-    await db.refresh(db_item)
-    return db_item
-
-
-# =====================================================================
-# BudgetRepository
-# =====================================================================
-
-
-async def get_by_id(db: AsyncSession, budget_id: int) -> Budget | None:
-    """Get budget by ID."""
+    include_items: bool = False,
+) -> Budget | None:
+    """Get budget by ID, optionally with items."""
+    if include_items:
+        query = (
+            select(Budget)
+            .options(selectinload(Budget.items))
+            .where(Budget.id == budget_id)
+        )
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
     return await db.get(Budget, budget_id)
 
 
-async def get_multi_by_user(db: AsyncSession, user_id: int) -> list[Budget]:
-    """Get all budgets for a user."""
-    result = await db.execute(
-        select(Budget).where(Budget.user_id == user_id).order_by(Budget.created_at.desc())
-    )
+async def get_budgets_by_user(
+    db: AsyncSession,
+    user_uuid: UUID | None = None,
+    *,
+    skip: int = 0,
+    limit: int = 50,
+) -> list[Budget]:
+    """Get budgets for a user with pagination."""
+    query = select(Budget).options(selectinload(Budget.items))
+    if user_uuid:
+        query = query.where(Budget.user_uuid == user_uuid)
+    query = query.order_by(Budget.created_at.desc()).offset(skip).limit(limit)
+    result = await db.execute(query)
     return list(result.scalars().all())
 
 
-async def get_by_user_and_name(db: AsyncSession, user_id: int, name: str) -> Budget | None:
-    """Get a budget by user and name (case-insensitive)."""
-    result = await db.execute(
-        select(Budget).where(
-            Budget.user_id == user_id,
-            Budget.name.ilike(f"%{name}%"),
-        )
-    )
-    return result.scalar_one_or_none()
+async def count_budgets(
+    db: AsyncSession,
+    user_uuid: UUID | None = None,
+) -> int:
+    """Count budgets for a user."""
+    from sqlalchemy import func
+
+    query = select(func.count(Budget.id))
+    if user_uuid:
+        query = query.where(Budget.user_uuid == user_uuid)
+    result = await db.execute(query)
+    return result.scalar() or 0
 
 
-async def create(
+async def create_budget(
     db: AsyncSession,
     *,
-    user_id: int,
-    category_id: int,
+    user_id: int | None = None,
+    user_uuid: UUID | None = None,
+    category_id: int | None = None,
     name: str,
-    period: str = "monthly",
-    total_limit: float = 0.0,
+    period: str,
+    total_limit: float,
+    budget_type: str = "general",
+    items: list[dict] | None = None,
 ) -> Budget:
-    """Create a new budget."""
+    """Create a new budget with optional items."""
     budget = Budget(
-        user_id=user_id,
+        user_id=user_id or 0,
+        user_uuid=user_uuid,
         category_id=category_id,
         name=name,
         period=period,
         total_limit=total_limit,
+        budget_type=budget_type,
     )
     db.add(budget)
     await db.flush()
     await db.refresh(budget)
+
+    # Create budget items if provided
+    if items:
+        for item_data in items:
+            item = BudgetItem(
+                budget_id=budget.id,
+                category_id=item_data.get("category_id"),
+                limit_amount=item_data["limit_amount"],
+            )
+            db.add(item)
+        await db.flush()
+
+    # Reload with items
+    await db.refresh(budget)
     return budget
 
 
-async def update(
+async def update_budget(
     db: AsyncSession,
     *,
     db_budget: Budget,
-    update_data: dict[str, Any],
+    update_data: dict,
 ) -> Budget:
     """Update a budget."""
     for field, value in update_data.items():
+        if field == "items":
+            continue
         setattr(db_budget, field, value)
+
+    # Handle items update if provided
+    if "items" in update_data and update_data["items"] is not None:
+        # Delete existing items
+        await db.execute(
+            sa_delete(BudgetItem).where(BudgetItem.budget_id == db_budget.id)
+        )
+        # Create new items
+        for item_data in update_data["items"]:
+            item = BudgetItem(
+                budget_id=db_budget.id,
+                category_id=item_data.get("category_id"),
+                limit_amount=item_data["limit_amount"],
+            )
+            db.add(item)
+
     db.add(db_budget)
     await db.flush()
     await db.refresh(db_budget)
     return db_budget
 
 
-async def delete(db: AsyncSession, budget_id: int) -> Budget | None:
-    """Delete a budget by ID."""
-    budget = await get_by_id(db, budget_id)
+async def delete_budget(db: AsyncSession, budget_id: int) -> bool:
+    """Delete a budget and all related items (cascades)."""
+    budget = await get_budget_by_id(db, budget_id)
     if budget:
         await db.delete(budget)
         await db.flush()
-    return budget
-
-
-async def delete_all_by_user(db: AsyncSession, user_id: int) -> int:
-    """Delete all budgets for a user. Returns count of deleted rows."""
-    result = await db.execute(sql_delete(Budget).where(Budget.user_id == user_id))
-    await db.flush()
-    return result.rowcount
-
-
-async def calculate_spent(
-    db: AsyncSession,
-    budget_id: int,
-    user_id: int,
-    period: str,
-) -> float:
-    """Calculate how much has been spent in the budget period for the budget's category."""
-    date_from = _period_start(period)
-    if not date_from:
-        return 0.0
-
-    budget = await get_by_id(db, budget_id)
-    if not budget or not budget.category_id:
-        return 0.0
-
-    result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount), 0)).where(
-            Transaction.type == "EXPENSE",
-            Transaction.user_id == user_id,
-            Transaction.category_id == budget.category_id,
-            Transaction.transaction_date >= date_from,
-        )
-    )
-    return float(result.scalar() or 0)
-
-
-def _period_start(period: str) -> datetime | None:
-    """Return the start date of the period."""
-    today = date.today()
-    if period == "daily":
-        return datetime.combine(today, datetime.min.time())
-    elif period == "weekly":
-        week_ago = today - timedelta(days=today.weekday())
-        return datetime.combine(week_ago, datetime.min.time())
-    elif period == "monthly":
-        return datetime.combine(today.replace(day=1), datetime.min.time())
-    elif period == "yearly":
-        return datetime.combine(today.replace(month=1, day=1), datetime.min.time())
-    return None
+        return True
+    return False

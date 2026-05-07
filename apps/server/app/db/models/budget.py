@@ -1,6 +1,9 @@
 """Budget and BudgetItem models for spending limits."""
 
+import uuid
+
 from sqlalchemy import Float, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
@@ -12,6 +15,7 @@ class Budget(Base, TimestampMixin):
     Attributes:
         id: Auto-increment primary key.
         user_id: FK to phone_users.
+        user_uuid: FK to users (web app users).
         category_id: FK to categories (nullable for general-type budgets).
         name: Budget name (e.g. "Mercado Mensal").
         period: Budget period (monthly, weekly, yearly).
@@ -22,6 +26,12 @@ class Budget(Base, TimestampMixin):
     __tablename__ = "budgets"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_uuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
     user_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey("phone_users.id", ondelete="CASCADE"),
@@ -43,6 +53,7 @@ class Budget(Base, TimestampMixin):
     # Relationships
     phone_user: Mapped["PhoneUser"] = relationship("PhoneUser", back_populates="budgets")
     category: Mapped["Category"] = relationship("Category", back_populates="budgets")
+    user: Mapped["User | None"] = relationship("User", back_populates="budgets")
     items: Mapped[list["BudgetItem"]] = relationship(
         "BudgetItem",
         back_populates="budget",

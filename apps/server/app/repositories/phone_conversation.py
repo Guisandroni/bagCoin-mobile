@@ -3,7 +3,7 @@
 Tracks WhatsApp/Telegram conversation context for BagCoin agents.
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any
 
 from sqlalchemy import select
@@ -110,7 +110,7 @@ async def save_message(
         {
             "role": role,
             "content": content,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
     )
     conv.message_history = history[-max_history:]

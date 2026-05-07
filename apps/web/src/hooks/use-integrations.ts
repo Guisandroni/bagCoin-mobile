@@ -1,29 +1,147 @@
 "use client"
 
 import { useCallback, useState } from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import axios from "axios"
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query"
+import apiClient from "@/lib/api-client"
 
 export type IntegrationChannel = "whatsapp" | "telegram"
 
-/** Abre o fluxo de integração do canal (por ora leva a Configurações). */
+export interface LinkTokenResponse {
+  token: string
+  expires_at: string
+  deeplink_whatsapp: string | null
+  deeplink_telegram: string | null
+  manual_command_whatsapp: string
+  manual_command_telegram: string
+}
+
+export interface IntegrationStatus {
+  whatsapp_linked: boolean
+  telegram_linked: boolean
+  phone_number: string | null
+}
+
+const PAIRING_POLL_TICKS = 30
+const PAIRING_POLL_MS = 3000
+
+let pairingPollCleanup: (() => void) | null = null
+
+/** Invalidate integration status periodically so the UI picks up linking without the pairing modal. */
+export function startIntegrationPairingPoll(queryClient: QueryClient) {
+  pairingPollCleanup?.()
+  let ticks = 0
+  const id = setInterval(() => {
+    ticks += 1
+    void queryClient.invalidateQueries({ queryKey: ["integrations", "status"] })
+    if (ticks >= PAIRING_POLL_TICKS) {
+      clearInterval(id)
+      pairingPollCleanup = null
+    }
+  }, PAIRING_POLL_MS)
+  pairingPollCleanup = () => {
+    clearInterval(id)
+    pairingPollCleanup = null
+  }
+}
+
+/** Normalize API payloads that may use camelCase or snake_case field names. */
+export function normalizeLinkTokenPayload(data: LinkTokenResponse & Record<string, unknown>): LinkTokenResponse {
+  const d = data as Record<string, unknown>
+  return {
+    token: String(d.token ?? ""),
+    expires_at: String(d.expires_at ?? ""),
+    deeplink_whatsapp: (d.deeplink_whatsapp ?? d.deeplinkWhatsapp ?? null) as string | null,
+    deeplink_telegram: (d.deeplink_telegram ?? d.deeplinkTelegram ?? null) as string | null,
+    manual_command_whatsapp: String(d.manual_command_whatsapp ?? d.manualCommandWhatsapp ?? ""),
+    manual_command_telegram: String(d.manual_command_telegram ?? d.manualCommandTelegram ?? ""),
+  }
+}
+
+export async function fetchIntegrationLinkToken(channel: IntegrationChannel): Promise<LinkTokenResponse> {
+  const { data } = await apiClient.post<LinkTokenResponse & Record<string, unknown>>(
+    "/integrations/link-token",
+    { channel }
+  )
+  return normalizeLinkTokenPayload(data as LinkTokenResponse & Record<string, unknown>)
+}
+
+type ApiErrorPayload = { error?: { code?: string; message?: string } }
+
+/** True when API refused pairing because BOT_WHATSAPP_NUMBER / BOT_TELEGRAM_USERNAME is missing. */
+export function isIntegrationBotNotConfigured(err: unknown): boolean {
+  if (!axios.isAxiosError(err)) return false
+  const payload = err.response?.data as ApiErrorPayload | undefined
+  return payload?.error?.code === "INTEGRATION_BOT_NOT_CONFIGURED"
+}
+
+/** Message for logs / admin tooling when link-token fails. */
+export function getIntegrationLinkErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const payload = err.response?.data as ApiErrorPayload | undefined
+    const msg = payload?.error?.message
+    const code = payload?.error?.code
+    if (code === "INTEGRATION_BOT_NOT_CONFIGURED" && msg) return msg
+  }
+  return "Não foi possível gerar o código. Tente de novo."
+}
+
+/**
+ * POST link-token, open WhatsApp/Telegram with prefilled message (deeplink).
+ * Starts a short background poll on integration status.
+ * No user-visible toasts (silent failure paths).
+ */
+export async function openIntegrationChat(
+  channel: IntegrationChannel,
+  queryClient: QueryClient
+): Promise<void> {
+  const data = await fetchIntegrationLinkToken(channel)
+  const deeplink = channel === "whatsapp" ? data.deeplink_whatsapp : data.deeplink_telegram
+
+  void queryClient.invalidateQueries({ queryKey: ["integrations", "status"] })
+  startIntegrationPairingPoll(queryClient)
+
+  if (deeplink) {
+    const w = window.open(deeplink, "_blank", "noopener,noreferrer")
+    if (!w || w.closed) window.location.href = deeplink
+    return
+  }
+
+  // No deeplink / manual fallback — silent (no toast).
+}
+
+export function useIntegrationStatus(pollWhileOpen: boolean) {
+  return useQuery<IntegrationStatus>({
+    queryKey: ["integrations", "status"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<IntegrationStatus>("/integrations/status")
+      return data
+    },
+    refetchInterval: pollWhileOpen ? 3000 : false,
+  })
+}
+
+/** Wrapper with loading state for buttons (sidebar, dashboard). */
 export function useOpenIntegrationChat() {
-  const router = useRouter()
+  const queryClient = useQueryClient()
   const [openingChannel, setOpeningChannel] = useState<IntegrationChannel | null>(null)
 
-  const openIntegrationChat = useCallback(
+  const run = useCallback(
     async (channel: IntegrationChannel) => {
       setOpeningChannel(channel)
       try {
-        router.push("/app/configuracoes")
-        const label = channel === "whatsapp" ? "WhatsApp" : "Telegram"
-        toast.info(`Conecte o ${label} em Configurações → Integrações.`)
+        await openIntegrationChat(channel, queryClient)
+      } catch (e) {
+        // Silent for end users; devtools hint for developers only.
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[integrations] open chat failed", getIntegrationLinkErrorMessage(e))
+        }
       } finally {
         setOpeningChannel(null)
       }
     },
-    [router]
+    [queryClient]
   )
 
-  return { openIntegrationChat, openingChannel }
+  return { openIntegrationChat: run, openingChannel }
 }

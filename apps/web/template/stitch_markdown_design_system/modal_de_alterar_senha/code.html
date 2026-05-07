@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Finance.ai - Alterar Senha</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#003cc1",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#1b1c1e",
+                        "secondary-fixed": "#64fcc2",
+                        "tertiary": "#9b0010",
+                        "on-primary": "#ffffff",
+                        "surface-variant": "#e3e2e5",
+                        "outline-variant": "#c3c5d8",
+                        "outline": "#747687",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#b7c4ff",
+                        "tertiary-container": "#c60f1c",
+                        "background": "#fbf9fb",
+                        "primary-container": "#1652f0",
+                        "on-primary-fixed-variant": "#0038b6",
+                        "on-primary-container": "#dadfff",
+                        "inverse-surface": "#303033",
+                        "surface": "#fbf9fb",
+                        "secondary": "#006c4d",
+                        "on-primary-fixed": "#001452",
+                        "inverse-primary": "#b7c4ff",
+                        "surface-container-highest": "#e3e2e5",
+                        "on-secondary-fixed-variant": "#005139",
+                        "on-surface": "#1b1c1e",
+                        "surface-tint": "#064ceb",
+                        "tertiary-fixed-dim": "#ffb3ac",
+                        "secondary-fixed-dim": "#40dfa8",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-bright": "#fbf9fb",
+                        "on-error-container": "#93000a",
+                        "inverse-on-surface": "#f2f0f3",
+                        "secondary-container": "#64fcc2",
+                        "on-tertiary-fixed-variant": "#93000f",
+                        "on-surface-variant": "#434656",
+                        "error-container": "#ffdad6",
+                        "surface-container-low": "#f5f3f6",
+                        "surface-container": "#efedf0",
+                        "on-tertiary-container": "#ffd7d2",
+                        "on-secondary-fixed": "#002115",
+                        "surface-container-high": "#e9e7ea",
+                        "tertiary-fixed": "#ffdad6",
+                        "primary-fixed": "#dde1ff",
+                        "on-secondary-container": "#007352",
+                        "surface-dim": "#dbd9dc",
+                        "on-tertiary-fixed": "#410003"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-gap-lg": "24px",
+                        "inline-padding-lg": "32px",
+                        "container-margin": "20px",
+                        "stack-gap-md": "16px",
+                        "stack-gap-sm": "8px",
+                        "inline-padding-md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-lg": ["Manrope"],
+                        "display-md": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "title-lg": ["Manrope"],
+                        "headline-sm": ["Manrope"],
+                        "label-md": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "body-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "label-lg": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-md": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "headline-sm": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["11px", { "lineHeight": "14px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md antialiased min-h-screen relative overflow-hidden">
+<!-- Mock Background Content (Profile Screen) -->
+<div class="h-screen w-full flex flex-col md:flex-row filter blur-sm opacity-60">
+<!-- SideNav (Hidden on Mobile) -->
+<nav class="hidden md:flex flex-col fixed left-0 top-0 h-full z-40 py-lg bg-surface-container-low border-r border-outline-variant h-full w-64">
+<div class="px-xl mb-stack-gap-lg">
+<div class="font-display-md text-display-md font-black text-primary mb-2">Finance.ai</div>
+<div class="font-body-md text-body-md text-on-surface-variant">Premium Account</div>
+</div>
+<ul class="flex flex-col gap-stack-gap-sm flex-grow">
+<li><a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant rounded-lg mx-2" href="#"><span class="material-symbols-outlined">dashboard</span> <span class="font-label-lg text-label-lg">Dashboard</span></a></li>
+<li><a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant rounded-lg mx-2" href="#"><span class="material-symbols-outlined">track_changes</span> <span class="font-label-lg text-label-lg">Metas</span></a></li>
+<li><a class="flex items-center gap-4 px-4 py-3 text-on-surface-variant hover:bg-surface-variant rounded-lg mx-2" href="#"><span class="material-symbols-outlined">account_balance_wallet</span> <span class="font-label-lg text-label-lg">Orçamentos</span></a></li>
+<li><a class="flex items-center gap-4 px-4 py-3 bg-primary-container text-on-primary rounded-lg mx-2" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">settings</span> <span class="font-label-lg text-label-lg">Configurações</span></a></li>
+</ul>
+</nav>
+<!-- TopAppBar (Hidden on Mobile) -->
+<header class="flex justify-between items-center w-full px-xl h-16 sticky top-0 z-50 bg-surface border-b border-outline-variant md:ml-64 w-[calc(100%-16rem)]">
+<h1 class="font-display-md text-display-md font-bold text-primary">Configurações</h1>
+<div class="flex gap-4">
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full"><span class="material-symbols-outlined">notifications</span></button>
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full"><span class="material-symbols-outlined">account_circle</span></button>
+</div>
+</header>
+<!-- Main Content Area (Profile) -->
+<main class="flex-grow p-container-margin md:ml-64 mt-16">
+<div class="max-w-3xl mx-auto space-y-stack-gap-lg">
+<div class="bg-surface-container-lowest rounded-DEFAULT p-inline-padding-lg">
+<h2 class="font-headline-sm text-headline-sm mb-4">Perfil</h2>
+<div class="flex items-center gap-4 mb-6">
+<div class="w-16 h-16 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined" style="font-size: 32px;">person</span>
+</div>
+<div>
+<p class="font-title-lg text-title-lg">João Silva</p>
+<p class="font-body-md text-body-md text-on-surface-variant">joao.silva@email.com</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Overlay / Scrim -->
+<div class="fixed inset-0 bg-on-background/40 z-50 flex items-end justify-center md:items-center backdrop-blur-sm transition-opacity duration-300">
+<!-- Modal / Bottom Sheet -->
+<div class="bg-surface-container-lowest w-full md:w-[480px] rounded-t-xl md:rounded-xl shadow-lg transform transition-transform duration-300 translate-y-0">
+<!-- Handle for mobile -->
+<div class="w-full flex justify-center pt-4 pb-2 md:hidden">
+<div class="w-12 h-1.5 bg-outline-variant rounded-full"></div>
+</div>
+<!-- Header -->
+<div class="flex justify-between items-center px-inline-padding-lg pt-4 md:pt-inline-padding-lg pb-stack-gap-md border-b border-surface-variant">
+<h2 class="font-headline-sm text-headline-sm text-on-background">Alterar Senha</h2>
+<button class="text-on-surface-variant hover:bg-surface-variant p-2 rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Body (Form) -->
+<div class="px-inline-padding-lg py-stack-gap-lg space-y-stack-gap-md">
+<!-- Input: Senha Atual -->
+<div class="space-y-stack-gap-sm">
+<label class="font-label-lg text-label-lg text-on-surface-variant block" for="current-password">Senha Atual</label>
+<div class="relative">
+<input class="w-full bg-surface-container h-14 rounded-full px-6 font-body-lg text-body-lg text-on-background focus:outline-none focus:ring-2 focus:ring-primary-container border-none" id="current-password" placeholder="Digite sua senha atual" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant p-2 flex items-center justify-center">
+<span class="material-symbols-outlined">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Input: Nova Senha -->
+<div class="space-y-stack-gap-sm">
+<label class="font-label-lg text-label-lg text-on-surface-variant block" for="new-password">Nova Senha</label>
+<div class="relative">
+<input class="w-full bg-surface-container h-14 rounded-full px-6 font-body-lg text-body-lg text-on-background focus:outline-none focus:ring-2 focus:ring-primary-container border-none" id="new-password" placeholder="Digite a nova senha" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant p-2 flex items-center justify-center">
+<span class="material-symbols-outlined">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Input: Confirmar Nova Senha -->
+<div class="space-y-stack-gap-sm">
+<label class="font-label-lg text-label-lg text-on-surface-variant block" for="confirm-password">Confirmar Nova Senha</label>
+<div class="relative">
+<input class="w-full bg-surface-container h-14 rounded-full px-6 font-body-lg text-body-lg text-on-background focus:outline-none focus:ring-2 focus:ring-primary-container border-none" id="confirm-password" placeholder="Repita a nova senha" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant p-2 flex items-center justify-center">
+<span class="material-symbols-outlined">visibility_off</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Footer (Actions) -->
+<div class="px-inline-padding-lg pb-inline-padding-lg pt-stack-gap-md border-t border-surface-variant mt-2">
+<button class="w-full h-14 bg-primary-container hover:bg-primary text-on-primary font-title-lg text-title-lg rounded-full flex items-center justify-center transition-colors">
+                    Salvar Nova Senha
+                </button>
+</div>
+</div>
+</div>
+</body></html>

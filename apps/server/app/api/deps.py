@@ -9,17 +9,19 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 
-from app.clients.redis import RedisClient
 from app.core.config import settings
 from app.db.session import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
+from fastapi import Request
+
+from app.clients.redis import RedisClient
 
 
-async def get_redis(request: "Request") -> RedisClient:
+async def get_redis(request: Request) -> RedisClient:
     """Get Redis client from lifespan state."""
-    return request.app.state.redis  # type: ignore[no-any-return]
+    return request.state.redis  # type: ignore[no-any-return]
 
 
 Redis = Annotated[RedisClient, Depends(get_redis)]
@@ -75,6 +77,28 @@ def get_file_upload_service(db: DBSession) -> FileUploadService:
 
 
 FileUploadSvc = Annotated[FileUploadService, Depends(get_file_upload_service)]
+
+from app.services.budget import BudgetService as BudgetSvcImpl
+from app.services.goal import GoalService as GoalSvcImpl
+from app.services.report import ReportService as ReportSvcImpl
+
+
+def get_budget_service(db: DBSession) -> BudgetSvcImpl:
+    return BudgetSvcImpl(db)
+
+
+def get_goal_service(db: DBSession) -> GoalSvcImpl:
+    return GoalSvcImpl(db)
+
+
+def get_report_service(db: DBSession) -> ReportSvcImpl:
+    return ReportSvcImpl(db)
+
+
+BudgetSvc = Annotated[BudgetSvcImpl, Depends(get_budget_service)]
+GoalSvc = Annotated[GoalSvcImpl, Depends(get_goal_service)]
+ReportSvc = Annotated[ReportSvcImpl, Depends(get_report_service)]
+
 # === Authentication Dependencies ===
 
 from app.core.exceptions import AuthenticationError, AuthorizationError
@@ -173,6 +197,17 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 CurrentSuperuser = Annotated[User, Depends(get_current_active_superuser)]
 CurrentAdmin = Annotated[User, Depends(RoleChecker(UserRole.ADMIN))]
 
+# === BagCoin integrations (web ↔ bot pairing) ===
+
+from app.services.integration_service import IntegrationService
+
+
+def get_integration_service(db: DBSession) -> IntegrationService:
+    return IntegrationService(db)
+
+
+IntegrationSvc = Annotated[IntegrationService, Depends(get_integration_service)]
+
 
 # WebSocket authentication dependency
 from fastapi import WebSocket, Cookie
@@ -254,6 +289,8 @@ async def get_current_user_ws(
             await websocket.close(code=4001, reason="User account is disabled")
             raise AuthenticationError(message="User account is disabled")
 
+        # Eagerly load all columns, then detach from session to avoid
+        # "instance not bound to a Session" errors after the context manager exits
         await db.refresh(user)
         db.expunge(user)
         return user

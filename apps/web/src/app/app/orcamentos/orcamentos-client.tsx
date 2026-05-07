@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
   Card,
   CardContent,
@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -38,6 +37,9 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, Trash2, AlertCircle, Wallet } from "lucide-react"
+import { CATEGORIES } from "@/lib/constants"
+import { SectionHeader, FilterChip } from "@/components/coinbase"
+import { cn } from "@/lib/utils"
 import {
   useCreateBudget,
   useUpdateBudget,
@@ -71,7 +73,15 @@ const periodColors: Record<string, string> = {
   anual: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
 }
 
-function BudgetCard({
+function budgetEmoji(budget: Budget): string {
+  if (budget.category_name) {
+    const c = CATEGORIES.find((x) => x.name === budget.category_name)
+    if (c?.emoji) return c.emoji
+  }
+  return "📊"
+}
+
+function BudgetFlatCard({
   budget,
   onEdit,
   onDelete,
@@ -82,74 +92,91 @@ function BudgetCard({
 }) {
   const percentage = Math.min(budget.percentage ?? 0, 100)
   const isOverBudget = (budget.percentage ?? 0) > 100
-  const progressColor = isOverBudget
-    ? "bg-red-500"
+  const progressBarClass = isOverBudget
+    ? "bg-danger"
     : (budget.percentage ?? 0) > 80
-      ? "bg-yellow-500"
-      : "bg-green-500"
+      ? "bg-warning"
+      : "bg-success"
+
+  const delta =
+    budget.total_limit > 0
+      ? (((budget.total_spent || 0) / budget.total_limit) * 100 - 100).toFixed(1)
+      : "0"
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-base">{budget.name}</CardTitle>
-            <Badge className={periodColors[budget.period] || ""} variant="secondary">
+    <div className="rounded-2xl border border-border bg-card p-4 transition-transform active:scale-[0.99]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="text-2xl leading-none">{budgetEmoji(budget)}</span>
+          <div className="min-w-0 space-y-1">
+            <p className="truncate font-semibold leading-tight">{budget.name}</p>
+            <Badge className={cn("text-[11px]", periodColors[budget.period] || "bg-muted")} variant="secondary">
               {periodLabels[budget.period] || budget.period}
             </Badge>
           </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onEdit(budget)}>
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Editar</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-destructive"
-              onClick={() => onDelete(budget.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Excluir</span>
-            </Button>
-          </div>
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col justify-end space-y-3">
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Gasto</span>
-            <span className="font-medium">{currencyFormatter.format(budget.total_spent || 0)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Limite</span>
-            <span className="font-medium">{currencyFormatter.format(budget.total_limit)}</span>
-          </div>
+        <div className="flex shrink-0 gap-0.5">
+          <Button variant="ghost" size="sm" className="touch-target h-9 w-9 p-0" onClick={() => onEdit(budget)}>
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Editar</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="touch-target h-9 w-9 p-0 text-destructive"
+            onClick={() => onDelete(budget.id)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Excluir</span>
+          </Button>
         </div>
+      </div>
 
-        <div className="space-y-1">
-          <Progress value={percentage} className={"h-2 " + progressColor} />
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">
-              {(budget.percentage || 0).toFixed(1)}% utilizado
-            </span>
-            {isOverBudget && (
-              <span className="flex items-center gap-1 text-red-500">
-                <AlertCircle className="h-3 w-3" />
-                Excedido
-              </span>
-            )}
-          </div>
+      <div className="mt-4 flex items-baseline justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Gasto</p>
+          <p className="row-amount text-[16px]">{currencyFormatter.format(budget.total_spent || 0)}</p>
         </div>
+        <div className="text-right">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Limite</p>
+          <p className="row-amount text-[16px] text-muted-foreground">
+            {currencyFormatter.format(budget.total_limit)}
+          </p>
+        </div>
+      </div>
 
-        <div className="text-sm text-muted-foreground">
-          Restante:{" "}
-          <span className={isOverBudget ? "text-red-500 font-medium" : "font-medium"}>
-            {currencyFormatter.format(budget.total_remaining || 0)}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full transition-all", progressBarClass)}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
+        />
+      </div>
+
+      <div className="mt-2 flex items-center justify-between text-[12px]">
+        <span className="text-muted-foreground">{(budget.percentage || 0).toFixed(1)}% do limite</span>
+        <span
+          className={cn(
+            "font-medium tabular-nums",
+            Number(delta) > 0 ? "text-danger" : "text-success"
+          )}
+        >
+          {Number(delta) > 0 ? `${delta}% vs limite` : "Dentro do limite"}
+        </span>
+      </div>
+      {isOverBudget ? (
+        <p className="mt-2 flex items-center gap-1 text-[12px] text-danger">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          Orçamento excedido
+        </p>
+      ) : null}
+
+      <p className="mt-3 text-[13px] text-muted-foreground">
+        Restante:{" "}
+        <span className={cn("font-semibold text-foreground", isOverBudget && "text-danger")}>
+          {currencyFormatter.format(budget.total_remaining || 0)}
+        </span>
+      </p>
+    </div>
   )
 }
 
@@ -282,6 +309,27 @@ export default function OrcamentosClient({ serverBudgets }: OrcamentosClientProp
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [periodFilter, setPeriodFilter] = useState<"all" | "monthly" | "weekly" | "yearly">("all")
+
+  const filteredBudgets = useMemo(() => {
+    if (periodFilter === "all") return budgets
+    const match = (p: string) => {
+      const x = p?.toLowerCase() ?? ""
+      if (periodFilter === "monthly") return x === "monthly" || x === "mensal"
+      if (periodFilter === "weekly") return x === "weekly" || x === "semanal"
+      return x === "yearly" || x === "anual"
+    }
+    return budgets.filter((b) => match(b.period))
+  }, [budgets, periodFilter])
+
+  const periodChipLabel =
+    periodFilter === "all"
+      ? "Todos os períodos"
+      : periodFilter === "monthly"
+        ? "Mensal"
+        : periodFilter === "weekly"
+          ? "Semanal"
+          : "Anual"
 
   const handleEdit = (budget: Budget) => {
     setEditingBudget(budget)
@@ -315,21 +363,46 @@ export default function OrcamentosClient({ serverBudgets }: OrcamentosClientProp
   }
 
   return (
-    <div className="space-y-6 pb-8 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Orçamentos</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Gerencie seus limites de gastos por período
-          </p>
-        </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Orçamento
-        </Button>
-      </div>
+    <div className="page-in relative space-y-5 pb-32 lg:pb-10">
+      <SectionHeader
+        title="Orçamentos"
+        right={
+          <FilterChip label={periodChipLabel}>
+            <div className="flex flex-col gap-0.5 p-1">
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                onClick={() => setPeriodFilter("all")}
+              >
+                Todos os períodos
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                onClick={() => setPeriodFilter("monthly")}
+              >
+                Mensal
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                onClick={() => setPeriodFilter("weekly")}
+              >
+                Semanal
+              </button>
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                onClick={() => setPeriodFilter("yearly")}
+              >
+                Anual
+              </button>
+            </div>
+          </FilterChip>
+        }
+      />
+      <p className="text-[14px] text-muted-foreground">Limites de gastos por período</p>
 
-      {/* Empty state */}
       {budgets.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -346,11 +419,16 @@ export default function OrcamentosClient({ serverBudgets }: OrcamentosClientProp
         </Card>
       )}
 
-      {/* Budgets grid */}
-      {budgets.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {budgets.map((budget) => (
-            <BudgetCard
+      {budgets.length > 0 && filteredBudgets.length === 0 && (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Nenhum orçamento neste período. Ajuste o filtro.
+        </p>
+      )}
+
+      {filteredBudgets.length > 0 && (
+        <div className="grid gap-3">
+          {filteredBudgets.map((budget) => (
+            <BudgetFlatCard
               key={budget.id}
               budget={budget}
               onEdit={handleEdit}
@@ -359,6 +437,16 @@ export default function OrcamentosClient({ serverBudgets }: OrcamentosClientProp
           ))}
         </div>
       )}
+
+      <Button
+        type="button"
+        size="icon"
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-40 h-14 w-14 rounded-full shadow-lg lg:bottom-8"
+        onClick={() => setDialogOpen(true)}
+        aria-label="Novo orçamento"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
 
       {/* Create/Edit Dialog */}
       <BudgetFormDialog

@@ -1,16 +1,9 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import { ThemeProvider } from "next-themes"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { QueryProvider } from "@/lib/query-client"
 import { Toaster } from "sonner"
 import "./globals.css"
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-})
 
 export const metadata: Metadata = {
   title: "Bagcoin — Assistente Financeiro Pessoal",
@@ -24,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${inter.variable} min-h-full font-sans antialiased`}>
+      <body className="min-h-full font-sans antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

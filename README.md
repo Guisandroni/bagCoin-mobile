@@ -21,7 +21,7 @@ Assistente financeiro com IA integrada via WhatsApp e Telegram. Gerencie transa�
 
 | Suite | Testes | Status |
 |-------|--------|--------|
-| Backend (pytest) | **439** | ✅ 100% |
+| Backend (pytest) | **441** | ✅ 100% |
 | Frontend (vitest) | **170** | ✅ 100% |
 | WhatsApp Bridge (vitest) | **17** | ✅ 100% |
 | Playwright E2E | **30/66** | 🔄 45% |
@@ -127,3 +127,20 @@ TELEGRAM_BOT_TOKEN=your_bot_token_here
 # Frontend
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
+
+## Integrações web — WhatsApp / Telegram
+
+Para o utilizador abrir o WhatsApp ou Telegram **já na conversa do bot**, com o código na mensagem (`wa.me` / `t.me`), o backend precisa de `BOT_WHATSAPP_NUMBER` (só dígitos E.164, ex.: `5511999999999`) e `BOT_TELEGRAM_USERNAME` (username sem `@`), definidos em `apps/server` / `.env`.
+
+Sem estas variáveis, `POST /api/v1/integrations/link-token` responde **422** com código `INTEGRATION_BOT_NOT_CONFIGURED`.
+
+Verificação (sessão autenticada):
+
+```bash
+curl -s -X POST "http://localhost:8000/api/v1/integrations/link-token" \
+  -H "Authorization: Bearer SEU_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"channel":"whatsapp"}'
+```
+
+Com o servidor bem configurado, o JSON deve incluir `deeplink_whatsapp` começando por `https://wa.me/`.

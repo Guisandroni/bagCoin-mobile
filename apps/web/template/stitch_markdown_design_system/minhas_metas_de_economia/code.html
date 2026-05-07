@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Economy Goals</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400..700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "tertiary": "#9b0010",
+                "on-secondary-fixed": "#002115",
+                "surface-container-lowest": "#ffffff",
+                "inverse-primary": "#b7c4ff",
+                "on-tertiary-container": "#ffd7d2",
+                "on-secondary-container": "#007352",
+                "surface": "#fbf9fb",
+                "on-primary-container": "#dadfff",
+                "surface-dim": "#dbd9dc",
+                "surface-bright": "#fbf9fb",
+                "on-tertiary-fixed-variant": "#93000f",
+                "error-container": "#ffdad6",
+                "tertiary-fixed-dim": "#ffb3ac",
+                "surface-container-highest": "#e3e2e5",
+                "tertiary-fixed": "#ffdad6",
+                "tertiary-container": "#c60f1c",
+                "on-secondary": "#ffffff",
+                "background": "#fbf9fb",
+                "on-primary-fixed": "#001452",
+                "on-surface": "#1b1c1e",
+                "on-error-container": "#93000a",
+                "surface-container-high": "#e9e7ea",
+                "primary": "#003cc1",
+                "on-primary-fixed-variant": "#0038b6",
+                "surface-container-low": "#f5f3f6",
+                "secondary-container": "#64fcc2",
+                "secondary-fixed": "#64fcc2",
+                "on-background": "#1b1c1e",
+                "primary-fixed-dim": "#b7c4ff",
+                "outline-variant": "#c3c5d8",
+                "surface-tint": "#064ceb",
+                "on-surface-variant": "#434656",
+                "outline": "#747687",
+                "inverse-surface": "#303033",
+                "secondary": "#006c4d",
+                "error": "#ba1a1a",
+                "secondary-fixed-dim": "#40dfa8",
+                "on-error": "#ffffff",
+                "primary-container": "#1652f0",
+                "surface-container": "#efedf0",
+                "on-secondary-fixed-variant": "#005139",
+                "on-tertiary-fixed": "#410003",
+                "primary-fixed": "#dde1ff",
+                "on-tertiary": "#ffffff",
+                "inverse-on-surface": "#f2f0f3",
+                "surface-variant": "#e3e2e5",
+                "on-primary": "#ffffff"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "inline-padding-lg": "32px",
+                "container-margin": "20px",
+                "stack-gap-md": "16px",
+                "stack-gap-lg": "24px",
+                "stack-gap-sm": "8px",
+                "inline-padding-md": "16px"
+        },
+        "fontFamily": {
+                "title-lg": [
+                        "Manrope"
+                ],
+                "label-md": [
+                        "Manrope"
+                ],
+                "display-md": [
+                        "Manrope"
+                ],
+                "body-lg": [
+                        "Manrope"
+                ],
+                "headline-sm": [
+                        "Manrope"
+                ],
+                "body-md": [
+                        "Manrope"
+                ],
+                "label-lg": [
+                        "Manrope"
+                ],
+                "display-lg": [
+                        "Manrope"
+                ]
+        },
+        "fontSize": {
+                "title-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-md": [
+                        "11px",
+                        {
+                                "lineHeight": "14px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-md": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-lg": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "headline-sm": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-lg": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg": [
+                        "40px",
+                        {
+                                "lineHeight": "48px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+    body {
+        font-family: 'Manrope', sans-serif;
+    }
+</style>
+</head>
+<body class="bg-surface-container-low min-h-screen pb-[120px] pt-16">
+<!-- Top App Bar - Linear/Transactional Intent, Back Button present -> Suppress Nav Shells per Rules -->
+<header class="bg-surface fixed top-0 w-full z-50 flex justify-between items-center px-container-margin h-16 max-w-md mx-auto left-0 right-0">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant/50 transition-colors duration-200 ease-in-out text-on-surface">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm text-on-surface font-extrabold tracking-tight">Minhas Metas</h1>
+<div class="w-10 h-10"></div> <!-- Placeholder for balance -->
+</header>
+<main class="max-w-md mx-auto px-container-margin pt-stack-gap-lg flex flex-col gap-stack-gap-lg">
+<!-- Banner Image -->
+<!-- Summary Card -->
+<section class="bg-surface-container-lowest rounded-[24px] p-inline-padding-lg flex flex-col gap-stack-gap-md">
+<div class="flex justify-between items-center">
+<div>
+<h2 class="font-body-md text-body-md text-on-surface-variant">Total em Metas</h2>
+<p class="font-display-md text-display-md text-on-surface">R$ 15.400,00</p>
+</div>
+<div class="relative w-20 h-20 flex items-center justify-center">
+<!-- Fake SVG for Circular Progress -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-variant" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="4"></path>
+<path class="text-primary-container" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="65, 100" stroke-linecap="round" stroke-width="4"></path>
+</svg>
+<span class="absolute font-title-lg text-title-lg text-primary-container">65%</span>
+</div>
+</div>
+<div class="flex gap-2">
+<span class="bg-surface-container px-3 py-1 rounded-full font-label-md text-label-md text-on-surface-variant">R$ 25.000,00 Alvo Global</span>
+</div>
+</section>
+<!-- Goals List -->
+<section class="flex flex-col gap-stack-gap-md">
+<h3 class="font-title-lg text-title-lg text-on-surface">Suas Metas</h3>
+<!-- Goal Card 1 -->
+<article class="bg-surface-container-lowest rounded-[24px] p-[20px] flex flex-col gap-stack-gap-sm">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 bg-surface-container rounded-xl flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined" data-icon="flight_takeoff">flight_takeoff</span>
+</div>
+<div>
+<h4 class="font-title-lg text-title-lg text-on-surface">Viagem Japão</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">R$ 4.200 / R$ 5.000</p>
+</div>
+</div>
+<span class="font-title-lg text-title-lg text-primary-container">84%</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-primary-container h-2 rounded-full" style="width: 84%"></div>
+</div>
+</article>
+<!-- Image Insert 1 -->
+<!-- Goal Card 2 -->
+<article class="bg-surface-container-lowest rounded-[24px] p-[20px] flex flex-col gap-stack-gap-sm">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 bg-surface-container rounded-xl flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined" data-icon="health_and_safety">health_and_safety</span>
+</div>
+<div>
+<h4 class="font-title-lg text-title-lg text-on-surface">Reserva de Emergência</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">R$ 10.000 / R$ 15.000</p>
+</div>
+</div>
+<span class="font-title-lg text-title-lg text-primary-container">66%</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-primary-container h-2 rounded-full" style="width: 66%"></div>
+</div>
+</article>
+<!-- Goal Card 3 -->
+<article class="bg-surface-container-lowest rounded-[24px] p-[20px] flex flex-col gap-stack-gap-sm">
+<div class="flex items-center justify-between mb-2">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 bg-surface-container rounded-xl flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+</div>
+<div>
+<h4 class="font-title-lg text-title-lg text-on-surface">Novo Carro</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">R$ 1.200 / R$ 5.000</p>
+</div>
+</div>
+<span class="font-title-lg text-title-lg text-primary-container">24%</span>
+</div>
+<div class="w-full bg-surface-variant rounded-full h-2">
+<div class="bg-primary-container h-2 rounded-full" style="width: 24%"></div>
+</div>
+</article>
+<!-- Image Insert 2 -->
+</section>
+</main>
+<!-- Prominent Bottom Button -->
+<div class="fixed bottom-0 left-0 right-0 w-full p-container-margin bg-gradient-to-t from-surface-container-low via-surface-container-low to-transparent z-40 flex justify-center max-w-md mx-auto">
+<button class="w-full h-[56px] bg-primary-container text-on-primary rounded-full font-title-lg text-title-lg flex items-center justify-center gap-2 shadow-lg shadow-primary-container/20">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+            Adicionar Nova Meta
+        </button>
+</div>
+</body></html>

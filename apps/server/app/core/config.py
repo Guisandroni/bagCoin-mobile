@@ -1,5 +1,4 @@
 """Application configuration using Pydantic BaseSettings."""
-
 # ruff: noqa: I001 - Imports structured for Jinja2 template conditionals
 
 from pathlib import Path
@@ -33,9 +32,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
     ENVIRONMENT: Literal["development", "local", "staging", "production"] = "local"
-    TIMEZONE: str = (
-        "UTC"  # IANA timezone (e.g. "UTC", "Europe/Warsaw", "America/New_York")
-    )
+    TIMEZONE: str = "UTC"  # IANA timezone (e.g. "UTC", "Europe/Warsaw", "America/New_York")
     MODELS_CACHE_DIR: Path = Path("./models_cache")
     MEDIA_DIR: Path = Path("./media")
     MAX_UPLOAD_SIZE_MB: int = 50  # Max file upload size in MB
@@ -86,10 +83,7 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY must be at least 32 characters long")
         # Get environment from values if available
         env = info.data.get("ENVIRONMENT", "local") if info.data else "local"
-        if (
-            v == "change-me-in-production-use-openssl-rand-hex-32"
-            and env == "production"
-        ):
+        if v == "change-me-in-production-use-openssl-rand-hex-32" and env == "production":
             raise ValueError(
                 "SECRET_KEY must be changed in production! "
                 "Generate a secure key with: openssl rand -hex 32"
@@ -176,6 +170,11 @@ class Settings(BaseSettings):
     # === WhatsApp Bridge ===
     WHATSAPP_BRIDGE_URL: str = "http://whatsapp-bridge:3001"
     WHATSAPP_API_KEY: str = "bagcoin_webhook_secret_123"
+
+    # === Bot deep links (web ↔ WhatsApp/Telegram pairing) ===
+    BOT_WHATSAPP_NUMBER: str = ""  # E.164 digits only, e.g. 5511999999999
+    BOT_TELEGRAM_USERNAME: str = ""  # without @
+    INTEGRATION_LINK_TOKEN_TTL_SECONDS: int = 600
 
     # === LangSmith Observability ===
     LANGCHAIN_TRACING_V2: bool = True

@@ -1,143 +1,344 @@
 "use client"
 
-import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
-import { TrendingUp, TrendingDown, PiggyBank, AlertTriangle, ArrowRight } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAppStore } from "@/lib/store"
+import { useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
+import {
+  AlertTriangle,
+  Compass,
+  Loader2,
+  Sparkles,
+  Target,
+  Wallet,
+} from "lucide-react"
 import { CATEGORIES } from "@/lib/constants"
+import { useAppStore } from "@/lib/store"
 import { cn, formatCurrency } from "@/lib/utils"
-import { Skeleton } from "@/components/ui/skeleton"
-import type { TransactionSummary } from "@/lib/api-server"
-
-// Lazy-load heavy chart components
-const BalanceCard = dynamic(
-  () => import("@/components/dashboard/balance-card").then((m) => ({ default: m.BalanceCard })),
-  { ssr: false, loading: () => <Skeleton className="h-[200px] rounded-2xl" /> }
-)
-
-const CategoryBreakdown = dynamic(
-  () => import("@/components/dashboard/category-breakdown").then((m) => ({ default: m.CategoryBreakdown })),
-  { ssr: false, loading: () => <Skeleton className="h-[300px] rounded-xl" /> }
-)
+import type { ServerAccount, ServerCreditCard, ServerGoal, TransactionSummary } from "@/lib/api-server"
+import { useOpenIntegrationChat, useIntegrationStatus } from "@/hooks/use-integrations"
+import {
+  AssetRow,
+  HCarousel,
+  HCarouselCard,
+  HeroBalanceCard,
+  OnboardingCard,
+  PrimarySecondaryPair,
+  PromoBanner,
+  PriceListItem,
+  SectionHeader,
+  FilterChip,
+} from "@/components/coinbase"
 
 interface Props {
   summary: TransactionSummary | null
+  accounts: ServerAccount[]
+  creditCards: ServerCreditCard[]
+  budgetsCount: number
+  goals: ServerGoal[]
 }
 
-export function DashboardClient({ summary }: Props) {
+function syntheticSparkline(seed: number): number[] {
+  const out: number[] = []
+  let v = 0.5 + (seed % 10) / 20
+  for (let i = 0; i < 6; i++) {
+    v += (Math.sin(seed + i) * 0.08)
+    out.push(Math.max(0.1, Math.min(1, v)))
+  }
+  return out
+}
+
+export function DashboardClient({
+  summary,
+  accounts,
+  creditCards,
+  budgetsCount,
+  goals,
+}: Props) {
+  const router = useRouter()
   const { openModal } = useAppStore()
+  const { openIntegrationChat, openingChannel } = useOpenIntegrationChat()
+  const { data: integrationStatus } = useIntegrationStatus(false)
 
-  const totalIncome = summary?.total_income ?? 0
-  const totalExpenses = summary?.total_expenses ?? 0
-  const balance = summary?.balance ?? 0
-  const savings = totalIncome - totalExpenses
-  const savingsPercent = totalIncome > 0 ? Math.round((savings / totalIncome) * 100) : 0
-
+  const txCount = summary?.transaction_count ?? 0
   const pendingCount = summary?.recent_transactions?.filter((t) => t.status === "pending").length ?? 0
-  const categoryData = summary?.categories ?? []
   const transactions = summary?.recent_transactions ?? []
+  const categoryData = summary?.categories ?? []
 
-  const stats = [
-    { label: "RECEITAS EM ABR", value: formatCurrency(totalIncome), sub: "Salário + freelance", icon: TrendingUp, color: "text-emerald-500", bgColor: "bg-emerald-500/10" },
-    { label: "DESPESAS EM ABR", value: formatCurrency(totalExpenses), sub: `${categoryData.length} categorias`, icon: TrendingDown, color: "text-red-500", bgColor: "bg-red-500/10" },
-    { label: "ECONOMIA ESTIMADA", value: formatCurrency(savings), sub: `${savingsPercent}% da receita`, icon: PiggyBank, color: "text-brand", bgColor: "bg-accent" },
-  ]
+  const linked =
+    Boolean(integrationStatus?.whatsapp_linked || integrationStatus?.telegram_linked)
+
+  const onboardingSteps = useMemo(() => {
+    const hasBudget = budgetsCount > 0
+    const hasGoal = goals.some((g) => g.status === "active")
+    const hasTx = txCount > 0
+    const bits = [linked, hasTx, hasBudget, hasGoal]
+    const done = bits.filter(Boolean).length
+    return { done, total: 4, bits }
+  }, [linked, txCount, budgetsCount, goals])
+
+  const [catSort, setCatSort] = useState<"spent" | "alpha">("spent")
+  const sortedCategories = useMemo(() => {
+    const arr = [...categoryData]
+    if (catSort === "spent") arr.sort((a, b) => b.amount - a.amount)
+    else arr.sort((a, b) => a.name.localeCompare(b.name))
+    return arr.slice(0, 6)
+  }, [categoryData, catSort])
+
+  const accountsTotal = accounts.reduce((s, a) => s + (a.balance ?? 0), 0)
+  const cardsTotalLimit = creditCards.reduce((s, c) => s + (c.limit ?? 0), 0)
+
+  const topGoals = goals.filter((g) => g.status === "active").slice(0, 8)
+  const completedGoals = goals.filter((g) => g.status === "completed").slice(0, 8)
+
+  const showOnboarding = onboardingSteps.done < onboardingSteps.total
 
   return (
-    <div className="space-y-6 pb-8 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Visão geral</h1>
-        </div>
-        <div className="flex gap-2">
-          <button className="rounded-lg border px-3 py-1.5 text-sm">Exportar</button>
+    <div className="page-in space-y-6 pb-28 lg:pb-10">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="section-title">Início</h1>
+      </div>
+
+      <HeroBalanceCard
+        summary={summary}
+        connectBusy={openingChannel === "whatsapp"}
+        onConnectWhatsApp={txCount === 0 ? () => void openIntegrationChat("whatsapp") : undefined}
+      />
+
+      <div className="grid gap-2">
+        <AssetRow
+          href="/app/contas"
+          icon={<Wallet className="h-5 w-5 text-primary" />}
+          title="Contas"
+          subtitle={`${accounts.length} conta(s)`}
+          amount={<span className="row-amount">{formatCurrency(accountsTotal)}</span>}
+        />
+        <AssetRow
+          href="/app/contas"
+          icon={<span className="text-lg">💳</span>}
+          title="Cartões"
+          subtitle={`${creditCards.length} cartão(ões)`}
+          amount={
+            <span className="row-amount text-muted-foreground">
+              {cardsTotalLimit > 0 ? `Lim. ${formatCurrency(cardsTotalLimit)}` : "—"}
+            </span>
+          }
+        />
+      </div>
+
+      {showOnboarding ? (
+        <OnboardingCard
+          title="Complete seu perfil financeiro"
+          description="Conecte bots, registre lançamentos e defina orçamentos e metas."
+          completedSteps={onboardingSteps.done}
+          totalSteps={onboardingSteps.total}
+          viewAllHref="/app/configuracoes/integracoes"
+        />
+      ) : null}
+
+      <HCarousel title="Explorar" labelledBy="explore-carousel">
+        <HCarouselCard>
+          <p className="text-[13px] font-bold">WhatsApp</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">Lançar pelo chat com um toque.</p>
           <button
-            className="rounded-lg bg-[#0a0b0d] px-3 py-1.5 text-sm text-white"
-            onClick={() => openModal("new-transaction")}
+            type="button"
+            disabled={openingChannel !== null}
+            className="mt-3 text-[13px] font-semibold text-primary"
+            onClick={() => void openIntegrationChat("whatsapp")}
           >
-            Novo lançamento
+            {openingChannel === "whatsapp" ? (
+              <Loader2 className="inline h-4 w-4 animate-spin" />
+            ) : (
+              "Abrir WhatsApp"
+            )}
           </button>
-        </div>
-      </div>
-
-      <BalanceCard summary={summary} />
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        {stats.map((stat, i) => (
-          <Card key={i}>
-            <CardContent className="p-4 sm:p-5">
-              <div className="flex items-center gap-3">
-                <div className={cn("flex h-10 w-10 items-center justify-center rounded-full", stat.bgColor)}>
-                  <stat.icon className={cn("h-5 w-5", stat.color)} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{stat.label}</p>
-                  <p className="text-lg font-bold">{stat.value}</p>
-                  <p className="text-[11px] text-muted-foreground">{stat.sub}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Gastos por categoria</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <CategoryBreakdown categories={summary?.categories ?? []} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base">Transações recentes</CardTitle>
-          <Link href="/app/transacoes" className="text-sm text-muted-foreground hover:underline">
-            Ver todas
+        </HCarouselCard>
+        <HCarouselCard>
+          <p className="text-[13px] font-bold">Telegram</p>
+          <p className="mt-1 text-[12px] text-muted-foreground">Mesma experiência no Telegram.</p>
+          <button
+            type="button"
+            disabled={openingChannel !== null}
+            className="mt-3 text-[13px] font-semibold text-primary"
+            onClick={() => void openIntegrationChat("telegram")}
+          >
+            {openingChannel === "telegram" ? (
+              <Loader2 className="inline h-4 w-4 animate-spin" />
+            ) : (
+              "Abrir Telegram"
+            )}
+          </button>
+        </HCarouselCard>
+        <HCarouselCard>
+          <Compass className="mb-2 h-8 w-8 text-primary" />
+          <p className="text-[13px] font-bold">Orçamentos</p>
+          <Link href="/app/orcamentos" className="mt-3 block text-[13px] font-semibold text-primary">
+            Planejar gastos
           </Link>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {transactions.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground text-sm">Nenhuma transação recente</p>
-          ) : (
-            transactions.map((t, i) => (
-              <button
-                key={t.id || i}
-                className="flex w-full items-center justify-between rounded-lg p-3 text-left transition-colors hover:bg-muted/50"
-                onClick={() => openModal("transaction-detail")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn("flex h-9 w-9 items-center justify-center rounded-full", t.amount > 0 ? "bg-emerald-500/10" : "bg-red-500/10")}>
-                    {t.amount > 0 ? <TrendingUp className="h-4 w-4 text-emerald-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{t.name || t.description}</p>
-                    <p className="text-[11px] text-muted-foreground">{t.category || t.category_name} · {t.date || t.transaction_date}</p>
-                  </div>
-                </div>
-                <span className={cn("text-sm font-semibold tabular-nums", t.amount > 0 ? "text-emerald-500" : "text-red-500")}>
-                  {formatCurrency(t.amount)}
-                </span>
-              </button>
-            ))
-          )}
-        </CardContent>
-      </Card>
+        </HCarouselCard>
+        <HCarouselCard>
+          <Target className="mb-2 h-8 w-8 text-primary" />
+          <p className="text-[13px] font-bold">Metas</p>
+          <Link href="/app/metas" className="mt-3 block text-[13px] font-semibold text-primary">
+            Ver metas
+          </Link>
+        </HCarouselCard>
+      </HCarousel>
 
-      {pendingCount > 0 && (
-        <Card className="border-amber-500/50 bg-amber-500/5">
-          <CardContent className="flex items-center gap-3 p-4">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <p className="text-sm">
-              <span className="font-medium">{pendingCount} transações</span> pendentes de confirmação.
-              <Link href="/app/confirmacoes" className="ml-1 font-medium underline">Revisar agora</Link>
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <PromoBanner
+        id="referral-tip"
+        title="Convide amigos"
+        description="Compartilhe o bagCoin e mantenha suas finanças organizadas no WhatsApp."
+        illustration={<Sparkles className="h-14 w-14 text-primary opacity-90" />}
+      />
+
+      <section>
+        <SectionHeader
+          title="Categorias"
+          right={
+            <FilterChip label={catSort === "spent" ? "Mais gastas" : "A–Z"}>
+              <div className="flex flex-col gap-1 p-1">
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                  onClick={() => setCatSort("spent")}
+                >
+                  Mais gastas
+                </button>
+                <button
+                  type="button"
+                  className="rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                  onClick={() => setCatSort("alpha")}
+                >
+                  Ordem alfabética
+                </button>
+              </div>
+            </FilterChip>
+          }
+        />
+        <div className="rounded-2xl border border-border bg-card px-2 py-1">
+          {sortedCategories.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Sem gastos por categoria ainda</p>
+          ) : (
+            sortedCategories.map((cat, i) => {
+              const emoji = CATEGORIES.find((c) => c.name === cat.name)?.emoji ?? "📁"
+              const maxAmt = Math.max(...sortedCategories.map((c) => c.amount), 1)
+              const delta = ((cat.amount / maxAmt) * 100 - 50) * 0.2
+              return (
+                <PriceListItem
+                  key={cat.name}
+                  icon={<span>{emoji}</span>}
+                  name={cat.name}
+                  ticker="Gasto no período"
+                  priceLabel={formatCurrency(cat.amount)}
+                  deltaPercent={delta}
+                  sparklineValues={syntheticSparkline(cat.name.length + i)}
+                />
+              )
+            })
+          )}
+        </div>
+      </section>
+
+      {topGoals.length > 0 ? (
+        <HCarousel title="Metas em destaque" labelledBy="goals-dash">
+          {topGoals.map((g) => (
+            <HCarouselCard key={g.id}>
+              <p className="line-clamp-2 text-[14px] font-bold">{g.name}</p>
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                {formatCurrency(g.current_amount)} / {formatCurrency(g.target_amount)}
+              </p>
+              <div className="mt-2 h-2 w-full rounded-full bg-muted">
+                <div
+                  className="h-2 rounded-full bg-primary transition-all"
+                  style={{ width: `${Math.min(100, g.percentage)}%` }}
+                />
+              </div>
+              <Link href="/app/metas" className="mt-3 inline-block text-[13px] font-semibold text-primary">
+                Abrir meta
+              </Link>
+            </HCarouselCard>
+          ))}
+        </HCarousel>
+      ) : null}
+
+      {completedGoals.length > 0 ? (
+        <HCarousel title="Metas concluídas" labelledBy="goals-done">
+          {completedGoals.map((g) => (
+            <HCarouselCard key={g.id} className="border-dashed opacity-90">
+              <p className="text-[14px] font-bold line-through decoration-muted-foreground">{g.name}</p>
+              <p className="mt-1 text-[12px] text-success">Concluída</p>
+            </HCarouselCard>
+          ))}
+        </HCarousel>
+      ) : null}
+
+      <section>
+        <SectionHeader title="Transações recentes" actionLabel="Ver todas" actionHref="/app/transacoes" />
+        <div className="space-y-2">
+          {transactions.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">Nenhuma transação recente</p>
+          ) : (
+            transactions.slice(0, 8).map((t, i) => {
+              const cat = CATEGORIES.find((c) => c.name === (t.category || t.category_name))
+              return (
+                <AssetRow
+                  key={t.id || i}
+                  icon={
+                    <span className="text-lg">{cat?.emoji ?? (t.amount >= 0 ? "📥" : "📤")}</span>
+                  }
+                  title={t.name || t.description || "Lançamento"}
+                  subtitle={`${t.category || t.category_name || "—"} · ${t.date || t.transaction_date || ""}`}
+                  amount={
+                    <span
+                      className={cn(
+                        "row-amount",
+                        t.amount >= 0 ? "text-success" : "text-danger"
+                      )}
+                    >
+                      {formatCurrency(t.amount)}
+                    </span>
+                  }
+                  onClick={() =>
+                    openModal("transaction-detail", {
+                      id: String(t.id ?? ""),
+                      name: t.name,
+                      category: String(
+                        t.category ?? (t as { category_name?: string }).category_name ?? ""
+                      ),
+                      amount: t.amount,
+                      date: String(t.date ?? (t as { transaction_date?: string }).transaction_date ?? ""),
+                      source: t.source as "manual" | "auto" | "whatsapp",
+                      status: t.status as "confirmed" | "pending",
+                    })
+                  }
+                />
+              )
+            })
+          )}
+        </div>
+      </section>
+
+      {pendingCount > 0 ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+          <p className="text-sm">
+            <span className="font-semibold">{pendingCount} pendente(s)</span>
+            {" · "}
+            <Link href="/app/confirmacoes" className="font-semibold text-primary underline">
+              Revisar
+            </Link>
+          </p>
+        </div>
+      ) : null}
+
+      <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-md lg:static lg:z-0 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:backdrop-blur-none">
+        <PrimarySecondaryPair
+          primaryLabel="Novo lançamento"
+          secondaryLabel="Contas"
+          onPrimary={() => openModal("new-transaction")}
+          onSecondary={() => router.push("/app/contas")}
+        />
+      </div>
     </div>
   )
 }

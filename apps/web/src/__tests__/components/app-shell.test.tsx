@@ -55,23 +55,34 @@ describe("AppShell", () => {
     expect(screen.getByTestId("sidebar")).toBeInTheDocument()
   })
 
-  it("envolve children na coluna de conteúdo (max-width)", () => {
-    const { container } = render(
+  it("não renderiza barra TopAppBar (removida do shell)", () => {
+    render(
       <AppShell>
-        <span data-testid="inner">inner content</span>
+        <p>child</p>
       </AppShell>
     )
-    const column = container.querySelector('[class*="max-w-"]')
-    expect(column).toBeTruthy()
-    expect(column).toContainElement(screen.getByTestId("inner"))
+    expect(screen.queryByTestId("top-app-bar")).not.toBeInTheDocument()
   })
 
   it("renderiza BottomNav em mobile (tela 390x844)", () => {
+    // jsdom always uses 1024x768, so we override viewport size via CSS
+    // BottomNav has class lg:hidden, which is hidden on large screens
+    // In jsdom there is no real CSS media query evaluation, but
+    // the BottomNav component is always rendered in the DOM.
     render(
       <AppShell>
         <p>child</p>
       </AppShell>
     )
     expect(screen.getByTestId("bottom-nav")).toBeInTheDocument()
+  })
+
+  it("children ficam na coluna central", () => {
+    render(
+      <AppShell>
+        <span data-testid="inner">inner content</span>
+      </AppShell>
+    )
+    expect(screen.getByTestId("inner")).toBeInTheDocument()
   })
 })

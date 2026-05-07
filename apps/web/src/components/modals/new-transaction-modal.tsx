@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { CATEGORIES } from "@/lib/constants"
+import { CATEGORIES, DIALOG_SHEET_MOBILE } from "@/lib/constants"
 import { useAppStore } from "@/lib/store"
 import { useCreateTransaction } from "@/hooks/use-transactions"
 import { cn } from "@/lib/utils"
@@ -59,7 +59,7 @@ export function NewTransactionModal() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && closeModal()}>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className={cn("max-w-md rounded-2xl", DIALOG_SHEET_MOBILE)}>
         <DialogHeader>
           <DialogTitle className="font-heading">Novo lançamento</DialogTitle>
         </DialogHeader>

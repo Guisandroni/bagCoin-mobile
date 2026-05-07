@@ -15,7 +15,9 @@ import {
   type Conversation,
   type Message,
 } from "@/hooks/use-conversations"
-import { Plus, MessageSquare, AlertCircle, ChevronLeft, User, Bot } from "lucide-react"
+import { Plus, MessageSquare, AlertCircle, ChevronLeft, User, Bot, Bell } from "lucide-react"
+import Link from "next/link"
+import { AssetRow } from "@/components/coinbase"
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -30,10 +32,6 @@ const shortDateFormatter = new Intl.DateTimeFormat("pt-BR", {
   month: "2-digit",
 })
 
-function getConversationPreview(conversation: Conversation, messageCount: number): string {
-  return `${messageCount} mensagens`
-}
-
 function MessageBubble({ message }: { message: Message }) {
   const [expanded, setExpanded] = useState(false)
   const isLong = message.content.length > 300
@@ -43,12 +41,13 @@ function MessageBubble({ message }: { message: Message }) {
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
       <Avatar
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm ${isUser
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm ${
+          isUser
             ? "bg-primary/10 text-primary"
             : isAssistant
               ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
               : "bg-muted text-muted-foreground"
-          }`}
+        }`}
       >
         {isUser ? (
           <User className="h-4 w-4" />
@@ -59,10 +58,11 @@ function MessageBubble({ message }: { message: Message }) {
 
       <div className={`flex max-w-[80%] flex-col ${isUser ? "items-end" : "items-start"}`}>
         <div
-          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${isUser
+          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+            isUser
               ? "bg-primary text-primary-foreground"
               : "bg-muted text-foreground"
-            }`}
+          }`}
         >
           {isLong && !expanded ? (
             <>
@@ -90,12 +90,13 @@ function MessageBubble({ message }: { message: Message }) {
         <div className="mt-1 flex items-center gap-2 px-1">
           <Badge
             variant="secondary"
-            className={`text-[10px] px-1.5 py-0 ${isUser
+            className={`text-[10px] px-1.5 py-0 ${
+              isUser
                 ? "bg-primary/10 text-primary"
                 : isAssistant
                   ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
                   : ""
-              }`}
+            }`}
           >
             {isUser ? "Você" : isAssistant ? "Assistente" : "Sistema"}
           </Badge>
@@ -151,26 +152,16 @@ function ConversationSidebar({
             </p>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-2 px-1 pb-2">
             {conversations.map((conv) => (
-              <button
+              <AssetRow
                 key={conv.id}
+                className={selectedId === conv.id ? "border-primary ring-1 ring-primary/30" : undefined}
+                icon={<MessageSquare className="h-5 w-5 text-primary" />}
+                title={conv.title || "Conversa sem título"}
+                subtitle={`Atual. ${shortDateFormatter.format(new Date(conv.updated_at))}`}
                 onClick={() => onSelect(conv.id)}
-                className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-muted/60 ${selectedId === conv.id ? "bg-muted" : ""
-                  }`}
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] font-medium">
-                    {conv.title || "Conversa sem título"}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {shortDateFormatter.format(new Date(conv.created_at))}
-                  </p>
-                </div>
-              </button>
+              />
             ))}
           </div>
         )}
@@ -260,8 +251,9 @@ export default function ConfirmacoesPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - hidden on mobile when a conversation is selected */}
         <aside
-          className={`w-full shrink-0 border-r border-border/60 lg:w-72 lg:block ${selectedId ? "hidden" : "block"
-            } lg:block`}
+          className={`w-full shrink-0 border-r border-border/60 lg:w-72 lg:block ${
+            selectedId ? "hidden" : "block"
+          } lg:block`}
         >
           <div className="hidden items-center justify-between border-b border-border/60 p-4 lg:flex">
             <h1 className="text-lg font-bold">Confirmações</h1>
@@ -292,8 +284,9 @@ export default function ConfirmacoesPage() {
 
         {/* Main content - messages */}
         <main
-          className={`flex flex-1 flex-col overflow-hidden ${!selectedId ? "hidden lg:flex" : "flex"
-            }`}
+          className={`flex flex-1 flex-col overflow-hidden ${
+            !selectedId ? "hidden lg:flex" : "flex"
+          }`}
         >
           {!selectedId ? (
             <div className="flex flex-1 items-center justify-center">
@@ -327,20 +320,38 @@ export default function ConfirmacoesPage() {
           ) : (
             <>
               {/* Conversation header */}
-              <div className="flex items-center gap-3 border-b border-border/60 px-6 py-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                  <MessageSquare className="h-4 w-4 text-primary" />
+              <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 shrink-0 lg:hidden"
+                  onClick={() => setSelectedId(null)}
+                  aria-label="Voltar às conversas"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="truncate text-[15px] font-semibold">
+                      {selectedConversation?.title || "Conversa sem título"}
+                    </h2>
+                    <p className="text-[11px] text-muted-foreground">
+                      {selectedConversation
+                        ? dateFormatter.format(new Date(selectedConversation.created_at))
+                        : ""}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-sm font-semibold">
-                    {selectedConversation?.title || "Conversa sem título"}
-                  </h2>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedConversation
-                      ? dateFormatter.format(new Date(selectedConversation.created_at))
-                      : ""}
-                  </p>
-                </div>
+                <Link
+                  href="/app/confirmacoes"
+                  className="touch-target flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"
+                  aria-label="Centro de confirmações"
+                >
+                  <Bell className="h-5 w-5" />
+                </Link>
               </div>
 
               {/* Messages area */}

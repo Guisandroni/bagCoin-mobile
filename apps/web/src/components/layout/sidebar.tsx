@@ -49,6 +49,14 @@ export function Sidebar() {
   const isActive = (id: string) =>
     id === "dashboard" ? pathname === "/app" : pathname.startsWith(`/app/${id}`)
 
+  const navLinkClass = (active: boolean) =>
+    cn(
+      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors",
+      active
+        ? "bg-primary text-primary-foreground"
+        : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+    )
+
   return (
     <aside className="relative z-20 hidden w-[var(--sidebar-w)] shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
       <div className="flex items-center gap-2 px-3 py-5">
@@ -69,16 +77,7 @@ export function Sidebar() {
           const Icon = iconMap[item.icon]
           const href = item.id === "dashboard" ? "/app" : `/app/${item.id}`
           return (
-            <Link
-              key={item.id}
-              href={href}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors",
-                isActive(item.id)
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
+            <Link key={item.id} href={href} title={item.label} className={navLinkClass(isActive(item.id))}>
               {Icon && <Icon className="h-[18px] w-[18px] shrink-0" />}
               <span className="truncate">{item.label}</span>
             </Link>
@@ -91,16 +90,7 @@ export function Sidebar() {
         {NAV_ITEMS.slice(2, 4).map((item) => {
           const Icon = iconMap[item.icon]
           return (
-            <Link
-              key={item.id}
-              href={`/app/${item.id}`}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors",
-                isActive(item.id)
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
+            <Link key={item.id} href={`/app/${item.id}`} title={item.label} className={navLinkClass(isActive(item.id))}>
               {Icon && <Icon className="h-[18px] w-[18px] shrink-0" />}
               <span className="truncate">{item.label}</span>
             </Link>
@@ -111,16 +101,7 @@ export function Sidebar() {
         {NAV_ITEMS.slice(4, 6).map((item) => {
           const Icon = iconMap[item.icon]
           return (
-            <Link
-              key={item.id}
-              href={`/app/${item.id}`}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors",
-                isActive(item.id)
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
+            <Link key={item.id} href={`/app/${item.id}`} title={item.label} className={navLinkClass(isActive(item.id))}>
               {Icon && <Icon className="h-[18px] w-[18px] shrink-0" />}
               <span className="truncate">{item.label}</span>
             </Link>
@@ -132,6 +113,7 @@ export function Sidebar() {
           type="button"
           disabled={openingChannel !== null}
           onClick={() => void openIntegrationChat("whatsapp")}
+          title="WhatsApp"
           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:opacity-60"
         >
           {openingChannel === "whatsapp" ? (
@@ -145,6 +127,7 @@ export function Sidebar() {
           type="button"
           disabled={openingChannel !== null}
           onClick={() => void openIntegrationChat("telegram")}
+          title="Telegram"
           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:opacity-60"
         >
           {openingChannel === "telegram" ? (
@@ -160,29 +143,13 @@ export function Sidebar() {
         <p className="px-2 pb-1 pt-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">
           Controle financeiro
         </p>
-        <Link
-          href="/app/contas"
-          className={cn(
-            "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors",
-            pathname.startsWith("/app/contas")
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          )}
-        >
+        <Link href="/app/contas" title="Contas" className={navLinkClass(pathname.startsWith("/app/contas"))}>
           <Wallet className="h-[18px] w-[18px] shrink-0" />
           <span className="truncate">Contas</span>
         </Link>
 
         <p className="px-2 pb-1 pt-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/70">Sistema</p>
-        <Link
-          href="/app/configuracoes"
-          className={cn(
-            "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors",
-            pathname.startsWith("/app/configuracoes")
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          )}
-        >
+        <Link href="/app/configuracoes" title="Configurações" className={navLinkClass(pathname.startsWith("/app/configuracoes"))}>
           <Settings className="h-[18px] w-[18px] shrink-0" />
           <span className="truncate">Configurações</span>
         </Link>

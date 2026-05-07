@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gerenciamento de Categorias</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-container": "#1652f0",
+                      "on-secondary-fixed-variant": "#005139",
+                      "on-tertiary-container": "#ffd7d2",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#001452",
+                      "on-error": "#ffffff",
+                      "secondary-container": "#64fcc2",
+                      "secondary": "#006c4d",
+                      "tertiary": "#9b0010",
+                      "on-secondary-container": "#007352",
+                      "surface-bright": "#fbf9fb",
+                      "tertiary-container": "#c60f1c",
+                      "on-surface-variant": "#434656",
+                      "background": "#fbf9fb",
+                      "on-primary": "#ffffff",
+                      "secondary-fixed": "#64fcc2",
+                      "on-primary-container": "#dadfff",
+                      "surface": "#fbf9fb",
+                      "on-tertiary-fixed-variant": "#93000f",
+                      "error-container": "#ffdad6",
+                      "surface-variant": "#e3e2e5",
+                      "outline": "#747687",
+                      "on-primary-fixed-variant": "#0038b6",
+                      "surface-container-low": "#f5f3f6",
+                      "primary-fixed-dim": "#b7c4ff",
+                      "surface-tint": "#064ceb",
+                      "primary-fixed": "#dde1ff",
+                      "inverse-surface": "#303033",
+                      "on-background": "#1b1c1e",
+                      "secondary-fixed-dim": "#40dfa8",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "on-secondary-fixed": "#002115",
+                      "inverse-on-surface": "#f2f0f3",
+                      "on-surface": "#1b1c1e",
+                      "tertiary-fixed-dim": "#ffb3ac",
+                      "surface-dim": "#dbd9dc",
+                      "surface-container-high": "#e9e7ea",
+                      "surface-container-highest": "#e3e2e5",
+                      "primary": "#003cc1",
+                      "outline-variant": "#c3c5d8",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed": "#ffdad6",
+                      "inverse-primary": "#b7c4ff",
+                      "on-tertiary-fixed": "#410003",
+                      "error": "#ba1a1a",
+                      "surface-container": "#efedf0"
+              },
+              "borderRadius": {
+                      "DEFAULT": "1rem",
+                      "lg": "2rem",
+                      "xl": "3rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "inline-padding-md": "16px",
+                      "inline-padding-lg": "32px",
+                      "stack-gap-sm": "8px",
+                      "stack-gap-lg": "24px",
+                      "container-margin": "20px",
+                      "stack-gap-md": "16px"
+              },
+              "fontFamily": {
+                      "headline-sm": [
+                              "Manrope"
+                      ],
+                      "display-md": [
+                              "Manrope"
+                      ],
+                      "body-lg": [
+                              "Manrope"
+                      ],
+                      "label-md": [
+                              "Manrope"
+                      ],
+                      "title-lg": [
+                              "Manrope"
+                      ],
+                      "label-lg": [
+                              "Manrope"
+                      ],
+                      "body-md": [
+                              "Manrope"
+                      ],
+                      "display-lg": [
+                              "Manrope"
+                      ]
+              },
+              "fontSize": {
+                      "headline-sm": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-md": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-md": [
+                              "11px",
+                              {
+                                      "lineHeight": "14px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "title-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-lg": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display-lg": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-container-margin py-stack-gap-md bg-surface docked full-width top-0 z-50 sticky">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden shrink-0">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A close-up portrait of a professional individual smiling warmly. The lighting is soft and natural, creating a welcoming and trustworthy atmosphere. The background is slightly blurred to keep focus on the person. The overall aesthetic is clean, modern, and high-quality, fitting for a premium financial application." src="https://lh3.googleusercontent.com/aida/ADBb0uhYEwFquAUQsqtrDM2JMAIrt0HWREUE2TM4NQLZJpseQz2O9HuCRIoOUqRF5IIoBTG6lH_8u0xZHkWp_M357A54oZgvX-cc4V_f8aw2am6FHXYU6wMoWDPECHKISX9IUBPiSQPBchmUpw_iTLdqpVN34vtFgMyNjWspj5aoMXKwsVI0XzVnzGrZP8vGeDoXthNdbXso4XlNpxsC--U_gWdjQ8gtezTY88rlZw6Ko1UeOJess7OHlW-Jucabynj4btP2ljwjmCMTIOA"/>
+</div>
+<h1 class="font-display-md text-display-md font-bold text-primary-container">Categorias</h1>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-primary hover:opacity-80 transition-opacity active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">search</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="px-container-margin pt-stack-gap-lg">
+<!-- Summary Card / Hero Image (Optional visual interest) -->
+<div class="w-full h-32 rounded-lg bg-primary-container mb-stack-gap-lg p-inline-padding-md flex flex-col justify-center shadow-md"><p class="font-body-md text-body-md text-on-primary/90">Total Alocado</p><h2 class="font-headline-sm text-headline-sm text-on-primary">R$ 4.500,00</h2></div>
+<!-- Filters / Tabs -->
+<div class="flex gap-2 mb-stack-gap-lg overflow-x-auto pb-2 scrollbar-hide">
+<button class="px-4 py-2 rounded-full bg-primary-container/10 text-primary-container font-label-lg text-label-lg whitespace-nowrap">Todas</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-high text-on-surface-variant font-label-lg text-label-lg whitespace-nowrap">Despesas</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-high text-on-surface-variant font-label-lg text-label-lg whitespace-nowrap">Receitas</button>
+<button class="px-4 py-2 rounded-full bg-surface-container-high text-on-surface-variant font-label-lg text-label-lg whitespace-nowrap">Investimentos</button>
+</div>
+<!-- Categories List -->
+<div class="space-y-stack-gap-md">
+<!-- Category Item: Alimentação -->
+<div class="bg-surface-container-lowest rounded-lg p-inline-padding-md flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-[#FFD7D2] flex items-center justify-center text-[#9B0010] shrink-0">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Alimentação</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Limite Mensal</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-title-lg text-title-lg text-on-surface">R$ 1.200,00</p>
+<p class="font-label-md text-label-md text-on-surface-variant">80% utilizado</p>
+</div>
+</div>
+<!-- Category Item: Moradia -->
+<div class="bg-surface-container-lowest rounded-lg p-inline-padding-md flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined">home</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Moradia</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Limite Mensal</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-title-lg text-title-lg text-on-surface">R$ 2.500,00</p>
+<p class="font-label-md text-label-md text-on-surface-variant">Fixo</p>
+</div>
+</div>
+<!-- Category Item: Transporte -->
+<div class="bg-surface-container-lowest rounded-lg p-inline-padding-md flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-secondary-fixed flex items-center justify-center text-secondary shrink-0">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Transporte</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Limite Mensal</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-title-lg text-title-lg text-on-surface">R$ 400,00</p>
+<p class="font-label-md text-label-md text-on-surface-variant">45% utilizado</p>
+</div>
+</div>
+<!-- Category Item: Lazer -->
+<div class="bg-surface-container-lowest rounded-lg p-inline-padding-md flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-[#FFE0B2] flex items-center justify-center text-[#E65100] shrink-0">
+<span class="material-symbols-outlined">movie</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Lazer</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Limite Mensal</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-title-lg text-title-lg text-on-surface">R$ 300,00</p>
+<p class="font-label-md text-label-md text-on-surface-variant">90% utilizado</p>
+</div>
+</div>
+<!-- Category Item: Saúde -->
+<div class="bg-surface-container-lowest rounded-lg p-inline-padding-md flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-lg bg-[#E1BEE7] flex items-center justify-center text-[#4A148C] shrink-0">
+<span class="material-symbols-outlined">favorite</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Saúde</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Limite Mensal</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-title-lg text-title-lg text-on-surface">R$ 100,00</p>
+<p class="font-label-md text-label-md text-on-surface-variant">20% utilizado</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Action Button (FAB) -->
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-4 pt-2 bg-surface-container-lowest shadow-[0_-4px_12px_rgba(0,0,0,0.08)] rounded-t-lg md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-lg text-label-lg mt-1">Home</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-lg text-label-lg mt-1">Portfolio</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">swap_horiz</span>
+<span class="font-label-lg text-label-lg mt-1">Transfer</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-label-lg text-label-lg mt-1">Market</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200 bg-primary-container text-on-primary-container rounded-full">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-lg text-label-lg mt-1">Settings</span>
+</button>
+</nav>
+</body></html>

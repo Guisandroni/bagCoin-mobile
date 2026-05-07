@@ -19,6 +19,7 @@ from app.db.models.phone_conversation import PhoneConversation
 from app.db.models.agent_log import AgentLog
 from app.db.models.credit_card import CreditCard
 from app.db.models.account import Account
+from app.db.models.integration_link_token import IntegrationLinkToken
 
 __all__ = [
     "User",
@@ -43,4 +44,5 @@ __all__ = [
     "AgentLog",
     "CreditCard",
     "Account",
+    "IntegrationLinkToken",
 ]

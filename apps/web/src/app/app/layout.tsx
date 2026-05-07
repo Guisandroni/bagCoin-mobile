@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { AppShell } from "@/components/layout/app-shell"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { Modals } from "@/components/modals/modals"
+import { PageTransition } from "@/components/layout/page-transition"
 import Loading from "./loading"
 
 export default function DashboardLayout({
@@ -13,7 +14,7 @@ export default function DashboardLayout({
     <AuthGuard>
       <AppShell>
         <Suspense fallback={<Loading />}>
-          {children}
+          <PageTransition>{children}</PageTransition>
         </Suspense>
       </AppShell>
       <Modals />

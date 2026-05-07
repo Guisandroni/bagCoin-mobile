@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { CATEGORIES, SOURCE_LABELS, STATUS_LABELS } from "@/lib/constants"
+import { CATEGORIES, DIALOG_SHEET_MOBILE, SOURCE_LABELS, STATUS_LABELS } from "@/lib/constants"
 import { useAppStore } from "@/lib/store"
 import { useDeleteTransaction, useUpdateTransaction } from "@/hooks/use-transactions"
 import { cn, formatCurrency } from "@/lib/utils"
@@ -79,7 +79,7 @@ export function TransactionDetailModal() {
   if (showDeleteConfirm) {
     return (
       <Dialog open={open} onOpenChange={() => { setShowDeleteConfirm(false); closeModal() }}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className={cn("max-w-md rounded-2xl", DIALOG_SHEET_MOBILE)}>
           <DialogHeader>
             <DialogTitle className="font-heading">Excluir transação</DialogTitle>
           </DialogHeader>
@@ -117,7 +117,7 @@ export function TransactionDetailModal() {
 
     return (
       <Dialog open={open} onOpenChange={(v) => !v && closeModal()}>
-        <DialogContent className="max-w-md rounded-2xl">
+        <DialogContent className={cn("max-w-md rounded-2xl", DIALOG_SHEET_MOBILE)}>
           <DialogHeader>
             <DialogTitle className="font-heading">Editar transação</DialogTitle>
           </DialogHeader>
@@ -195,7 +195,7 @@ export function TransactionDetailModal() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && closeModal()}>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className={cn("max-w-md rounded-2xl", DIALOG_SHEET_MOBILE)}>
         <DialogHeader>
           <DialogTitle className="font-heading">Detalhes da transação</DialogTitle>
         </DialogHeader>

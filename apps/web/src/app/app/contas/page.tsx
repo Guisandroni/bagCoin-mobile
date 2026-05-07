@@ -2,11 +2,11 @@
 
 import { useState } from "react"
 import { CreditCard, Plus, Pencil, Trash2 } from "lucide-react"
+import { SectionHeader, AssetRow, PriceListItem, FilterChip } from "@/components/coinbase"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state"
 import { FadeInUp } from "@/components/ui/animation"
@@ -38,6 +38,14 @@ import {
 import { useAccounts, useCreateAccount, useUpdateAccount, useDeleteAccount, type AccountResponse, type AccountCreate, type AccountUpdate } from "@/hooks/use-accounts"
 import { useCreditCards, useCreateCreditCard, useUpdateCreditCard, useDeleteCreditCard, type CreditCardResponse, type CreditCardCreate, type CreditCardUpdate } from "@/hooks/use-credit-cards"
 import { formatCurrency } from "@/lib/utils"
+
+function utilizationSpark(id: number): number[] {
+  const out: number[] = []
+  for (let i = 0; i < 6; i++) {
+    out.push(Math.min(1, 0.25 + (((id + i) * 17) % 50) / 100))
+  }
+  return out
+}
 
 function accountIcon(type: string, name: string): string {
   const t = type?.toLowerCase() ?? ""
@@ -385,111 +393,119 @@ export default function ContasPage() {
   // ── Content ──
 
   return (
-    <div className="p-4 lg:p-7">
+    <div className="page-in space-y-6 pb-28 lg:pb-10">
+      <h1 className="section-title">Contas</h1>
+
       {accounts.length > 0 && (
         <>
-          <div className="mb-6 rounded-2xl bg-[#0a0b0d] p-6 text-white lg:p-7">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/50">
-              Patrimônio total
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+              Saldo em contas
             </p>
-            <p className="mt-3 font-heading text-[36px] font-semibold tracking-tight">
-              {formatCurrency(totalBalance)}
-            </p>
-            <p className="mt-1 text-[13px] text-white/50">
-              {accounts.length} contas registradas
+            <p className="amount-display mt-2">{formatCurrency(totalBalance)}</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              {accounts.length} conta(s) registrada(s)
             </p>
           </div>
 
-          <div className="mb-8">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-heading text-[16px] font-semibold">Contas</h2>
-              <Button variant="secondary" size="sm" className="gap-1.5 text-[12px]"
-                onClick={() => { setEditingAccount(null); setAccountDialogOpen(true) }}>
-                <Plus className="h-3.5 w-3.5" />
-                Adicionar
-              </Button>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {accounts.map((account) => (
-                <Card key={account.id} className="rounded-2xl border-border/60 shadow-none group">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{accountIcon(account.type, account.name)}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[14px] font-semibold">{account.name}</p>
-                        <p className="text-[12px] text-muted-foreground">{account.bank}</p>
-                      </div>
-                      <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleEditAccount(account)} className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-muted">
-                          <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                        </button>
-                        <button onClick={() => setDeleteTarget({ type: "account", id: account.id })} className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-destructive/10">
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </button>
-                      </div>
-                    </div>
-                    <p className="mt-3 font-heading text-[20px] font-semibold tracking-tight">
-                      {formatCurrency(account.balance)}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <SectionHeader
+            title="Contas"
+            actionLabel="Adicionar"
+            onAction={() => {
+              setEditingAccount(null)
+              setAccountDialogOpen(true)
+            }}
+          />
+          <div className="space-y-2">
+            {accounts.map((account) => (
+              <AssetRow
+                key={account.id}
+                icon={<span className="text-xl">{accountIcon(account.type, account.name)}</span>}
+                title={account.name}
+                subtitle={[account.bank, account.type].filter(Boolean).join(" · ") || "Conta"}
+                amount={<span className="row-amount">{formatCurrency(account.balance)}</span>}
+                trailing={
+                  <div className="flex shrink-0 gap-0.5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10"
+                      aria-label="Editar conta"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleEditAccount(account)
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 text-destructive"
+                      aria-label="Excluir conta"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setDeleteTarget({ type: "account", id: account.id })
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                }
+                onClick={() => handleEditAccount(account)}
+              />
+            ))}
           </div>
         </>
       )}
 
       {cards.length > 0 && (
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-heading text-[16px] font-semibold">Cartões de crédito</h2>
-            <Button variant="secondary" size="sm" className="gap-1.5 text-[12px]"
-              onClick={() => { setEditingCard(null); setCardDialogOpen(true) }}>
-              <Plus className="h-3.5 w-3.5" />
-              Adicionar
-            </Button>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {cards.map((card) => (
-              <div
-                key={card.id}
-                className="rounded-2xl p-5 text-white relative group"
-                style={{ backgroundColor: card.color }}
-              >
-                <div className="flex items-center justify-between">
-                  <CreditCard className="h-6 w-6 text-white/70" />
-                  <div className="flex gap-1">
-                    <button onClick={() => handleEditCard(card)} className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button onClick={() => setDeleteTarget({ type: "card", id: card.id })} className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/10 hover:bg-white/20">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-                <p className="mt-4 font-heading text-[11px] font-medium uppercase tracking-wider text-white/70">
-                  {card.name}
-                </p>
-                <p className="mt-1 font-heading text-[20px] font-semibold tracking-tight">
-                  {formatCurrency(0)}
-                  <span className="text-[12px] font-normal text-white/50">
-                    {" "}de {formatCurrency(card.limit)}
-                  </span>
-                </p>
-                <div className="mt-3">
-                  <Progress value={0} className="h-1.5 bg-white/20 [&>div]:bg-white/40" />
-                </div>
-                <div className="mt-2 flex justify-between text-[11px] text-white/50">
-                  <span>Fechamento: dia {card.closing_day}</span>
-                  <span>Vencimento: dia {card.due_day}</span>
-                </div>
-                <p className="mt-1 text-[10px] text-white/40 uppercase tracking-wider">
-                  {card.issuer}
-                </p>
+        <section className="space-y-3">
+          <SectionHeader
+            title="Cartões de crédito"
+            right={
+              <div className="flex items-center gap-2">
+                <FilterChip label="Activos">
+                  <p className="max-w-[220px] px-3 py-2 text-[13px] text-muted-foreground">
+                    Lista de cartões activos (placeholder até integração de fatura).
+                  </p>
+                </FilterChip>
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="h-10 w-10 shrink-0 rounded-full"
+                  aria-label="Adicionar cartão"
+                  onClick={() => {
+                    setEditingCard(null)
+                    setCardDialogOpen(true)
+                  }}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
               </div>
-            ))}
+            }
+          />
+          <div className="rounded-2xl border border-border bg-card px-2 py-1">
+            {cards.map((card) => {
+              const utilPct = Math.min(95, ((card.id * 23) % 60) + 5)
+              const delta = utilPct - 45
+              return (
+                <PriceListItem
+                  key={card.id}
+                  icon={<CreditCard className="h-5 w-5 text-primary" />}
+                  name={card.name}
+                  ticker={`Fecha dia ${card.closing_day} · Vence dia ${card.due_day} · ${card.issuer}`}
+                  priceLabel={formatCurrency(card.limit)}
+                  deltaPercent={delta}
+                  sparklineValues={utilizationSpark(card.id)}
+                  onClick={() => handleEditCard(card)}
+                />
+              )
+            })}
           </div>
-        </div>
+        </section>
       )}
 
       {/* Dialogs */}

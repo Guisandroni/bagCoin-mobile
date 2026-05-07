@@ -1,0 +1,180 @@
+/*
+
+  Release Components — Material Design 3 Token Override
+  
+  These tokens are scoped to .rls containers so they don't leak
+  into the existing Coinbase-inspired design system.
+
+  Source: template/stitch_markdown_design_system/modern_financial_system/DESIGN.md
+
+*/
+
+/* ── Font ── */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* ── Scoped Design Tokens ── */
+.rls {
+  /* Primary */
+  --rls-primary: #003cc1;
+  --rls-on-primary: #ffffff;
+  --rls-primary-container: #1652f0;
+  --rls-on-primary-container: #dadfff;
+  --rls-primary-fixed: #dde1ff;
+  --rls-primary-fixed-dim: #b7c4ff;
+  --rls-on-primary-fixed: #001452;
+  --rls-on-primary-fixed-variant: #0038b6;
+
+  /* Secondary */
+  --rls-secondary: #006c4d;
+  --rls-on-secondary: #ffffff;
+  --rls-secondary-container: #64fcc2;
+  --rls-on-secondary-container: #007352;
+  --rls-secondary-fixed: #64fcc2;
+  --rls-secondary-fixed-dim: #40dfa8;
+  --rls-on-secondary-fixed: #002115;
+  --rls-on-secondary-fixed-variant: #005139;
+
+  /* Tertiary */
+  --rls-tertiary: #9b0010;
+  --rls-on-tertiary: #ffffff;
+  --rls-tertiary-container: #c60f1c;
+  --rls-on-tertiary-container: #ffd7d2;
+  --rls-tertiary-fixed: #ffdad6;
+  --rls-tertiary-fixed-dim: #ffb3ac;
+  --rls-on-tertiary-fixed: #410003;
+  --rls-on-tertiary-fixed-variant: #93000f;
+
+  /* Error */
+  --rls-error: #ba1a1a;
+  --rls-on-error: #ffffff;
+  --rls-error-container: #ffdad6;
+  --rls-on-error-container: #93000a;
+
+  /* Surface / Background */
+  --rls-background: #fbf9fb;
+  --rls-on-background: #1b1c1e;
+  --rls-surface: #fbf9fb;
+  --rls-on-surface: #1b1c1e;
+  --rls-surface-variant: #e3e2e5;
+  --rls-on-surface-variant: #434656;
+  --rls-surface-container: #efedf0;
+  --rls-surface-container-low: #f5f3f6;
+  --rls-surface-container-high: #e9e7ea;
+  --rls-surface-container-highest: #e3e2e5;
+  --rls-surface-container-lowest: #ffffff;
+  --rls-surface-dim: #dbd9dc;
+  --rls-surface-bright: #fbf9fb;
+  --rls-surface-tint: #064ceb;
+  --rls-inverse-surface: #303033;
+  --rls-inverse-on-surface: #f2f0f3;
+  --rls-inverse-primary: #b7c4ff;
+
+  /* Outline */
+  --rls-outline: #747687;
+  --rls-outline-variant: #c3c5d8;
+
+  /* Radii */
+  --rls-radius-sm: 0.5rem;
+  --rls-radius: 1rem;
+  --rls-radius-md: 1.5rem;
+  --rls-radius-lg: 2rem;
+  --rls-radius-xl: 3rem;
+  --rls-radius-pill: 9999px;
+
+  /* Spacing */
+  --rls-container-margin: 20px;
+  --rls-stack-gap-lg: 24px;
+  --rls-stack-gap-md: 16px;
+  --rls-stack-gap-sm: 8px;
+  --rls-inline-padding-lg: 32px;
+  --rls-inline-padding-md: 16px;
+
+  /* Font family */
+  font-family: 'Manrope', system-ui, sans-serif;
+
+  /* Font sizes */
+  --rls-text-display-lg: 40px;
+  --rls-text-display-md: 32px;
+  --rls-text-headline-sm: 24px;
+  --rls-text-title-lg: 18px;
+  --rls-text-body-lg: 16px;
+  --rls-text-body-md: 14px;
+  --rls-text-label-lg: 12px;
+  --rls-text-label-md: 11px;
+
+  color: var(--rls-on-background);
+  background: var(--rls-background);
+}
+
+/* ── Typography utilities ── */
+.rls-text-display-lg {
+  font-size: var(--rls-text-display-lg);
+  font-weight: 700;
+  line-height: 48px;
+  letter-spacing: -0.02em;
+}
+.rls-text-display-md {
+  font-size: var(--rls-text-display-md);
+  font-weight: 700;
+  line-height: 40px;
+  letter-spacing: -0.01em;
+}
+.rls-text-headline-sm {
+  font-size: var(--rls-text-headline-sm);
+  font-weight: 600;
+  line-height: 32px;
+}
+.rls-text-title-lg {
+  font-size: var(--rls-text-title-lg);
+  font-weight: 600;
+  line-height: 24px;
+}
+.rls-text-body-lg {
+  font-size: var(--rls-text-body-lg);
+  font-weight: 500;
+  line-height: 24px;
+}
+.rls-text-body-md {
+  font-size: var(--rls-text-body-md);
+  font-weight: 500;
+  line-height: 20px;
+}
+.rls-text-label-lg {
+  font-size: var(--rls-text-label-lg);
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+}
+.rls-text-label-md {
+  font-size: var(--rls-text-label-md);
+  font-weight: 600;
+  line-height: 14px;
+}
+
+/* ── Color mapped utilities ── */
+.rls-bg-primary { background-color: var(--rls-primary); }
+.rls-bg-primary-container { background-color: var(--rls-primary-container); }
+.rls-bg-surface { background-color: var(--rls-surface); }
+.rls-bg-surface-container { background-color: var(--rls-surface-container); }
+.rls-bg-surface-container-low { background-color: var(--rls-surface-container-low); }
+.rls-bg-surface-container-lowest { background-color: var(--rls-surface-container-lowest); }
+.rls-bg-surface-container-high { background-color: var(--rls-surface-container-high); }
+.rls-bg-surface-variant { background-color: var(--rls-surface-variant); }
+.rls-bg-secondary-container { background-color: var(--rls-secondary-container); }
+.rls-bg-tertiary-container { background-color: var(--rls-tertiary-container); }
+.rls-bg-error-container { background-color: var(--rls-error-container); }
+.rls-bg-inverse-surface { background-color: var(--rls-inverse-surface); }
+
+.rls-text-on-primary { color: var(--rls-on-primary); }
+.rls-text-on-primary-container { color: var(--rls-on-primary-container); }
+.rls-text-on-surface { color: var(--rls-on-surface); }
+.rls-text-on-surface-variant { color: var(--rls-on-surface-variant); }
+.rls-text-primary { color: var(--rls-primary); }
+.rls-text-primary-container { color: var(--rls-primary-container); }
+.rls-text-secondary { color: var(--rls-secondary); }
+.rls-text-tertiary { color: var(--rls-tertiary); }
+.rls-text-outline { color: var(--rls-outline); }
+.rls-text-error { color: var(--rls-error); }
+.rls-text-inverse-on-surface { color: var(--rls-inverse-on-surface); }
+
+.rls-border-outline-variant { border-color: var(--rls-outline-variant); }

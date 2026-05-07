@@ -22,6 +22,7 @@ from app.schemas.common import (
     WebhookPayload,
     WhatsAppResponse,
 )
+from app.services.integration_service import redact_message_for_log
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhook", tags=["webhook"])
@@ -39,9 +40,7 @@ def _get_redis():
     try:
         import redis as redis_module
 
-        _redis = redis_module.from_url(
-            settings.REDIS_URL, decode_responses=True, socket_timeout=2
-        )
+        _redis = redis_module.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=2)
         _redis.ping()
         logger.info("Redis conectado para deduplicação")
     except Exception as e:
@@ -90,13 +89,14 @@ async def receive_whatsapp_message(
 
     terr = tenant_phone_error(phone_number)
     if terr:
-        logger.warning(
-            f"Webhook rejeitado — telefone inválido após normalização: {raw_phone!r}"
-        )
+        logger.warning(f"Webhook rejeitado — telefone inválido após normalização: {raw_phone!r}")
         return WhatsAppResponse(reply=f"⚠️ {terr}", actions=[])
 
     logger.info(
-        f"Webhook recebido de {raw_phone} → {phone_number}: {payload.message[:50]}..."
+        "Webhook recebido de %s → %s: %s",
+        raw_phone,
+        phone_number,
+        redact_message_for_log(payload.message or "", 50),
     )
 
     # 2. Deduplicação por message_id (se disponível) ou conteúdo
@@ -113,15 +113,15 @@ async def receive_whatsapp_message(
         source_format = (
             "audio"
             if payload.type in ["ptt", "audio"]
-            else (
-                "image"
-                if payload.type in ["image"]
-                else "document" if payload.type in ["document"] else "text"
-            )
+            else "image"
+            if payload.type in ["image"]
+            else "document"
+            if payload.type in ["document"]
+            else "text"
         )
 
         # 4. Prepara estado inicial
-        context = {}
+        context = {"channel": "whatsapp"}
         if payload.media:
             context["media"] = payload.media
 
@@ -143,10 +143,7 @@ async def receive_whatsapp_message(
         # 5. Executa o grafo de orquestração
         result = orchestrator.invoke(initial_state)
 
-        response_text = (
-            result.get("response")
-            or "Processamento concluído. Se precisar de algo, é só falar! 😊"
-        )
+        response_text = result.get("response") or "Processamento concluído. Se precisar de algo, é só falar! 😊"
 
         logger.info(f"Resposta gerada para {phone_number}: {response_text[:100]}...")
 
@@ -193,9 +190,7 @@ async def receive_telegram_message(
 
     terr = tenant_phone_error(phone_number)
     if terr:
-        logger.warning(
-            f"Telegram webhook rejeitado — telefone inválido: {phone_number!r}"
-        )
+        logger.warning(f"Telegram webhook rejeitado — telefone inválido: {phone_number!r}")
         return TelegramResponse(reply=f"⚠️ {terr}", actions=[])
 
     # 2. Busca ou cria PhoneUser para garantir que existe
@@ -209,8 +204,10 @@ async def receive_telegram_message(
         )
 
     logger.info(
-        f"Telegram webhook recebido de {payload.chat_id}"
-        f" (username={payload.username}): {payload.message[:50]}..."
+        "Telegram webhook recebido de %s (username=%s): %s",
+        payload.chat_id,
+        payload.username,
+        redact_message_for_log(payload.message or "", 50),
     )
 
     # 3. Deduplicação simples (baseada em chat_id + message)
@@ -224,7 +221,7 @@ async def receive_telegram_message(
         source_format = payload.source_format or "text"
 
         # 5. Prepara estado inicial
-        context = {}
+        context = {"channel": "telegram"}
         if payload.media:
             context["media"] = payload.media
 
@@ -246,10 +243,7 @@ async def receive_telegram_message(
         # 6. Executa o grafo de orquestração
         result = orchestrator.invoke(initial_state)
 
-        response_text = (
-            result.get("response")
-            or "Processamento concluído. Se precisar de algo, é só falar! 😊"
-        )
+        response_text = result.get("response") or "Processamento concluído. Se precisar de algo, é só falar! 😊"
 
         logger.info(f"Resposta gerada para {phone_number}: {response_text[:100]}...")
 

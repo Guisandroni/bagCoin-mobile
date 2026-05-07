@@ -1,17 +1,13 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Progress } from "@/components/ui/progress"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
@@ -39,6 +35,8 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog"
 import { Plus, Pencil, Trash2, AlertCircle, Target } from "lucide-react"
+import { HCarousel, HCarouselCard, SectionHeader } from "@/components/coinbase"
+import { cn, formatCurrency } from "@/lib/utils"
 import {
   useCreateGoal,
   useUpdateGoal,
@@ -53,99 +51,185 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 })
 
+function ContributeDialog({
+  goal,
+  open,
+  onOpenChange,
+  onSuccess,
+}: {
+  goal: Goal | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess: (goal: Goal) => void
+}) {
+  const updateGoal = useUpdateGoal()
+  const [amount, setAmount] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (goal) setAmount("")
+  }, [goal, open])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!goal) return
+    const add = Number(amount.replace(",", "."))
+    if (!add || add <= 0) return
+    setSaving(true)
+    try {
+      const updated = await updateGoal.mutateAsync({
+        id: goal.id,
+        data: { current_amount: goal.current_amount + add },
+      })
+      onSuccess(updated)
+      onOpenChange(false)
+    } catch {
+      // toast via hook
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[360px]">
+        <DialogHeader>
+          <DialogTitle>Aportar na meta</DialogTitle>
+          <DialogDescription>
+            {goal ? `Adicionar valor a "${goal.title}"` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="aport">Valor (R$)</Label>
+            <Input
+              id="aport"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0,00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={saving || !amount}>
+              {saving ? "Salvando..." : "Confirmar aporte"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const statusConfig: Record<string, { label: string; color: string }> = {
   active: { label: "Ativa", color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" },
   completed: { label: "Concluída", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" },
   cancelled: { label: "Cancelada", color: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300" },
 }
 
-function GoalCard({
+function GoalStackRow({
   goal,
   onEdit,
   onDelete,
+  onContribute,
 }: {
   goal: Goal
   onEdit: (g: Goal) => void
   onDelete: (id: number) => void
+  onContribute: (g: Goal) => void
 }) {
-  const percentage = goal.target_amount > 0
-    ? Math.min((goal.current_amount / goal.target_amount) * 100, 100)
-    : 0
+  const percentage =
+    goal.target_amount > 0 ? Math.min((goal.current_amount / goal.target_amount) * 100, 100) : 0
   const isComplete = goal.status === "completed"
   const isOverdue = goal.deadline && new Date(goal.deadline) < new Date() && goal.status === "active"
   const statusInfo = statusConfig[goal.status] || { label: goal.status, color: "" }
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-base">{goal.title}</CardTitle>
-            <Badge className={statusInfo.color} variant="secondary">
-              {statusInfo.label}
-            </Badge>
-          </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => onEdit(goal)}>
-              <Pencil className="h-4 w-4" />
-              <span className="sr-only">Editar</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 text-destructive"
-              onClick={() => onDelete(goal.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-              <span className="sr-only">Excluir</span>
-            </Button>
-          </div>
+    <div className="rounded-2xl border border-border bg-card p-4 transition-transform active:scale-[0.99]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 space-y-1">
+          <p className="font-semibold leading-tight">{goal.title}</p>
+          <Badge className={statusInfo.color} variant="secondary">
+            {statusInfo.label}
+          </Badge>
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col justify-end space-y-3">
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Atual</span>
-            <span className="font-medium">{currencyFormatter.format(goal.current_amount)}</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Meta</span>
-            <span className="font-medium">{currencyFormatter.format(goal.target_amount)}</span>
-          </div>
+        <div className="flex shrink-0 gap-0.5">
+          <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => onEdit(goal)}>
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Editar</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0 text-destructive"
+            onClick={() => onDelete(goal.id)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="sr-only">Excluir</span>
+          </Button>
         </div>
+      </div>
 
-        <div className="space-y-1">
-          <Progress
-            value={percentage}
-            className={`h-2 ${isComplete ? "bg-blue-500" : percentage >= 100 ? "bg-green-500" : "bg-primary"}`}
-          />
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">{percentage.toFixed(1)}% concluído</span>
-            {isOverdue && (
-              <span className="flex items-center gap-1 text-red-500">
-                <AlertCircle className="h-3 w-3" />
-                Atrasada
-              </span>
-            )}
-          </div>
-        </div>
+      <div className="mt-3 flex justify-between text-[13px]">
+        <span className="text-muted-foreground">Atual</span>
+        <span className="font-medium tabular-nums">{currencyFormatter.format(goal.current_amount)}</span>
+      </div>
+      <div className="flex justify-between text-[13px]">
+        <span className="text-muted-foreground">Meta</span>
+        <span className="font-medium tabular-nums">{currencyFormatter.format(goal.target_amount)}</span>
+      </div>
 
-        {goal.deadline && (
-          <div className="text-sm text-muted-foreground">
-            Prazo: {new Date(goal.deadline).toLocaleDateString("pt-BR")}
-          </div>
-        )}
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all",
+            isComplete ? "bg-primary" : percentage >= 100 ? "bg-success" : "bg-primary"
+          )}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[12px]">
+        <span className="text-muted-foreground">{percentage.toFixed(1)}% concluído</span>
+        {isOverdue ? (
+          <span className="flex items-center gap-1 text-danger">
+            <AlertCircle className="h-3 w-3" />
+            Atrasada
+          </span>
+        ) : null}
+      </div>
 
-        {goal.target_amount - goal.current_amount > 0 && (
-          <div className="text-sm">
-            Faltam:{" "}
-            <span className="font-medium">
-              {currencyFormatter.format(goal.target_amount - goal.current_amount)}
-            </span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {goal.deadline ? (
+        <p className="mt-2 text-[12px] text-muted-foreground">
+          Prazo: {new Date(goal.deadline).toLocaleDateString("pt-BR")}
+        </p>
+      ) : null}
+
+      {goal.target_amount - goal.current_amount > 0 && goal.status === "active" ? (
+        <p className="mt-1 text-[13px]">
+          Faltam:{" "}
+          <span className="font-semibold">
+            {currencyFormatter.format(goal.target_amount - goal.current_amount)}
+          </span>
+        </p>
+      ) : null}
+
+      {goal.status === "active" ? (
+        <Button
+          type="button"
+          className="mt-4 w-full rounded-full font-semibold"
+          variant="secondary"
+          onClick={() => onContribute(goal)}
+        >
+          Aportar
+        </Button>
+      ) : null}
+    </div>
   )
 }
 
@@ -321,6 +405,17 @@ export function MetasClient({ initialGoals }: MetasClientProps) {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [contributeGoal, setContributeGoal] = useState<Goal | null>(null)
+
+  const activeGoals = useMemo(() => goals.filter((g) => g.status === "active"), [goals])
+  const completedGoalsList = useMemo(() => goals.filter((g) => g.status === "completed"), [goals])
+
+  const heroStats = useMemo(() => {
+    const saved = activeGoals.reduce((s, g) => s + g.current_amount, 0)
+    const target = activeGoals.reduce((s, g) => s + g.target_amount, 0)
+    const pct = target > 0 ? Math.min((saved / target) * 100, 100) : 0
+    return { saved, target, pct }
+  }, [activeGoals])
 
   const handleGoalSuccess = useCallback((goal: Goal) => {
     setGoals((prev) => {
@@ -358,21 +453,41 @@ export function MetasClient({ initialGoals }: MetasClientProps) {
   const isEmpty = goals.length === 0
 
   return (
-    <div className="space-y-6 pb-8 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
+    <div className="page-in space-y-6 pb-28 lg:pb-10">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Metas</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Acompanhe suas metas financeiras
-          </p>
+          <h1 className="section-title">Metas</h1>
+          <p className="mt-1 text-[14px] text-muted-foreground">Acompanhe suas metas financeiras</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button className="rounded-full" onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nova Meta
+          Nova
         </Button>
       </div>
 
-      {/* Empty state */}
+      {!isEmpty && (
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            Progresso agregado
+          </p>
+          <p className="amount-display mt-2 text-[clamp(2rem,8vw,2.75rem)]">
+            {formatCurrency(heroStats.saved)}
+          </p>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            de {formatCurrency(heroStats.target)} nas metas ativas
+          </p>
+          <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${heroStats.pct}%` }}
+            />
+          </div>
+          <p className="mt-2 text-[13px] font-medium text-muted-foreground">
+            {heroStats.pct.toFixed(1)}% do total planejado
+          </p>
+        </div>
+      )}
+
       {isEmpty && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
@@ -381,7 +496,7 @@ export function MetasClient({ initialGoals }: MetasClientProps) {
             <p className="text-muted-foreground mb-6 text-sm">
               Defina sua primeira meta financeira para acompanhar seu progresso.
             </p>
-            <Button onClick={() => setDialogOpen(true)}>
+            <Button className="rounded-full" onClick={() => setDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Criar Meta
             </Button>
@@ -389,25 +504,52 @@ export function MetasClient({ initialGoals }: MetasClientProps) {
         </Card>
       )}
 
-      {/* Goals grid */}
       {!isEmpty && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {goals.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              onEdit={handleEdit}
-              onDelete={(id) => setDeleteId(id)}
-            />
-          ))}
-        </div>
+        <section className="space-y-3">
+          <SectionHeader title="Metas ativas" />
+          <div className="grid gap-3">
+            {activeGoals.map((goal) => (
+              <GoalStackRow
+                key={goal.id}
+                goal={goal}
+                onEdit={handleEdit}
+                onDelete={(id) => setDeleteId(id)}
+                onContribute={setContributeGoal}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
-      {/* Create/Edit Dialog */}
+      {completedGoalsList.length > 0 ? (
+        <HCarousel title="Metas concluídas">
+          {completedGoalsList.map((g) => (
+            <HCarouselCard key={g.id} className="border-dashed">
+              <p className="line-clamp-2 text-[14px] font-bold line-through decoration-muted-foreground">
+                {g.title}
+              </p>
+              <p className="mt-2 text-[12px] text-success">Concluída</p>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                {formatCurrency(g.current_amount)} acumulados
+              </p>
+            </HCarouselCard>
+          ))}
+        </HCarousel>
+      ) : null}
+
       <GoalFormDialog
         open={dialogOpen}
         onOpenChange={handleDialogOpenChange}
         editingGoal={editingGoal}
+        onSuccess={handleGoalSuccess}
+      />
+
+      <ContributeDialog
+        goal={contributeGoal}
+        open={contributeGoal !== null}
+        onOpenChange={(o) => {
+          if (!o) setContributeGoal(null)
+        }}
         onSuccess={handleGoalSuccess}
       />
 

@@ -1,11 +1,17 @@
 """PhoneUser model - BagCoin user identified by phone number."""
 
-from sqlalchemy import String
-from sqlalchemy.dialects.postgresql import JSON
+import uuid
+from typing import TYPE_CHECKING
+
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
 from app.db.models.enums import UserStatus
+
+if TYPE_CHECKING:
+    from app.db.models.user import User
 
 
 class PhoneUser(Base, TimestampMixin):
@@ -28,25 +34,28 @@ class PhoneUser(Base, TimestampMixin):
     __tablename__ = "phone_users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    phone_number: Mapped[str] = mapped_column(
-        String(80), unique=True, index=True, nullable=False
-    )
+    phone_number: Mapped[str] = mapped_column(String(80), unique=True, index=True, nullable=False)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[UserStatus] = mapped_column(
         String(20), default=UserStatus.ACTIVE.value, nullable=False
     )
     preferences: Mapped[dict | None] = mapped_column(JSON, default=dict, nullable=True)
-    financial_profile: Mapped[dict | None] = mapped_column(
-        JSON, default=dict, nullable=True
-    )
+    financial_profile: Mapped[dict | None] = mapped_column(JSON, default=dict, nullable=True)
     telegram_chat_id: Mapped[str | None] = mapped_column(
         String(50), unique=True, nullable=True, index=True
     )
-    platform: Mapped[str] = mapped_column(
-        String(20), default="whatsapp", nullable=False
+    platform: Mapped[str] = mapped_column(String(20), default="whatsapp", nullable=False)
+    merged_into_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
 
     # Relationships
+    merged_into_user: Mapped["User | None"] = relationship("User", foreign_keys=[merged_into_user_id])
+
+    # Relationships (phone profile)
     categories: Mapped[list["Category"]] = relationship(
         "Category",
         back_populates="phone_user",

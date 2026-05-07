@@ -103,7 +103,32 @@ logs/
 Thumbs.db
 
 # Project specific
-.hermes/   
-.cursor/
-.claude/*
-docs/*
+docs/
+.hermes/
+
+
+# Node
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Logs
+*.log
+
+# Env
+.env
+.env.local
+
+# Turbopack
+.turbo/
+
+# Build
+dist/
+build/
+
+# Python
+.venv/
+__pycache__/stitch_markdown_design_system*.zip
+*.zip

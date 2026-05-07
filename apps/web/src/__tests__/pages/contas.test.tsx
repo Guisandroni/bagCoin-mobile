@@ -57,8 +57,8 @@ vi.mock("@/lib/api-client", () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
   getTokenStore: () => ({ getAccessToken: () => null }),
-  setAuthCookies: () => { },
-  clearAuthCookies: () => { },
+  setAuthCookies: () => {},
+  clearAuthCookies: () => {},
 }))
 
 // ── Wrapper ────────────────────────────────────────────
@@ -103,18 +103,18 @@ describe("ContasPage", () => {
     // NuBank appears as account name and bank name (duplicated), so use getAllByText
     expect(screen.getAllByText("NuBank").length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText("Poupança")).toBeInTheDocument()
-    expect(screen.getByText("Bradesco")).toBeInTheDocument()
+    expect(screen.getByText(/Bradesco/)).toBeInTheDocument()
   })
 
-  it("mostra patrimônio total visível", () => {
+  it("mostra saldo agregado em contas", () => {
     mockUseAccounts.mockReturnValue({ data: mockAccounts, isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: mockCreditCards, isLoading: false, isError: false })
 
     render(<ContasPage />, { wrapper: createWrapper() })
-    expect(screen.getByText("Patrimônio total")).toBeInTheDocument()
+    expect(screen.getByText("Saldo em contas")).toBeInTheDocument()
     // Total balance = 5200 + 12000 = 17200
     expect(screen.getByText(/R\$\s*17\.200/)).toBeInTheDocument()
-    expect(screen.getByText("2 contas registradas")).toBeInTheDocument()
+    expect(screen.getByText("2 conta(s) registrada(s)")).toBeInTheDocument()
   })
 
   it("renderiza cartões com issuer (bandeira)", () => {
@@ -123,8 +123,8 @@ describe("ContasPage", () => {
 
     render(<ContasPage />, { wrapper: createWrapper() })
     expect(screen.getByText("Cartões de crédito")).toBeInTheDocument()
-    expect(screen.getByText("Mastercard")).toBeInTheDocument()
-    expect(screen.getByText("Visa")).toBeInTheDocument()
+    expect(screen.getByText(/Mastercard/)).toBeInTheDocument()
+    expect(screen.getByText(/Visa/)).toBeInTheDocument()
   })
 
   it("mostra dados de fechamento e vencimento dos cartões", () => {
@@ -132,10 +132,10 @@ describe("ContasPage", () => {
     mockUseCreditCards.mockReturnValue({ data: mockCreditCards, isLoading: false, isError: false })
 
     render(<ContasPage />, { wrapper: createWrapper() })
-    expect(screen.getByText(/Fechamento: dia 3/)).toBeInTheDocument()
-    expect(screen.getByText(/Vencimento: dia 10/)).toBeInTheDocument()
-    expect(screen.getByText(/Fechamento: dia 15/)).toBeInTheDocument()
-    expect(screen.getByText(/Vencimento: dia 22/)).toBeInTheDocument()
+    expect(screen.getByText(/Fecha dia 3/)).toBeInTheDocument()
+    expect(screen.getByText(/Vence dia 10/)).toBeInTheDocument()
+    expect(screen.getByText(/Fecha dia 15/)).toBeInTheDocument()
+    expect(screen.getByText(/Vence dia 22/)).toBeInTheDocument()
   })
 
   it("mostra estado de erro quando há erro", () => {
@@ -176,11 +176,7 @@ describe("ContasPage", () => {
 
     render(<ContasPage />, { wrapper: createWrapper() })
 
-    const adicionarButtons = screen.getAllByText("Adicionar")
-    // Second Adicionar is for credit cards
-    if (adicionarButtons.length > 1) {
-      fireEvent.click(adicionarButtons[1])
-    }
+    fireEvent.click(screen.getByLabelText("Adicionar cartão"))
 
     expect(screen.getByText("Novo Cartão")).toBeInTheDocument()
   })

@@ -8,13 +8,13 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from app.api.deps import verify_api_key as require_api_key
 from app.agents.persistence import (
     create_category,
     delete_category,
     list_categories,
     rename_category,
 )
+from app.api.deps import verify_api_key as require_api_key
 
 logger = logging.getLogger(__name__)
 

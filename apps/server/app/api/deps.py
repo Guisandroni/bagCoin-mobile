@@ -9,19 +9,17 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 
+from app.clients.redis import RedisClient
 from app.core.config import settings
 from app.db.session import get_db_session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 DBSession = Annotated[AsyncSession, Depends(get_db_session)]
-from fastapi import Request
-
-from app.clients.redis import RedisClient
 
 
-async def get_redis(request: Request) -> RedisClient:
+async def get_redis(request: "Request") -> RedisClient:
     """Get Redis client from lifespan state."""
-    return request.state.redis  # type: ignore[no-any-return]
+    return request.app.state.redis  # type: ignore[no-any-return]
 
 
 Redis = Annotated[RedisClient, Depends(get_redis)]
@@ -256,8 +254,6 @@ async def get_current_user_ws(
             await websocket.close(code=4001, reason="User account is disabled")
             raise AuthenticationError(message="User account is disabled")
 
-        # Eagerly load all columns, then detach from session to avoid
-        # "instance not bound to a Session" errors after the context manager exits
         await db.refresh(user)
         db.expunge(user)
         return user

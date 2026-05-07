@@ -20,14 +20,17 @@ _async_engine: AsyncEngine | None = None
 _sync_engine: object | None = None
 
 
-def _get_config():
-    return {
+def _get_config(use_sync: bool = False):
+    cfg = {
         "echo": settings.DEBUG,
         "pool_size": settings.DB_POOL_SIZE,
         "max_overflow": settings.DB_MAX_OVERFLOW,
         "pool_timeout": settings.DB_POOL_TIMEOUT,
-        "connect_args": {"timeout": 5},
     }
+    # timeout is only valid for asyncpg, not psycopg2
+    if not use_sync:
+        cfg["connect_args"] = {"timeout": 5}
+    return cfg
 
 
 def _get_async_engine() -> AsyncEngine:
@@ -40,7 +43,7 @@ def _get_async_engine() -> AsyncEngine:
 def _get_sync_engine():
     global _sync_engine
     if _sync_engine is None:
-        _sync_engine = create_engine(settings.DATABASE_URL_SYNC, **_get_config())
+        _sync_engine = create_engine(settings.DATABASE_URL_SYNC, **_get_config(use_sync=True))
     return _sync_engine
 
 

@@ -1,7 +1,7 @@
 """Deduplication service — fuzzy matching to prevent duplicate transactions."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from difflib import SequenceMatcher
 
 from app.agents.persistence import get_user_transactions
@@ -26,7 +26,7 @@ def is_duplicate(
     description within the last N minutes).
     """
     recent = get_user_transactions(phone_number, limit=20)
-    cutoff = datetime.utcnow() - timedelta(minutes=TIME_WINDOW_MINUTES)
+    cutoff = datetime.now(UTC) - timedelta(minutes=TIME_WINDOW_MINUTES)
 
     for tx in recent:
         # Must be same amount (within R$ 0.01 tolerance)

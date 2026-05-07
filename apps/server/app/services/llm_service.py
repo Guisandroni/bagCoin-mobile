@@ -1,7 +1,22 @@
 """LLM service for BagCoin agents.
 
 Manages LLM provider selection with global caching.
-Priority: OpenCodeGo (multi-model) -> Groq (fallback).
+Priority: DeepSeek -> OpenCodeGo (multi-model) -> Groq (fallback).
+
+OpenCodeGo models ranked by latency:
+  1. minimax-m2.7      — ~2.0s
+  2. mimo-v2.5         — ~3.5s
+  3. mimo-v2-omni      — ~4.0s
+  4. mimo-v2-pro       — ~4.4s
+  5. kimi-k2.6         — ~4.6s (reasoning)
+  6. kimi-k2.5         — ~4.8s (reasoning)
+  7. qwen3.6-plus      — ~5.6s
+  8. deepseek-v4-flash — variable
+  9. mimo-v2.5-pro     — ~8.0s
+ 10. qwen3.5-plus      — ~8.2s
+ 11. deepseek-v4-pro   — variable (reasoning)
+ 12. glm-5.1           — variable (reasoning)
+ 13. glm-5             — variable (reasoning)
 
 Supports BAGCOIN_MODEL env var for model override without restart.
 """
@@ -45,7 +60,6 @@ def _get_model_override() -> str | None:
     override = os.environ.get("BAGCOIN_MODEL")
     if override:
         return override
-    # Fallback: check shared file (allows hot-swap without restart)
     try:
         fp = "/app/model_override.txt"
         if os.path.exists(fp):
@@ -54,6 +68,28 @@ def _get_model_override() -> str | None:
     except Exception:
         pass
     return None
+
+
+def _create_deepseek_llm(
+    temperature: float = 0.2, model: str | None = None
+) -> BaseChatModel | None:
+    """Create a DeepSeek LLM instance (primary provider)."""
+    if not settings.DEEPSEEK_API_KEY:
+        return None
+    model_name = model or settings.DEFAULT_LLM_MODEL
+    try:
+        return ChatOpenAI(
+            api_key=settings.DEEPSEEK_API_KEY,
+            base_url=settings.DEEPSEEK_BASE_URL,
+            model=model_name,
+            temperature=temperature,
+            max_tokens=2048,
+            timeout=30,
+            max_retries=1,
+        )
+    except Exception as e:
+        logger.warning(f"Error creating DeepSeek LLM ({model_name}): {e}")
+        return None
 
 
 def _create_opencode_llm(
@@ -65,7 +101,6 @@ def _create_opencode_llm(
     model_name = model or _get_model_override() or OPENCODE_MODELS[0]
     try:
         extra = {}
-        # Disable thinking for models that support it (reduces token waste)
         if any(m in model_name.lower() for m in ["deepseek", "kimi", "glm"]):
             extra = {"extra_body": {"thinking": {"type": "disabled"}}}
         return ChatOpenAI(
@@ -84,7 +119,7 @@ def _create_opencode_llm(
 
 
 def _create_groq_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatModel | None:
-    """Create a Groq LLM instance (fallback)."""
+    """Create a Groq LLM instance (final fallback)."""
     if not settings.GROQ_API_KEY:
         return None
     model_name = model or settings.DEFAULT_LLM_MODEL
@@ -113,14 +148,19 @@ def _invalidate_cache() -> None:
 def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatModel | None:
     """Select the best available LLM.
 
-    Priority: OpenCodeGo (model list) -> Groq (fallback).
+    Priority: DeepSeek -> OpenCodeGo (model list) -> Groq (fallback).
     Cache is invalidated when BAGCOIN_MODEL changes.
     """
     global _cached_llm, _cache_error
 
     override = _get_model_override()
     if override:
-        # Model override active — always create fresh (no cache)
+        deepseek = _create_deepseek_llm(temperature, override)
+        if deepseek:
+            logger.info(f"LLM selected: DeepSeek/{override} (override)")
+            _cached_llm = deepseek
+            _cache_error = False
+            return deepseek
         opencode = _create_opencode_llm(temperature, override)
         if opencode:
             logger.info(f"LLM selected: OpenCodeGo/{override} (override)")
@@ -128,15 +168,21 @@ def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatM
             _cache_error = False
             return opencode
 
-    # Return cached LLM if available and no error state
     if _cached_llm and not _cache_error:
         return _cached_llm
 
-    # Reset on error
     if _cache_error:
         _cached_llm = None
 
-    # 1. OpenCodeGo — try models in priority order
+    # 1. DeepSeek (primary)
+    deepseek = _create_deepseek_llm(temperature, model)
+    if deepseek:
+        logger.info(f"LLM selected: DeepSeek ({model or settings.DEFAULT_LLM_MODEL})")
+        _cached_llm = deepseek
+        _cache_error = False
+        return deepseek
+
+    # 2. OpenCodeGo — try models in priority order
     models_to_try = [model] if model else OPENCODE_MODELS
     for model_name in models_to_try:
         opencode = _create_opencode_llm(temperature, model_name)
@@ -146,7 +192,7 @@ def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatM
             _cache_error = False
             return opencode
 
-    # 2. Fallback: Groq
+    # 3. Groq (fallback)
     groq = _create_groq_llm(temperature, model)
     if groq:
         logger.info(f"LLM fallback: Groq ({model or settings.DEFAULT_LLM_MODEL})")
@@ -154,7 +200,6 @@ def _select_llm(temperature: float = 0.2, model: str | None = None) -> BaseChatM
         _cache_error = False
         return groq
 
-    # No LLM available
     logger.warning("No LLM available. Running in offline mode (fast-path only).")
     _cached_llm = None
     return None

@@ -1,4 +1,5 @@
 """Application configuration using Pydantic BaseSettings."""
+
 # ruff: noqa: I001 - Imports structured for Jinja2 template conditionals
 
 from pathlib import Path
@@ -32,7 +33,9 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DEBUG: bool = False
     ENVIRONMENT: Literal["development", "local", "staging", "production"] = "local"
-    TIMEZONE: str = "UTC"  # IANA timezone (e.g. "UTC", "Europe/Warsaw", "America/New_York")
+    TIMEZONE: str = (
+        "UTC"  # IANA timezone (e.g. "UTC", "Europe/Warsaw", "America/New_York")
+    )
     MODELS_CACHE_DIR: Path = Path("./models_cache")
     MEDIA_DIR: Path = Path("./media")
     MAX_UPLOAD_SIZE_MB: int = 50  # Max file upload size in MB
@@ -83,7 +86,10 @@ class Settings(BaseSettings):
             raise ValueError("SECRET_KEY must be at least 32 characters long")
         # Get environment from values if available
         env = info.data.get("ENVIRONMENT", "local") if info.data else "local"
-        if v == "change-me-in-production-use-openssl-rand-hex-32" and env == "production":
+        if (
+            v == "change-me-in-production-use-openssl-rand-hex-32"
+            and env == "production"
+        ):
             raise ValueError(
                 "SECRET_KEY must be changed in production! "
                 "Generate a secure key with: openssl rand -hex 32"
@@ -157,8 +163,11 @@ class Settings(BaseSettings):
     # === BagCoin / LLM APIs ===
     GROQ_API_KEY: str = ""
     OPENCODE_API_KEY: str = ""
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
+    GEMINI_API_KEY: str = ""
     TAVILY_API_KEY: str = ""
-    DEFAULT_LLM_MODEL: str = "minimax-m2.7"
+    DEFAULT_LLM_MODEL: str = "deepseek-chat"  # v4-flash
 
     # === Google OAuth ===
     GOOGLE_CLIENT_ID: str = ""

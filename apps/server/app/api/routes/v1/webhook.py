@@ -39,7 +39,9 @@ def _get_redis():
     try:
         import redis as redis_module
 
-        _redis = redis_module.from_url(settings.REDIS_URL, decode_responses=True, socket_timeout=2)
+        _redis = redis_module.from_url(
+            settings.REDIS_URL, decode_responses=True, socket_timeout=2
+        )
         _redis.ping()
         logger.info("Redis conectado para deduplicação")
     except Exception as e:
@@ -75,7 +77,7 @@ async def verify_api_key(x_api_key: str = Header(...)):
     return x_api_key
 
 
-@router.post("/whatsapp", response_model=WhatsAppResponse)
+@router.post("/whatsapp", response_model=WhatsAppResponse, tags=["csrf-exempt"])
 async def receive_whatsapp_message(
     payload: WebhookPayload,
     api_key: str = Depends(verify_api_key),
@@ -88,10 +90,14 @@ async def receive_whatsapp_message(
 
     terr = tenant_phone_error(phone_number)
     if terr:
-        logger.warning(f"Webhook rejeitado — telefone inválido após normalização: {raw_phone!r}")
+        logger.warning(
+            f"Webhook rejeitado — telefone inválido após normalização: {raw_phone!r}"
+        )
         return WhatsAppResponse(reply=f"⚠️ {terr}", actions=[])
 
-    logger.info(f"Webhook recebido de {raw_phone} → {phone_number}: {payload.message[:50]}...")
+    logger.info(
+        f"Webhook recebido de {raw_phone} → {phone_number}: {payload.message[:50]}..."
+    )
 
     # 2. Deduplicação por message_id (se disponível) ou conteúdo
     msg_id = payload.raw_data.get("id") if payload.raw_data else None
@@ -107,11 +113,11 @@ async def receive_whatsapp_message(
         source_format = (
             "audio"
             if payload.type in ["ptt", "audio"]
-            else "image"
-            if payload.type in ["image"]
-            else "document"
-            if payload.type in ["document"]
-            else "text"
+            else (
+                "image"
+                if payload.type in ["image"]
+                else "document" if payload.type in ["document"] else "text"
+            )
         )
 
         # 4. Prepara estado inicial
@@ -137,7 +143,10 @@ async def receive_whatsapp_message(
         # 5. Executa o grafo de orquestração
         result = orchestrator.invoke(initial_state)
 
-        response_text = result.get("response", "Processamento concluído.")
+        response_text = (
+            result.get("response")
+            or "Processamento concluído. Se precisar de algo, é só falar! 😊"
+        )
 
         logger.info(f"Resposta gerada para {phone_number}: {response_text[:100]}...")
 
@@ -172,7 +181,7 @@ async def receive_whatsapp_message(
         )
 
 
-@router.post("/telegram", response_model=TelegramResponse)
+@router.post("/telegram", response_model=TelegramResponse, tags=["csrf-exempt"])
 async def receive_telegram_message(
     payload: TelegramWebhookPayload,
     api_key: str = Depends(verify_telegram_api_key),
@@ -184,7 +193,9 @@ async def receive_telegram_message(
 
     terr = tenant_phone_error(phone_number)
     if terr:
-        logger.warning(f"Telegram webhook rejeitado — telefone inválido: {phone_number!r}")
+        logger.warning(
+            f"Telegram webhook rejeitado — telefone inválido: {phone_number!r}"
+        )
         return TelegramResponse(reply=f"⚠️ {terr}", actions=[])
 
     # 2. Busca ou cria PhoneUser para garantir que existe
@@ -212,7 +223,11 @@ async def receive_telegram_message(
         # 4. Determina formato da fonte
         source_format = payload.source_format or "text"
 
-        # 5. Prepara estado inicial (compatível com AgentState do orquestrador)
+        # 5. Prepara estado inicial
+        context = {}
+        if payload.media:
+            context["media"] = payload.media
+
         initial_state = {
             "phone_number": phone_number,
             "user_id": None,
@@ -223,7 +238,7 @@ async def receive_telegram_message(
             "report_path": None,
             "report_summary": None,
             "response": None,
-            "context": {},
+            "context": context,
             "error": None,
             "source_format": source_format,
         }
@@ -231,7 +246,10 @@ async def receive_telegram_message(
         # 6. Executa o grafo de orquestração
         result = orchestrator.invoke(initial_state)
 
-        response_text = result.get("response", "Processamento concluído.")
+        response_text = (
+            result.get("response")
+            or "Processamento concluído. Se precisar de algo, é só falar! 😊"
+        )
 
         logger.info(f"Resposta gerada para {phone_number}: {response_text[:100]}...")
 

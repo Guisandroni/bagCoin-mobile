@@ -5,7 +5,7 @@ Stores learned preferences in PhoneUser.preferences['learned_patterns'] JSON fie
 
 import logging
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.agents.persistence import get_user_transactions
 
@@ -72,7 +72,7 @@ def learn_from_transaction(
         "common_keywords": [kw for kw, _ in keyword_counter.most_common(10)],
         "total_transactions": len(transactions),
         "average_ticket": avg_ticket,
-        "last_updated": datetime.utcnow().isoformat(),
+        "last_updated": datetime.now(UTC).isoformat(),
     }
 
     # Persist to PhoneUser.preferences
@@ -105,8 +105,8 @@ def _save_patterns(phone_number: str, patterns: dict):
     """Persist learned patterns to PhoneUser.preferences JSON field."""
     from sqlalchemy.orm.attributes import flag_modified
 
-    from app.db.session import sync_session_maker
     from app.agents.persistence import get_or_create_user
+    from app.db.session import sync_session_maker
 
     db = sync_session_maker()
     try:

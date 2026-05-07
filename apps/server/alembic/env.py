@@ -25,6 +25,8 @@ from app.db.models.goal import Goal  # noqa: F401
 from app.db.models.report import Report  # noqa: F401
 from app.db.models.phone_conversation import PhoneConversation  # noqa: F401
 from app.db.models.agent_log import AgentLog  # noqa: F401
+from app.db.models.credit_card import CreditCard  # noqa: F401
+from app.db.models.account import Account  # noqa: F401
 
 config = context.config
 

@@ -54,6 +54,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         "/api/v1/auth/refresh",
         "/api/v1/health",
         "/api/v1/ready",
+        "/api/v1/webhook",
         "/docs",
         "/openapi.json",
         "/redoc",
@@ -67,6 +68,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """Handle the request and apply CSRF protection."""
+        # Skip CSRF in development mode
+        if settings.DEBUG:
+            return await call_next(request)
+
         # Skip for exempt paths
         if self._is_exempt(request):
             return await call_next(request)

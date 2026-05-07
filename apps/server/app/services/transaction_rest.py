@@ -4,7 +4,7 @@ Handles transactions linked to authenticated users (UUID-based).
 """
 
 import contextlib
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import UUID
 
 from sqlalchemy import and_, func, select
@@ -106,7 +106,7 @@ class TransactionRestService:
             try:
                 tx_date = datetime.strptime(data.transaction_date, "%Y-%m-%d")
             except ValueError:
-                tx_date = datetime.utcnow()
+                tx_date = datetime.now(UTC)
 
         transaction = Transaction(
             user_uuid=user_uuid,
@@ -115,7 +115,7 @@ class TransactionRestService:
             description=data.description,
             source_format=data.source,
             confidence_score=1.0 if data.status == "confirmed" else 0.5,
-            transaction_date=tx_date or datetime.utcnow(),
+            transaction_date=tx_date or datetime.now(UTC),
         )
         self.db.add(transaction)
         await self.db.flush()

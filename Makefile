@@ -52,6 +52,25 @@ test:
 test-cov:
 	uv run --directory apps/server pytest tests/ -v --cov=app --cov-report=html --cov-report=term-missing
 
+# === Frontend Tests ===
+test-frontend:
+	cd apps/web && npm run test
+
+# === E2E Tests (Playwright) ===
+test-e2e:
+	cd apps/web && npx playwright test
+
+# === WhatsApp Bridge Tests ===
+test-whatsapp-bridge:
+	cd apps/whatsapp-bridge && npx vitest run
+
+# === Run All Tests ===
+test-all: test-backend test-frontend test-e2e test-whatsapp-bridge
+
+# === Alias for backend tests ===
+test-backend:
+	uv run --directory apps/server pytest tests/api/ -v
+
 # === Database ===
 db-init: docker-db
 	@echo "Waiting for PostgreSQL to be ready..."
@@ -194,7 +213,13 @@ help:
 	@echo ""
 	@echo "Development:"
 	@echo "  make run           Start dev server (with hot reload)"
-	@echo "  make test          Run tests"
+	@echo "  make test          Run backend tests"
+	@echo "  make test-cov      Run backend tests with coverage"
+	@echo "  make test-backend       Run backend API tests (pytest tests/api/)"
+	@echo "  make test-frontend      Run frontend Vitest tests"
+	@echo "  make test-e2e           Run Playwright end-to-end tests"
+	@echo "  make test-whatsapp-bridge Run WhatsApp Bridge vitest tests"
+	@echo "  make test-all           Run all tests (backend + frontend + e2e + whatsapp)"
 	@echo "  make lint          Check code quality"
 	@echo "  make format        Auto-format code"
 	@echo ""

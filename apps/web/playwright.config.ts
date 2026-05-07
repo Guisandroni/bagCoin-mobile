@@ -1,4 +1,4 @@
-import { defineConfig, devices } from "@playwright/test"
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -13,12 +13,24 @@ export default defineConfig({
   },
   projects: [
     {
+      name: "setup",
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "./e2e/.auth/user.json",
+      },
     },
     {
       name: "mobile",
-      use: { ...devices["Pixel 5"] },
+      dependencies: ["setup"],
+      use: {
+        ...devices["Pixel 5"],
+        storageState: "./e2e/.auth/user.json",
+      },
     },
   ],
   webServer: {
@@ -27,4 +39,4 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
-})
+});

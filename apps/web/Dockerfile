@@ -1,11 +1,10 @@
-FROM node:22-alpine AS base
+FROM oven/bun:1-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
 
 # --- Dependencies ---
 FROM base AS deps
 COPY package.json package-lock.json ./
-RUN npm ci --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 # --- Development (hot reload) ---
 FROM base AS dev
@@ -13,14 +12,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 EXPOSE 3000
-CMD ["npm", "run", "dev"]
+CMD ["bun", "run", "dev"]
 
 # --- Builder (production build) ---
 FROM base AS builder
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN bun run build
 
 # --- Production (standalone) ---
 FROM base AS prod
@@ -38,4 +37,4 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]

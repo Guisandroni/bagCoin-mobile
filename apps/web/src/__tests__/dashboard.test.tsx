@@ -18,13 +18,10 @@ vi.mock("@tanstack/react-query", () => ({
   QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
 
+import { formatCurrency } from "@/lib/utils"
+
 describe("Dashboard page", () => {
   it("formatCurrency formats positive values correctly", () => {
-    function formatCurrency(v: number) {
-      const abs = Math.abs(v)
-      const formatted = abs.toLocaleString("pt-BR", { minimumFractionDigits: 2 })
-      return (v < 0 ? "-R$ " : "R$ ") + formatted
-    }
     expect(formatCurrency(8500)).toBe("R$ 8.500,00")
     expect(formatCurrency(-287.5)).toBe("-R$ 287,50")
   })

@@ -38,15 +38,15 @@ const mockSummary = {
 }
 
 export const handlers = [
-  http.get(`${API_BASE}/transactions`, () => {
+  http.get(`${API_BASE}/bagcoin/transactions`, () => {
     return HttpResponse.json({ items: mockTransactions, total: 2 })
   }),
 
-  http.get(`${API_BASE}/transactions/summary`, () => {
+  http.get(`${API_BASE}/bagcoin/transactions/summary`, () => {
     return HttpResponse.json(mockSummary)
   }),
 
-  http.post(`${API_BASE}/transactions`, async () => {
+  http.post(`${API_BASE}/bagcoin/transactions`, async () => {
     return HttpResponse.json(
       {
         id: "99",
@@ -61,7 +61,7 @@ export const handlers = [
     )
   }),
 
-  http.patch(`${API_BASE}/transactions/:id`, async ({ params }) => {
+  http.patch(`${API_BASE}/bagcoin/transactions/:id`, async ({ params }) => {
     return HttpResponse.json({
       ...mockTransactions[0],
       id: params.id,
@@ -69,7 +69,7 @@ export const handlers = [
     })
   }),
 
-  http.delete(`${API_BASE}/transactions/:id`, () => {
+  http.delete(`${API_BASE}/bagcoin/transactions/:id`, () => {
     return new HttpResponse(null, { status: 204 })
   }),
 
@@ -92,14 +92,14 @@ afterAll(() => server.close())
 
 describe("Transaction API hooks", () => {
   it("mock server returns transactions list", async () => {
-    const response = await fetch(`${API_BASE}/transactions`)
+    const response = await fetch(`${API_BASE}/bagcoin/transactions`)
     const data = await response.json()
     expect(data.items).toHaveLength(2)
     expect(data.items[0].name).toBe("Supermercado Pão de Açúcar")
   })
 
   it("mock server returns summary", async () => {
-    const response = await fetch(`${API_BASE}/transactions/summary`)
+    const response = await fetch(`${API_BASE}/bagcoin/transactions/summary`)
     const data = await response.json()
     expect(data.balance).toBe(3220)
     expect(data.total_income).toBe(8500)
@@ -107,7 +107,7 @@ describe("Transaction API hooks", () => {
   })
 
   it("mock server creates transaction", async () => {
-    const response = await fetch(`${API_BASE}/transactions`, {
+    const response = await fetch(`${API_BASE}/bagcoin/transactions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -125,7 +125,7 @@ describe("Transaction API hooks", () => {
   })
 
   it("mock server deletes transaction", async () => {
-    const response = await fetch(`${API_BASE}/transactions/1`, {
+    const response = await fetch(`${API_BASE}/bagcoin/transactions/1`, {
       method: "DELETE",
     })
     expect(response.status).toBe(204)

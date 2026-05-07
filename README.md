@@ -1,129 +1,130 @@
-# bagCoin — Assistente Financeiro Pessoal
+# bagcoin_api
 
-[![CI/CD Pipeline](https://github.com/Guisandroni/bagCoin/actions/workflows/test.yml/badge.svg)](https://github.com/Guisandroni/bagCoin/actions/workflows/test.yml)
+A FastAPI project
 
-Assistente financeiro com IA integrada via WhatsApp e Telegram. Gerencie transações, orçamentos, metas e receba relatórios automaticamente.
+Generated with [Full-Stack AI Agent Template](https://github.com/vstorm-co/full-stack-ai-agent-template).
 
 ## Stack
 
-| Componente | Tecnologia |
+| Component | Technology |
 |-----------|-----------|
-| **Backend** | FastAPI + Pydantic v2 + SQLAlchemy async |
-| **Frontend** | Next.js 16 + React 19 + Tailwind v4 + shadcn/ui |
-| **Database** | PostgreSQL 16 (asyncpg + psycopg2) |
-| **Auth** | JWT + API Key + Google OAuth |
-| **Cache / Queue** | Redis 7 + Celery (Worker + Beat + Flower) |
-| **AI Agent** | LangGraph + Groq (LLM) |
-| **Canais** | WhatsApp (whatsapp-web.js) + Telegram (python-telegram-bot) |
-| **Testes** | pytest (back) + vitest (front) + Playwright (E2E) |
+| **Backend** | FastAPI + Pydantic v2 |
+| **Database** | PostgreSQL (async) |
+| **Auth** | JWT + API Key + refresh tokens |
+| **Cache** | Redis |
+| **AI Framework** | langgraph (openai) |
+| **Tasks** | celery |
 
-## Status dos Testes
-
-| Suite | Testes | Status |
-|-------|--------|--------|
-| Backend (pytest) | **439** | ✅ 100% |
-| Frontend (vitest) | **170** | ✅ 100% |
-| WhatsApp Bridge (vitest) | **17** | ✅ 100% |
-| Playwright E2E | **30/66** | 🔄 45% |
-
-## Quick Start (Docker)
+## Quick Start
 
 ```bash
-# Subir ambiente completo
-docker compose --profile full up -d
-
-# Verificar containers
-docker compose ps
-
-# Rodar testes backend
-docker compose exec app python -m pytest tests/api/ -v
-
-# Rodar testes frontend
-cd apps/web && npx vitest run
-
-# Rodar testes Playwright
-cd apps/web && npx playwright test --project=chromium
+# Install dependencies
+make install
+# One-command setup (Docker required)
+make quickstart
 ```
+This will:
+1. Install Python dependencies
+2. Start all Docker services (database, Redis, vector store, etc.)
+3. Run database migrations
+4. Create an admin user (`admin@example.com` / `admin123`)
 
-**Acesso:**
-- Frontend: http://localhost:3000
+**Access:**
 - API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
-- Flower (Celery): http://localhost:5555
+- Docs: http://localhost:8000/docs
+- Admin: http://localhost:8000/admin
 
-## Serviços Docker
+## Manual Setup
 
-| Serviço | Porta | Profile |
-|---------|-------|---------|
-| app (backend) | 8000 | default |
-| db (PostgreSQL) | 5432 | default |
-| redis | 6379 | default |
-| web (frontend) | 3000 | default |
-| celery_worker | — | full |
-| celery_beat | — | full |
-| flower | 5555 | full |
-| whatsapp-bridge | 3001 | full |
-| telegram-bridge | — | full |
+If you prefer to set up step by step:
 
-## Estrutura
+```bash
+# 1. Install dependencies
+make install
+# 2. Start database
+make docker-db
+# 3. Create and apply migrations
+make db-migrate    # Enter: "Initial migration"
+make db-upgrade
 
-```
-apps/
-├── server/         # Backend FastAPI
-│   ├── app/
-│   │   ├── api/routes/v1/    # Endpoints REST
-│   │   ├── services/         # Lógica de negócio
-│   │   ├── repositories/     # Acesso a dados
-│   │   ├── agents/           # Agentes LangGraph
-│   │   ├── db/models/        # Modelos SQLAlchemy
-│   │   └── schemas/          # Pydantic schemas
-│   └── tests/api/            # Testes backend
-├── web/             # Frontend Next.js
-│   ├── src/
-│   │   ├── app/              # Páginas (App Router)
-│   │   ├── components/       # Componentes React
-│   │   ├── hooks/            # TanStack Query hooks
-│   │   └── lib/              # Utilitários
-│   └── e2e/                  # Testes Playwright
-└── whatsapp-bridge/ # WhatsApp Bridge (Node.js)
+# 4. Create admin user
+make create-admin
+
+# 5. Start backend
+make run
 ```
 
-## Documentação
+## Commands
 
-- `docs/architecture.md` — Arquitetura detalhada
-- `docs/deployment.md` — Guia de deploy
-- `docs/testing.md` — Estratégia de testes
-- `docs/patterns.md` — Padrões de código
-- `.hermes/plans/` — Planos de desenvolvimento
+Run `make help` for all available commands. Key ones:
 
-## Variáveis de Ambiente
+| Command | Description |
+|---------|-------------|
+| `make run` | Start dev server with hot reload |
+| `make test` | Run tests |
+| `make lint` | Check code quality |
+| `make format` | Auto-format code |
+| `make db-migrate` | Create new migration |
+| `make db-upgrade` | Apply migrations |
+| `make create-admin` | Create admin user |
+| `make quickstart` | Full setup (install + docker + db + admin) |
+| `make docker-up` | Start all Docker services |
+| `make docker-down` | Stop all services |
 
-Criar `.env` na raiz do projeto:
 
-```env
-# Database
-POSTGRES_HOST=db
-POSTGRES_USER=postgres
+## AI Agent
+
+Using **langgraph** with **openai** provider.
+
+### Customize
+
+- **System prompt:** `app/agents/prompts.py`
+- **Add tools:** See `docs/howto/add-agent-tool.md`
+- **Agent config:** `.env` → `AI_MODEL`, `AI_TEMPERATURE`
+
+## Message Ratings
+
+Users can rate AI responses with 👍/👎 and optional feedback comments.
+Administrators can view analytics and export rating data.
+
+See `docs/howto/use-ratings.md` for full documentation.
+
+## Project Structure
+
+```
+apps/server/app/
+├── api/routes/v1/        # API endpoints
+├── core/config.py        # Settings (from .env)
+├── services/             # Business logic
+├── repositories/         # Data access
+├── schemas/              # Pydantic models
+├── db/models/            # Database models
+├── agents/               # AI agents & tools
+├── commands/             # CLI commands (auto-discovered)
+└── worker/               # Background tasks
+```
+
+## Guides
+
+| Guide | Description |
+|-------|-------------|
+| `docs/howto/add-api-endpoint.md` | Add a new API endpoint |
+| `docs/howto/add-agent-tool.md` | Create a new agent tool |
+| `docs/howto/customize-agent-prompt.md` | Customize agent behavior |
+| `docs/howto/add-background-task.md` | Add background tasks |
+
+## Environment Variables
+
+All config is in `apps/server/.env`. Key variables:
+
+```bash
+POSTGRES_HOST=localhost
 POSTGRES_PASSWORD=postgres
-POSTGRES_DB=bagcoin
-
-# Redis
-REDIS_HOST=redis
-
-# Auth
-JWT_SECRET=your-secret-here
-API_KEY=bagcoin_api_key_change_me
-
-# Webhook
-WHATSAPP_API_KEY=bagcoin_webhook_secret_123
-
-# LLM
-GROQ_API_KEY=gsk_your_key_here
-DEFAULT_LLM_MODEL=llama-3.1-8b-instant
-
-# Telegram
-TELEGRAM_BOT_TOKEN=your_bot_token_here
-
-# Frontend
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+OPENAI_API_KEY=sk-...
 ```
+
+See `apps/server/.env.example` for all available variables.
+
+---
+
+*Generated with [Full-Stack AI Agent Template](https://github.com/vstorm-co/full-stack-ai-agent-template) v0.2.7*

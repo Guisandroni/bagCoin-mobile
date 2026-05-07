@@ -1,7 +1,7 @@
 """Ingestion agent — intent classification for BagCoin.
 
-Classifies user messages using LLM as primary classifier.
-Only fast-path rules kept: wizard state (must be instant).
+Classifies using LLM as primary classifier with 8 macro-intents.
+Fast-paths: wizard state, single-word, just-number.
 """
 
 import logging
@@ -18,41 +18,44 @@ from app.services.llm_service import get_llm, timed_invoke
 
 logger = logging.getLogger(__name__)
 
+# Mapeamento: macro-intent → IntentType
+MACRO_TO_INTENT: dict[str, str] = {
+    "register": IntentType.REGISTER_EXPENSE.value,
+    "query": IntentType.QUERY_DATA.value,
+    "manage": IntentType.CREATE_BUDGET.value,  # proxy — roteado downstream
+    "report": IntentType.GENERATE_REPORT.value,
+    "import_stmt": IntentType.IMPORT_STATEMENT.value,
+    "chat": IntentType.CHAT.value,
+    "recommend": IntentType.RECOMMENDATION.value,
+    "research": IntentType.DEEP_RESEARCH.value,
+}
+
 
 def _normalize(text: str) -> str:
-    """Remove accents and convert to lowercase."""
     return unicodedata.normalize("NFKD", text.lower()).encode("ASCII", "ignore").decode("ASCII")
 
 
 def _enrich_system_prompt(phone_number: str) -> str:
-    """Build the LLM system prompt with conversation context."""
     from app.agents.prompts.classify_intent import build_classify_prompt
 
     history = ""
     try:
         from app.agents.persistence import get_conversation_history
-
         history = get_conversation_history(phone_number, limit=4)
     except Exception:
         pass
-
     return build_classify_prompt(history=history)
 
 
 def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
-    """Classify the intent of the user's message using LLM as primary classifier.
-
-    Only fast-path: wizard state detection (must be instant).
-    Everything else goes through the LLM for robust, flexible classification.
-    """
+    """Classify usando LLM com 8 macro-intencoes + fast-paths."""
     start_time = time.time()
-
     message = state.get("message", "")
     phone_number = state.get("phone_number", "")
     msg_norm = _normalize(message)
 
     # =====================================================================
-    # FAST-PATH: Wizard state (must be instant, no LLM needed)
+    # FAST-PATH 1: Wizard state (must be instant)
     # =====================================================================
     from app.agents.wizard import _clear_wizard_state, _is_wizard_intent, _load_wizard_state
 
@@ -64,7 +67,7 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
         cancel_words = ["cancelar", "cancela", "sair", "voltar", "esquece", "desistir"]
         if any(w in msg_norm for w in cancel_words):
             _clear_wizard_state(phone_number)
-            logger.info("[classify_intent] Wizard cancelled by user request")
+            logger.info("[classify_intent] Wizard cancelled by user")
         elif _is_wizard_intent(wizard_type) and wizard_status in ["collecting", "confirming"]:
             intent_map = {
                 "create_budget": IntentType.CREATE_BUDGET,
@@ -80,13 +83,8 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
             return state
 
     # =====================================================================
-    # FAST-PATH: Ambiguous input — clarify instead of guessing
+    # FAST-PATH 2: Just a number — ask for clarification
     # =====================================================================
-    # Messages that are just a number or single word shouldn't go to LLM
-    # The LLM might guess (register as expense) when it should ask.
-
-    # Detect: just a number + optional currency suffix
-    # Ex: "52", "52 reais", "52 pila", "R$52", "r$ 52"
     only_number = re.match(
         r"^\s*(?:r\$|R\$)?\s*(\d+(?:[.,]\d{1,2})?)\s*(?:reais|real|pila|conto|pau)?\s*$",
         message,
@@ -100,72 +98,24 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
             "Ex: 'Gastei R$ 52 no mercado' ou 'Recebi R$ 100 de freelas'"
         )
         elapsed = (time.time() - start_time) * 1000
-        logger.info(f"[classify_intent] Fast-path: just number => chat ({elapsed:.0f}ms)")
+        logger.info(f"[classify_intent] Fast-path: just number → chat ({elapsed:.0f}ms)")
         return state
 
-    # Detect: just a single word (likely a category name)
-    # Ex: "Alimentação", "transporte", "Mercado"
-    # BUT: skip known greetings, commands, and feature names — send those to LLM
-    words = message.strip().split()
-    if len(words) == 1 and re.match(r"^[a-zA-ZÀ-ÿ]+$", words[0]):
-        word_lower = words[0].lower()
-        # Whitelist: words that should NOT be treated as categories
-        _non_category_words = {
-            # Saudações
-            "oi", "olá", "ola", "eai", "eae", "salve", "hello", "hey", "bom", "boa",
-            # Comandos / ajuda
-            "ajuda", "help", "menu", "comandos", "tutorial", "start", "inicio", "início",
-            # Features — devem ir pro LLM classificar como query/consulta
-            "metas", "meta", "orçamentos", "orçamento", "orcamentos", "orcamento",
-            "relatório", "relatorio", "categorias", "saldo", "gastos", "receitas",
-            "transações", "transacoes", "extratos", "resumo", "gráfico", "grafico",
-            "balanço", "balanco", "orçamentária", "orcamentaria",
-            # Respostas comuns
-            "obrigado", "obrigada", "valeu", "ok", "certo", "blz", "beleza",
-            "cancelar", "sair", "voltar", "esquece", "desistir",
-            # Perguntas
-            "quem", "como", "onde", "quando", "porque", "porque", "qual", "quais",
-        }
-        if word_lower in _non_category_words:
-            # Let it flow to LLM classification
-            elapsed = (time.time() - start_time) * 1000
-            logger.info(
-                f"[classify_intent] Fast-path: single word '{words[0]}' bypassed "
-                f"(in whitelist) → LLM ({elapsed:.0f}ms)"
-            )
-        else:
-            state["intent"] = IntentType.CHAT
-            state["confidence"] = 1.0
-            state["response"] = (
-                f"'{words[0]}' — isso é uma categoria que você quer usar?\n"
-                "Me conta mais: é um gasto ou receita? Qual o valor?\n"
-                "Ex: 'Gastei R$ 30 em {words[0]}' ou 'Quero ver meus gastos com {words[0]}'"
-            ).replace("{words[0]}", words[0])
-            elapsed = (time.time() - start_time) * 1000
-            logger.info(f"[classify_intent] Fast-path: single word => chat ({elapsed:.0f}ms)")
-            return state
-
     # =====================================================================
-    # LLM PRIMARY CLASSIFIER
+    # LLM PRIMARY CLASSIFIER (8 macro-intencoes)
     # =====================================================================
     llm_start = time.time()
     llm = get_llm(temperature=0.1)
 
     if not llm:
-        logger.warning("[classify_intent] No LLM available — falling back to basic detection")
-        # Minimal fallback without LLM
-        msg_lower = message.lower()
-        if any(w in msg_lower for w in ["oi", "ola", "bom dia", "boa tarde", "boa noite"]):
-            state["intent"] = IntentType.GREETING
-        elif any(w in msg_lower for w in ["obrigado", "obrigada", "valeu", "thanks"]):
-            state["intent"] = IntentType.CHAT
-        elif any(w in msg_lower for w in ["quanto", "qual", "saldo", "gastei", "gastos"]):
-            state["intent"] = IntentType.QUERY_DATA
-        elif re.search(r"(?:R?\$\s*)?\d+", msg_lower):
-            state["intent"] = IntentType.REGISTER_EXPENSE
-        else:
-            state["intent"] = IntentType.UNKNOWN
-        state["confidence"] = 0.5
+        # Fallback sem LLM — pergunta pro usuario
+        logger.warning("[classify_intent] No LLM — asking user to rephrase")
+        state["intent"] = IntentType.CHAT
+        state["confidence"] = 0.3
+        state["response"] = (
+            "Pode me explicar de outra forma? 😊\n"
+            "Quer registrar um gasto, consultar algo, ou precisa de ajuda?"
+        )
         return state
 
     system_prompt = _enrich_system_prompt(phone_number)
@@ -177,26 +127,33 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"Mensagem: {message}"),
         ]
-
         response, latency_ms = timed_invoke(llm, messages, operation="classify_intent")
         result = JsonOutputParser().parse(response.content)
 
-        intent_str = result.get("intent", "unknown")
-        intent_values = [e.value for e in IntentType]
-        state["intent"] = (
-            IntentType(intent_str) if intent_str in intent_values else IntentType.UNKNOWN
-        )
-        state["confidence"] = result.get("confidence", 0.5)
+        macro_intent = result.get("intent", "chat")
+        confidence = result.get("confidence", 0.5)
+
+        # Map macro-intent to IntentType
+        intent_value = MACRO_TO_INTENT.get(macro_intent, IntentType.CHAT.value)
+        state["intent"] = intent_value
+        state["confidence"] = confidence
+
+        # Store macro-intent for downstream routing
+        state["macro_intent"] = macro_intent
 
         total_elapsed = (time.time() - start_time) * 1000
         logger.info(
-            f"[classify_intent] LLM: {state['intent']} (LLM={latency_ms:.0f}ms, total={total_elapsed:.0f}ms)"
+            f"[classify_intent] macro={macro_intent} → intent={intent_value} "
+            f"(LLM={latency_ms:.0f}ms, total={total_elapsed:.0f}ms)"
         )
 
     except Exception as e:
         total_elapsed = (time.time() - start_time) * 1000
         logger.error(f"[classify_intent] LLM error after {total_elapsed:.0f}ms: {e}")
-        state["intent"] = IntentType.UNKNOWN
+        state["intent"] = IntentType.CHAT
         state["confidence"] = 0.0
+        state["response"] = (
+            "Pode repetir de outro jeito? Não entendi muito bem. 😊"
+        )
 
     return state

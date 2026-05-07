@@ -4,7 +4,7 @@ Uses sync_session_maker for database access.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from typing import Any
 
 from app.agents.persistence import get_or_create_user
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def _get_period_from_message(message: str) -> tuple:
     """Extrai período de início e fim baseado na mensagem do usuário."""
-    today = datetime.utcnow()
+    today = datetime.now(UTC)
     msg_lower = message.lower()
 
     # Hoje

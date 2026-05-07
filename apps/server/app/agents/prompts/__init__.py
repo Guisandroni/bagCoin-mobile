@@ -66,55 +66,50 @@ Before sending your response, check:
 </verification_loop>"""
 
 
-from app.agents.prompts.classify_intent import (
-    CLASSIFY_INTENT_PROMPT,
-    build_classify_prompt,
-)
-
-from app.agents.prompts.extract_transaction import (
-    EXTRACT_TRANSACTION_PROMPT,
-    build_extract_transaction_prompt,
-)
-
-from app.agents.prompts.extract_budget_goal import (
-    EXTRACT_PROMPTS,
-)
-
 from app.agents.prompts.chat import (
     CHAT_SYSTEM_PROMPT,
     HELP_SPECIFIC_PROMPT,
     build_chat_prompt,
 )
-
+from app.agents.prompts.classify_intent import (
+    CLASSIFY_INTENT_PROMPT,
+    build_classify_prompt,
+)
+from app.agents.prompts.extract_budget_goal import (
+    EXTRACT_PROMPTS,
+)
+from app.agents.prompts.extract_transaction import (
+    EXTRACT_TRANSACTION_PROMPT,
+    build_extract_transaction_prompt,
+)
+from app.agents.prompts.other import (
+    DEEP_RESEARCH_PROMPT,
+    RECOMMENDATIONS_PROMPT,
+    TEXT_TO_SQL_PROMPT,
+    build_sql_prompt,
+)
 from app.agents.prompts.wizard import (
     FIELD_EXAMPLES,
     WIZARD_CORRECTION_PROMPT,
     build_wizard_extract_prompt,
 )
 
-from app.agents.prompts.other import (
-    TEXT_TO_SQL_PROMPT,
-    RECOMMENDATIONS_PROMPT,
-    DEEP_RESEARCH_PROMPT,
-    build_sql_prompt,
-)
-
 __all__ = [
-    "DEFAULT_SYSTEM_PROMPT",
-    "get_system_prompt_with_rag",
-    "CLASSIFY_INTENT_PROMPT",
-    "build_classify_prompt",
-    "EXTRACT_TRANSACTION_PROMPT",
-    "build_extract_transaction_prompt",
-    "EXTRACT_PROMPTS",
     "CHAT_SYSTEM_PROMPT",
-    "HELP_SPECIFIC_PROMPT",
-    "build_chat_prompt",
-    "FIELD_EXAMPLES",
-    "WIZARD_CORRECTION_PROMPT",
-    "build_wizard_extract_prompt",
-    "TEXT_TO_SQL_PROMPT",
-    "RECOMMENDATIONS_PROMPT",
+    "CLASSIFY_INTENT_PROMPT",
     "DEEP_RESEARCH_PROMPT",
+    "DEFAULT_SYSTEM_PROMPT",
+    "EXTRACT_PROMPTS",
+    "EXTRACT_TRANSACTION_PROMPT",
+    "FIELD_EXAMPLES",
+    "HELP_SPECIFIC_PROMPT",
+    "RECOMMENDATIONS_PROMPT",
+    "TEXT_TO_SQL_PROMPT",
+    "WIZARD_CORRECTION_PROMPT",
+    "build_chat_prompt",
+    "build_classify_prompt",
+    "build_extract_transaction_prompt",
     "build_sql_prompt",
+    "build_wizard_extract_prompt",
+    "get_system_prompt_with_rag",
 ]

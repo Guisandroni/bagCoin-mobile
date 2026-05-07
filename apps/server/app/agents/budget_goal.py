@@ -617,7 +617,7 @@ def update_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
         amount = extracted.get("amount") or _extract_number(message)
         desc = extracted.get("description")
         category = extracted.get("category_name")
-        
+
         # Fallback: extract desc from message if not in extracted_data
         if not desc:
             desc_patterns = [
@@ -628,7 +628,7 @@ def update_transaction_node(state: dict[str, Any]) -> dict[str, Any]:
                 if m:
                     desc = m.group(1).strip().capitalize()
                     break
-        
+
         # Fallback: infer category from message keywords if not in extracted_data
         if not category:
             for cat, words in {

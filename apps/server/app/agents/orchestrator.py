@@ -7,7 +7,7 @@ via LangGraph's StateGraph with conditional routing.
 import logging
 import re
 import unicodedata
-from datetime import datetime as dt
+from datetime import datetime, UTC as dt
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -32,7 +32,7 @@ from app.agents.import_statement import import_transactions
 from app.agents.ingestion import classify_intent
 from app.agents.multimodal import process_multimodal
 from app.agents.normalization import extract_transaction
-from app.agents.persistence import save_transaction
+from app.agents.persistence import save_message_to_history, save_transaction
 from app.agents.recommendations import generate_recommendations
 from app.agents.reports import generate_report
 from app.agents.statement_parser import detect_statement
@@ -216,7 +216,9 @@ def update_category_handler_node(state: AgentState) -> AgentState:
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
     msg_norm = (
-        unicodedata.normalize("NFKD", message.lower()).encode("ASCII", "ignore").decode("ASCII")
+        unicodedata.normalize("NFKD", message.lower())
+        .encode("ASCII", "ignore")
+        .decode("ASCII")
     )
     match = re.search(
         r'(?:renomear|mudar nome da|alterar)\s+categoria\s+["\']?(.+?)["\']?\s+(?:para|->)\s+["\']?(.+?)["\']?$',
@@ -245,7 +247,11 @@ def update_category_handler_node(state: AgentState) -> AgentState:
 def _msg_norm(message: str) -> str:
     import unicodedata
 
-    return unicodedata.normalize("NFKD", message.lower()).encode("ASCII", "ignore").decode("ASCII")
+    return (
+        unicodedata.normalize("NFKD", message.lower())
+        .encode("ASCII", "ignore")
+        .decode("ASCII")
+    )
 
 
 def create_category_handler_node(state: AgentState) -> AgentState:
@@ -267,7 +273,9 @@ def create_category_handler_node(state: AgentState) -> AgentState:
             name = message[idx:].strip().capitalize()
             break
     if not name or len(name) < 2:
-        state["response"] = "Qual o nome da nova categoria? Ex: 'Criar categoria Academia'"
+        state["response"] = (
+            "Qual o nome da nova categoria? Ex: 'Criar categoria Academia'"
+        )
         return state
     result = create_category(phone_number, name)
     if result is None:
@@ -374,7 +382,8 @@ def correction_handler_node(state: AgentState) -> AgentState:
     )
     if not cat_match:
         cat_match = regex.search(
-            r"(?:corrige|muda)\s+(?:a\s+)?categoria\s+(?:para|como)\s+([a-zA-ZÀ-ÿ\s]+)", msg_lower
+            r"(?:corrige|muda)\s+(?:a\s+)?categoria\s+(?:para|como)\s+([a-zA-ZÀ-ÿ\s]+)",
+            msg_lower,
         )
     if cat_match:
         state["extracted_data"] = {
@@ -383,7 +392,9 @@ def correction_handler_node(state: AgentState) -> AgentState:
         return update_transaction_handler_node(state)
 
     # 3. Correção de descrição: "o nome é Mercado" / "descrição certa é Padaria"
-    desc_match = regex.search(r"(?:o\s+)?nome\s+(?:[ée]|certo\s+[ée])\s+(.+)", msg_lower)
+    desc_match = regex.search(
+        r"(?:o\s+)?nome\s+(?:[ée]|certo\s+[ée])\s+(.+)", msg_lower
+    )
     if not desc_match:
         desc_match = regex.search(r"descrição\s+(?:certa\s+)?[ée]\s+(.+)", msg_lower)
     if desc_match:
@@ -433,7 +444,7 @@ def chat_node(state: AgentState) -> AgentState:
     - Quando a intenção é CHAT, HELP ou UNKNOWN
     - Saudações com contexto
     """
-    from datetime import datetime
+    from datetime import datetime, UTC
 
     from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -458,7 +469,9 @@ def chat_node(state: AgentState) -> AgentState:
                 msgs = [SystemMessage(content=prompt), HumanMessage(content=message)]
                 r, _ = timed_invoke(llm, msgs, operation="help_response")
                 state["response"] = r.content[:1000]
-                logger.info(f"[chat_node] HELP específico gerado em resposta a: {message[:50]}")
+                logger.info(
+                    f"[chat_node] HELP específico gerado em resposta a: {message[:50]}"
+                )
                 return state
             except Exception as e:
                 logger.warning(f"[chat_node] HELP via LLM falhou: {e}")
@@ -495,9 +508,9 @@ def chat_node(state: AgentState) -> AgentState:
             "iai",
         ]
         if any(w in msg_lower for w in greeting_words):
-            from datetime import datetime as dt
+            from datetime import datetime, UTC as dt
 
-            hour = dt.utcnow().hour
+            hour = dt.now(UTC).hour
             if hour < 12:
                 gt = "Bom dia"
             elif hour < 18:
@@ -524,7 +537,8 @@ def chat_node(state: AgentState) -> AgentState:
             return state
 
         if any(
-            w in msg_lower for w in ["ok", "certo", "entendi", "tendi", "blz", "perfeito", "legal"]
+            w in msg_lower
+            for w in ["ok", "certo", "entendi", "tendi", "blz", "perfeito", "legal"]
         ):
             state["response"] = "Show! O que mais posso ajudar?"
             return state
@@ -541,7 +555,8 @@ def chat_node(state: AgentState) -> AgentState:
         import re as regex
 
         if any(
-            w in msg_lower for w in ["na verdade", "era na verdade", "corrigindo", "foi na verdade"]
+            w in msg_lower
+            for w in ["na verdade", "era na verdade", "corrigindo", "foi na verdade"]
         ):
             amount_match = regex.search(r"R?\$?\s*(\d+(?:[.,]\d{1,2})?)", message)
             if amount_match:
@@ -598,7 +613,7 @@ def chat_node(state: AgentState) -> AgentState:
     # Tem LLM — resposta inteligente
     from app.agents.prompts.chat import build_chat_prompt
 
-    hour = datetime.utcnow().hour
+    hour = datetime.now(UTC).hour
     if hour < 12:
         greeting = "Bom dia"
     elif hour < 18:
@@ -620,6 +635,250 @@ def chat_node(state: AgentState) -> AgentState:
         logger.error(f"[chat_node] Erro: {e}")
         state["response"] = (
             "Entendi! Se precisar registrar algo ou consultar dados, pode me falar que eu ajudo."
+        )
+
+    return state
+
+
+def smart_query_node(state: AgentState) -> AgentState:
+    """Consulta inteligente — text-to-SQL ou LLM com dados do usuario.
+
+    Combina process_query (text-to-SQL) com consulta LLM contextual.
+    Se o text-to-SQL falhar, o LLM responde com o historico da conversa.
+    """
+    from app.agents.persistence import (
+        get_recent_transactions,
+        get_conversation_history,
+        get_or_create_user,
+    )
+    from app.db.session import sync_session_maker
+
+    phone_number = state.get("phone_number", "")
+    message = state.get("message", "")
+
+    # 1. Tenta text-to-SQL primeiro (precisao)
+    result = process_query(dict(state))
+    if result.get("query_result") and result["query_result"].get("summary"):
+        result["query_result"]["type"] = "sql"
+        return AgentState(**result)
+
+    # 2. Fallback: LLM com dados reais do usuario
+    llm = get_llm(temperature=0.3)
+    if not llm:
+        state["response"] = "Não consegui consultar seus dados agora. Tente novamente!"
+        return state
+
+    # Coleta dados do usuario para contexto
+    db = sync_session_maker()
+    try:
+        user = get_or_create_user(phone_number, db)
+        recent = get_recent_transactions(phone_number, limit=10) or []
+        history = get_conversation_history(phone_number, limit=4) or ""
+    finally:
+        db.close()
+
+    # Formata dados para o prompt
+    tx_lines = []
+    for tx in recent[:10]:
+        tx_type = "Receita" if tx.get("type") == "INCOME" else "Gasto"
+        tx_lines.append(
+            f"- {tx_type}: R$ {tx.get('amount', 0):.2f} — {tx.get('name', '')} "
+            f"({tx.get('category', '')}) em {tx.get('date', '?')}"
+        )
+    tx_context = "\n".join(tx_lines) if tx_lines else "(sem transacoes)"
+
+    system_prompt = f"""Voce e o BagCoin, assistente financeiro. Responda consultas com base nos DADOS REAIS do usuario.
+
+DADOS DO USUARIO:
+Ultimas transacoes:
+{tx_context}
+
+Historico da conversa:
+{history if history else '(primeira mensagem)'}
+
+REGRAS:
+- Responda APENAS com base nos dados acima. Nao invente numeros.
+- Se perguntarem algo que nao esta nos dados, diga que nao tem essa informacao.
+- Seja breve e direto (maximo 3 paragrafos para WhatsApp).
+- Formate valores como R$ X.XXX,XX.
+- Se for pergunta sobre orcamentos/metas e nao tem dados, oriente como criar."""
+
+    try:
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        msgs = [SystemMessage(content=system_prompt), HumanMessage(content=message)]
+        r, latency = timed_invoke(llm, msgs, operation="smart_query")
+        state["response"] = r.content[:800]
+        logger.info(f"[smart_query] LLM query em {latency:.0f}ms")
+    except Exception as e:
+        logger.error(f"[smart_query] Erro: {e}")
+        state["response"] = "Ops, não consegui consultar. Tente de novo!"
+
+    return state
+
+
+def smart_manage_node(state: AgentState) -> AgentState:
+    """Gerencia unificada — LLM decide qual acao tomar (criar/editar/excluir).
+
+    Substitui o roteamento manual para budget, goal, transaction, category.
+    O LLM analisa a mensagem, decide a acao e extrai os parametros.
+    """
+    phone_number = state.get("phone_number", "")
+    message = state.get("message", "")
+    msg_norm = _msg_norm(message)
+
+    # 1. Fast-path: comandos explicitos com keywords claras
+    # Categoria — mantido deterministico pois e simples
+    if any(
+        w in msg_norm
+        for w in ["criar categoria", "nova categoria", "adicionar categoria"]
+    ):
+        return create_category_handler_node(state)
+    if any(
+        w in msg_norm
+        for w in ["excluir categoria", "apagar categoria", "remover categoria"]
+    ):
+        return delete_category_handler_node(state)
+    if any(
+        w in msg_norm
+        for w in ["minhas categorias", "quais categorias", "listar categorias"]
+    ):
+        return list_categories_handler_node(state)
+    if any(w in msg_norm for w in ["renomear categoria", "mudar nome da categoria"]):
+        return update_category_handler_node(state)
+
+    # 2. Wizard — se tem estado ativo, continua
+    from app.agents.wizard import _load_wizard_state
+
+    wizard = _load_wizard_state(phone_number)
+    if wizard and wizard.get("status") in ["collecting", "confirming"]:
+        return wizard_handler_node(state)
+
+    # 3. LLM decide a acao e extrai parametros
+    llm = get_llm(temperature=0.1)
+    if not llm:
+        state["response"] = (
+            "O que voce quer gerenciar? 🤔\n"
+            "• Orcamento: 'criar orcamento de R$ 500 para lazer'\n"
+            "• Meta: 'quero guardar R$ 2000 para viagem'\n"
+            "• Transacao: 'excluir gasto de ontem' ou 'mudar valor do mercado'\n"
+            "• Categoria: 'criar categoria academia'"
+        )
+        return state
+
+    from app.agents.persistence import (
+        get_or_create_user,
+        get_recent_transactions,
+    )
+
+    db = sync_session_maker()
+    try:
+        user = get_or_create_user(phone_number, db)
+        recent_tx = get_recent_transactions(phone_number, limit=5) or []
+    finally:
+        db.close()
+
+    tx_context = ""
+    if recent_tx:
+        tx_context = "Transacoes recentes:\n" + "\n".join(
+            f"- id={tx['id']}: {tx.get('name','')} R${tx.get('amount',0):.2f} ({tx.get('date','?')})"
+            for tx in recent_tx
+        )
+
+    system_prompt = f"""Voce e o gerenciador financeiro do BagCoin. Analise a mensagem e decida a acao.
+
+Acoes possiveis:
+- create_budget: criar novo orcamento. Extraia: name, amount_limit, period (monthly/weekly/yearly)
+- create_goal: criar nova meta. Extraia: name, target_amount, deadline (opcional)
+- contribute_goal: adicionar valor a meta existente. Extraia: goal_name, amount
+- delete_budget: excluir orcamento. Extraia: budget_name
+- delete_goal: excluir meta. Extraia: goal_name
+- update_budget: atualizar orcamento. Extraia: budget_name, new_limit
+- update_goal: atualizar meta. Extraia: goal_name, new_target
+- delete_transaction: excluir transacao. Extraia: description (nome/descricao da transacao)
+- update_transaction: corrigir transacao. Extraia: description, new_amount, new_category
+- toggle_alerts: ativar/desativar alertas
+- help: usuario nao especificou o que quer gerenciar
+
+{tx_context}
+
+Responda APENAS JSON:
+{{"action": "create_budget", "params": {{"name": "Lazer", "amount_limit": 500, "period": "monthly"}}, "message": "Vou criar o orcamento!"}}"""
+
+    try:
+        from langchain_core.messages import HumanMessage, SystemMessage
+        from langchain_core.output_parsers import JsonOutputParser
+
+        msgs = [SystemMessage(content=system_prompt), HumanMessage(content=message)]
+        r, latency = timed_invoke(llm, msgs, operation="smart_manage")
+        result = JsonOutputParser().parse(r.content)
+
+        action = result.get("action", "help")
+        params = result.get("params", {})
+        user_msg = result.get("message", "")
+
+        logger.info(f"[smart_manage] LLM action={action} em {latency:.0f}ms")
+
+        # Roteia para o handler especifico
+        if action == "create_budget":
+            state["extracted_data"] = params
+            return budget_node(state)
+        elif action == "create_goal":
+            state["extracted_data"] = params
+            return goal_node(state)
+        elif action == "delete_budget":
+            state["extracted_data"] = {"name": params.get("budget_name", "")}
+            return delete_budget_handler_node(state)
+        elif action == "delete_goal":
+            state["extracted_data"] = {"title": params.get("goal_name", "")}
+            return delete_goal_handler_node(state)
+        elif action == "update_budget":
+            state["extracted_data"] = {
+                "name": params.get("budget_name", ""),
+                "total_limit": params.get("new_limit", 0),
+            }
+            return update_budget_handler_node(state)
+        elif action == "contribute_goal":
+            state["extracted_data"] = {
+                "title": params.get("goal_name", ""),
+                "amount": params.get("amount", 0),
+            }
+            return contribute_goal_handler_node(state)
+        elif action == "delete_transaction":
+            state["extracted_data"] = {"description": params.get("description", "")}
+            return delete_transaction_handler_node(state)
+        elif action == "update_transaction":
+            state["extracted_data"] = {
+                "description": params.get("description", ""),
+                "amount": params.get("new_amount"),
+                "category_name": params.get("new_category"),
+            }
+            return update_transaction_handler_node(state)
+        elif action == "toggle_alerts":
+            return toggle_alerts_handler_node(state)
+        else:
+            # help — usuario nao especificou
+            state["response"] = (
+                "O que voce quer gerenciar? 🤔\n\n"
+                "📊 Orcamentos:\n"
+                "• 'criar orcamento de R$ 500 para lazer'\n"
+                "• 'mudar limite do orcamento alimentacao para 800'\n"
+                "• 'excluir orcamento transporte'\n\n"
+                "🎯 Metas:\n"
+                "• 'quero guardar R$ 2000 para viagem'\n"
+                "• 'guardei R$ 300 na meta viagem'\n\n"
+                "💳 Transacoes:\n"
+                "• 'excluir gasto do mercado de ontem'\n"
+                "• 'corrigir valor do uber para 15'\n\n"
+                "🏷 Categorias:\n"
+                "• 'criar categoria academia'\n"
+                "• 'renomear categoria mercado para supermercado'"
+            )
+    except Exception as e:
+        logger.error(f"[smart_manage] LLM error: {e}")
+        state["response"] = (
+            "Me explica melhor o que voce quer fazer? 😊\n"
+            "Quer criar, editar ou excluir algo?"
         )
 
     return state
@@ -649,7 +908,10 @@ def build_response_node(state: AgentState) -> AgentState:
         _save_history(phone_number, message, state.get("response", ""))
         return state
 
-    if intent == IntentType.REGISTER_EXPENSE.value or intent == IntentType.REGISTER_INCOME.value:
+    if (
+        intent == IntentType.REGISTER_EXPENSE.value
+        or intent == IntentType.REGISTER_INCOME.value
+    ):
         extracted = state.get("extracted_data", {})
         tx_type = extracted.get("type", "EXPENSE")
         amount = extracted.get("amount", 0)
@@ -673,9 +935,9 @@ def build_response_node(state: AgentState) -> AgentState:
                 active_goals = [g for g in goals if g.get("status") == "active"]
                 if active_goals:
                     goal_names = ", ".join([g["title"] for g in active_goals[:3]])
-                    state["response"] += (
-                        f"\n\nQuer direcionar parte para alguma meta? Você tem: {goal_names}"
-                    )
+                    state[
+                        "response"
+                    ] += f"\n\nQuer direcionar parte para alguma meta? Você tem: {goal_names}"
             except Exception:
                 pass
             finally:
@@ -701,7 +963,7 @@ def build_response_node(state: AgentState) -> AgentState:
             name = None
         finally:
             db.close()
-        hour = dt.utcnow().hour
+        hour = dt.now(UTC).hour
         if hour < 12:
             greeting_time = "Bom dia"
         elif hour < 18:
@@ -768,10 +1030,16 @@ def build_response_node(state: AgentState) -> AgentState:
 
                 # Filter: detect LLM-generated error/generic responses
                 _bad_llm_patterns = [
-                    "sorry, i couldn't", "i couldn't process",
-                    "i'm sorry", "i am sorry", "sorry, i can't",
-                    "i cannot", "i'm unable", "i am unable",
-                    "as an ai", "as a language model",
+                    "sorry, i couldn't",
+                    "i couldn't process",
+                    "i'm sorry",
+                    "i am sorry",
+                    "sorry, i can't",
+                    "i cannot",
+                    "i'm unable",
+                    "i am unable",
+                    "as an ai",
+                    "as a language model",
                 ]
                 if any(p in response_text.lower() for p in _bad_llm_patterns):
                     logger.warning(
@@ -813,67 +1081,77 @@ def route_after_multimodal(state: AgentState) -> str:
 
 
 def route_by_intent(state: AgentState) -> str:
-    """Roteia para o próximo nó baseado na intenção."""
+    """Roteia para o proximo no baseado na macro-intencao + contexto.
+
+    Usa 8 macro-intencoes em vez de 37 intencoes individuais.
+    O desempate (ex: criar vs editar orcamento) e feito pelo handler downstream.
+    """
     intent = state.get("intent")
     error = state.get("error")
+    macro = state.get("macro_intent", "")
 
     if error:
         return "build_response"
 
-    # Fast-path: response already set by classify_intent (e.g. ambiguous input)
+    # Fast-path: response already set by classify_intent
     if state.get("response"):
         return "build_response"
 
+    # === Macro-intent routing ===
+    if macro == "register":
+        return "extract_data"
+
+    if macro == "query":
+        return "smart_query"  # novo: query com contexto
+
+    if macro == "manage":
+        return "smart_manage"  # novo: manage com LLM unificado
+
+    if macro == "report":
+        return "generate_report"
+
+    if macro == "import_stmt":
+        return "import_statement"
+
+    if macro == "recommend":
+        return "generate_recommendations"
+
+    if macro == "research":
+        return "deep_research"
+
+    # chat, greeting, help, introduce, unknown, correction
+    return "chat"
+
+    # Fallback legacy routing (mantido ate migracao completa)
     routing_map = {
         IntentType.REGISTER_EXPENSE.value: "extract_data",
         IntentType.REGISTER_INCOME.value: "extract_data",
-        IntentType.QUERY_DATA.value: "process_query",
+        IntentType.QUERY_DATA.value: "smart_query",
         IntentType.GENERATE_REPORT.value: "generate_report",
         IntentType.RECOMMENDATION.value: "generate_recommendations",
         IntentType.DEEP_RESEARCH.value: "deep_research",
-        IntentType.IMPORT_STATEMENT.value: "build_response",
+        IntentType.IMPORT_STATEMENT.value: "import_statement",
         IntentType.GREETING.value: "chat",
         IntentType.INTRODUCE.value: "chat",
         IntentType.HELP.value: "chat",
         IntentType.CHAT.value: "chat",
-        IntentType.CREATE_BUDGET.value: "wizard",
-        IntentType.CREATE_GOAL.value: "wizard",
-        IntentType.CONTRIBUTE_GOAL.value: "contribute_goal",
-        IntentType.DELETE_BUDGET.value: "delete_budget",
-        IntentType.UPDATE_BUDGET.value: "update_budget",
-        IntentType.DELETE_GOAL.value: "delete_goal",
-        IntentType.UPDATE_GOAL.value: "update_goal",
-        IntentType.DELETE_TRANSACTION.value: "delete_transaction",
-        IntentType.UPDATE_TRANSACTION.value: "update_transaction",
-        IntentType.CORRECTION.value: "correction",
-        IntentType.TOGGLE_ALERTS.value: "toggle_alerts",
-        IntentType.CREATE_CATEGORY.value: "create_category",
-        IntentType.DELETE_CATEGORY.value: "delete_category",
-        IntentType.LIST_CATEGORIES.value: "list_categories",
-        IntentType.UPDATE_CATEGORY.value: "update_category",
+        IntentType.CREATE_BUDGET.value: "smart_manage",
+        IntentType.CREATE_GOAL.value: "smart_manage",
+        IntentType.CONTRIBUTE_GOAL.value: "smart_manage",
+        IntentType.DELETE_BUDGET.value: "smart_manage",
+        IntentType.UPDATE_BUDGET.value: "smart_manage",
+        IntentType.DELETE_GOAL.value: "smart_manage",
+        IntentType.UPDATE_GOAL.value: "smart_manage",
+        IntentType.DELETE_TRANSACTION.value: "smart_manage",
+        IntentType.UPDATE_TRANSACTION.value: "smart_manage",
+        IntentType.CORRECTION.value: "smart_manage",
+        IntentType.TOGGLE_ALERTS.value: "smart_manage",
+        IntentType.CREATE_CATEGORY.value: "smart_manage",
+        IntentType.DELETE_CATEGORY.value: "smart_manage",
+        IntentType.LIST_CATEGORIES.value: "smart_manage",
+        IntentType.UPDATE_CATEGORY.value: "smart_manage",
         IntentType.UNKNOWN.value: "chat",
     }
-
-    # Consultas de budgets/goals também caem em QUERY_DATA — detectamos aqui
-    msg_lower = state.get("message", "").lower()
-    msg_norm = unicodedata.normalize("NFKD", msg_lower).encode("ASCII", "ignore").decode("ASCII")
-    if intent == IntentType.QUERY_DATA.value:
-        if any(
-            w in msg_norm
-            for w in [
-                "orcamento",
-                "orcamentos",
-                "budget",
-                "limite",
-                "meta",
-                "metas",
-                "objetivo",
-                "objetivos",
-                "goal",
-            ]
-        ):
-            return "query_budgets"
-
     return routing_map.get(intent, "build_response")
 
 
@@ -906,6 +1184,8 @@ def create_orchestrator():
     workflow.add_node("correction", correction_handler_node)
     workflow.add_node("toggle_alerts", toggle_alerts_handler_node)
     workflow.add_node("wizard", wizard_handler_node)
+    workflow.add_node("smart_query", smart_query_node)
+    workflow.add_node("smart_manage", smart_manage_node)
     workflow.add_node("chat", chat_node)
     workflow.add_node("create_category", create_category_handler_node)
     workflow.add_node("delete_category", delete_category_handler_node)
@@ -933,6 +1213,8 @@ def create_orchestrator():
         route_by_intent,
         {
             "extract_data": "extract_data",
+            "smart_query": "smart_query",
+            "smart_manage": "smart_manage",
             "process_query": "process_query",
             "generate_report": "generate_report",
             "generate_recommendations": "generate_recommendations",
@@ -983,6 +1265,8 @@ def create_orchestrator():
     workflow.add_edge("toggle_alerts", "build_response")
     workflow.add_edge("wizard", "build_response")
     workflow.add_edge("chat", "build_response")
+    workflow.add_edge("smart_query", "build_response")
+    workflow.add_edge("smart_manage", "build_response")
     workflow.add_edge("create_category", "build_response")
     workflow.add_edge("delete_category", "build_response")
     workflow.add_edge("list_categories", "build_response")

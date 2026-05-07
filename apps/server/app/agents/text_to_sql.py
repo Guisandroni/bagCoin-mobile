@@ -5,7 +5,7 @@ Converts natural language queries to safe SQL using the sync engine.
 
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -110,7 +110,7 @@ def execute_sql_query(query: str, params: dict | None = None) -> list[dict[str, 
 
 def get_date_filter(msg_lower: str) -> str | None:
     """Return WHERE date clause based on the user's message."""
-    today = datetime.utcnow().date()
+    today = datetime.now(UTC).date()
 
     if any(p in msg_lower for p in ["hoje"]):
         return f"DATE(transaction_date) = '{today}'"

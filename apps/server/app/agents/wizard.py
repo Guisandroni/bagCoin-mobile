@@ -7,7 +7,7 @@ Uses sync_session_maker for database access.
 import json
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -116,7 +116,7 @@ def _save_wizard_state(phone_number: str, wizard_state: dict[str, Any]):
         context["wizard"] = wizard_state
         conv.context_json = context
         flag_modified(conv, "context_json")
-        conv.updated_at = datetime.utcnow()
+        conv.updated_at = datetime.now(UTC)
         db.commit()
         logger.info(f"Wizard state salvo para {phone_number}: {wizard_state.get('status')}")
     except Exception as e:
@@ -137,7 +137,7 @@ def _load_wizard_state(phone_number: str) -> dict[str, Any] | None:
             if last_update:
                 try:
                     last = datetime.fromisoformat(last_update)
-                    if (datetime.utcnow() - last).total_seconds() > 600:
+                    if (datetime.now(UTC) - last).total_seconds() > 600:
                         logger.info(f"Wizard expirado para {phone_number}")
                         return None
                 except Exception:
@@ -264,7 +264,7 @@ def wizard_node(state: dict[str, Any]) -> dict[str, Any]:
             "status": "collecting",
             "collected": {},
             "missing": WIZARD_SCHEMAS[wizard_type]["fields"].copy(),
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
         }
         # Aplica defaults
         for field, default in WIZARD_SCHEMAS[wizard_type].get("defaults", {}).items():
@@ -422,11 +422,7 @@ def _handle_collecting(
 
     # "não" só cancela se for palavra única ou "não quero"
     if not is_cancel:
-        if msg_words_token == ["não"] or msg_words_token == ["nao"]:
-            is_cancel = True
-        elif len(msg_words_token) == 2 and msg_words_token[0] in ["não", "nao"] and msg_words_token[1] in ["quero", "obrigado", "valeu"]:
-            is_cancel = True
-        elif len(msg_words_token) <= 2 and any(w in ["errado", "desiste"] for w in msg_words_token):
+        if msg_words_token == ["não"] or msg_words_token == ["nao"] or (len(msg_words_token) == 2 and msg_words_token[0] in ["não", "nao"] and msg_words_token[1] in ["quero", "obrigado", "valeu"]) or (len(msg_words_token) <= 2 and any(w in ["errado", "desiste"] for w in msg_words_token)):
             is_cancel = True
 
     if is_cancel:
@@ -451,7 +447,7 @@ def _handle_collecting(
         first_missing = wizard["missing"][0] if wizard["missing"] else None
         if first_missing and first_missing in option_labels:
             state["response"] = _build_option_prompt(first_missing, option_labels[first_missing])
-            wizard["updated_at"] = datetime.utcnow().isoformat()
+            wizard["updated_at"] = datetime.now(UTC).isoformat()
             _save_wizard_state(phone_number, wizard)
             return state
 
@@ -470,7 +466,7 @@ def _handle_collecting(
             response += f"- {examples[1]}\n"
 
         state["response"] = response
-        wizard["updated_at"] = datetime.utcnow().isoformat()
+        wizard["updated_at"] = datetime.now(UTC).isoformat()
         _save_wizard_state(phone_number, wizard)
         return state
 
@@ -501,7 +497,7 @@ def _handle_collecting(
                     for label in missing_labels:
                         response += f"- {label}\n"
                     state["response"] = response
-                wizard["updated_at"] = datetime.utcnow().isoformat()
+                wizard["updated_at"] = datetime.now(UTC).isoformat()
                 _save_wizard_state(phone_number, wizard)
                 return state
             # Todos os campos coletados
@@ -510,7 +506,7 @@ def _handle_collecting(
         else:
             # Resposta inválida — re-prompt com a pergunta de opções
             state["response"] = _build_option_prompt(field, field_opt_labels, is_retry=True)
-            wizard["updated_at"] = datetime.utcnow().isoformat()
+            wizard["updated_at"] = datetime.now(UTC).isoformat()
             _save_wizard_state(phone_number, wizard)
             return state
 
@@ -559,7 +555,7 @@ def _handle_collecting(
                 response += f"- {label}\n"
 
         state["response"] = response
-        wizard["updated_at"] = datetime.utcnow().isoformat()
+        wizard["updated_at"] = datetime.now(UTC).isoformat()
         _save_wizard_state(phone_number, wizard)
         return state
 
@@ -618,7 +614,7 @@ def _handle_confirming(
     state["response"] = (
         f"{summary}\n\nConfirma?\nResponda 'sim' para criar ou me diga o que quer alterar."
     )
-    wizard["updated_at"] = datetime.utcnow().isoformat()
+    wizard["updated_at"] = datetime.now(UTC).isoformat()
     _save_wizard_state(phone_number, wizard)
     return state
 

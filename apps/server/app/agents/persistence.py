@@ -4,7 +4,7 @@ Uses sync_session_maker for compatibility with non-async agent code.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from typing import Any
 
 from sqlalchemy import func
@@ -35,7 +35,9 @@ def get_or_create_user_sync(phone_number: str) -> PhoneUser:
     assert_valid_tenant_phone(phone_number)
     db = sync_session_maker()
     try:
-        user = db.query(PhoneUser).filter(PhoneUser.phone_number == phone_number).first()
+        user = (
+            db.query(PhoneUser).filter(PhoneUser.phone_number == phone_number).first()
+        )
         if not user:
             user = PhoneUser(
                 phone_number=phone_number,
@@ -54,7 +56,9 @@ def get_or_create_user_sync(phone_number: str) -> PhoneUser:
 def get_or_create_user(phone_number: str, db=None) -> PhoneUser:
     """Get or create a phone user, optionally with an existing session."""
     if db:
-        user = db.query(PhoneUser).filter(PhoneUser.phone_number == phone_number).first()
+        user = (
+            db.query(PhoneUser).filter(PhoneUser.phone_number == phone_number).first()
+        )
         if not user:
             assert_valid_tenant_phone(phone_number)
             user = PhoneUser(
@@ -108,7 +112,7 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
             db.refresh(category)
 
         # Parse date
-        tx_date = datetime.utcnow()
+        tx_date = datetime.now(UTC)
         if extracted.get("date"):
             try:
                 tx_date = datetime.strptime(extracted["date"], "%Y-%m-%d")
@@ -336,7 +340,9 @@ def update_transaction(
             "amount": tx.amount,
             "description": tx.description,
             "category": category_name
-            or (db.query(Category).get(tx.category_id).name if tx.category_id else None),
+            or (
+                db.query(Category).get(tx.category_id).name if tx.category_id else None
+            ),
         }
     except Exception as e:
         db.rollback()
@@ -371,7 +377,7 @@ def save_message_to_history(phone_number: str, role: str, content: str):
             {
                 "role": role,
                 "content": content,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
         )
         history = history[-50:]
@@ -535,7 +541,7 @@ def update_financial_profile_sync(phone_number: str) -> dict:
         user = get_or_create_user(phone_number, db)
         user_id = user.id
 
-        ninety_days_ago = datetime.utcnow() - timedelta(days=90)
+        ninety_days_ago = datetime.now(UTC) - timedelta(days=90)
 
         # Total by category
         cat_totals = (
@@ -562,7 +568,8 @@ def update_financial_profile_sync(phone_number: str) -> dict:
                     func.sum(Transaction.amount).filter(Transaction.type == "INCOME"), 0
                 ).label("income"),
                 func.coalesce(
-                    func.sum(Transaction.amount).filter(Transaction.type == "EXPENSE"), 0
+                    func.sum(Transaction.amount).filter(Transaction.type == "EXPENSE"),
+                    0,
                 ).label("expense"),
             )
             .filter(
@@ -582,12 +589,14 @@ def update_financial_profile_sync(phone_number: str) -> dict:
             ],
             "total_income_90d": total_income,
             "total_expense_90d": total_expense,
-            "savings_rate": round((total_income - total_expense) / total_income * 100, 1)
-            if total_income > 0
-            else 0,
+            "savings_rate": (
+                round((total_income - total_expense) / total_income * 100, 1)
+                if total_income > 0
+                else 0
+            ),
             "average_monthly_spending": round(total_expense / 3, 2),
             "transaction_count_90d": sum(cat.count for cat in cat_totals),
-            "last_updated": datetime.utcnow().isoformat(),
+            "last_updated": datetime.now(UTC).isoformat(),
         }
 
         from sqlalchemy.orm.attributes import flag_modified
@@ -596,7 +605,9 @@ def update_financial_profile_sync(phone_number: str) -> dict:
         flag_modified(user, "financial_profile")
         db.commit()
 
-        logger.info(f"Financial profile updated for {phone_number}: {len(cat_totals)} categories")
+        logger.info(
+            f"Financial profile updated for {phone_number}: {len(cat_totals)} categories"
+        )
         return profile
 
     except Exception as e:

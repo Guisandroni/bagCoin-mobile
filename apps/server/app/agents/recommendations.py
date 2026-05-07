@@ -5,7 +5,7 @@ Uses sync_session_maker and text-to-SQL for financial data analysis.
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, UTC, timedelta
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -25,7 +25,7 @@ def get_user_financial_summary(phone_number: str) -> dict[str, Any]:
         user = get_or_create_user(phone_number, db)
 
         # Últimos 30 dias
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        thirty_days_ago = datetime.now(UTC) - timedelta(days=30)
 
         expenses_sql = """
             SELECT COALESCE(SUM(amount), 0) as total 
@@ -130,8 +130,8 @@ def generate_recommendations(state: dict[str, Any]) -> dict[str, Any]:
     history_context = f"\n\nÚltimas mensagens da conversa:\n{history}" if history else ""
 
     # Injeta padrões aprendidos do usuário
-    from app.db.session import sync_session_maker
     from app.agents.persistence import get_or_create_user
+    from app.db.session import sync_session_maker
 
     db_sync = sync_session_maker()
     patterns_context = ""

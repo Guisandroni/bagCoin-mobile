@@ -1,4 +1,5 @@
 """API v1 router aggregation."""
+
 # ruff: noqa: I001 - Imports structured for Jinja2 template conditionals
 
 from fastapi import APIRouter
@@ -10,7 +11,12 @@ from app.api.routes.v1 import admin_conversations
 from app.api.routes.v1 import agent
 from app.api.routes.v1 import files
 from app.api.routes.v1 import webhook
-from app.api.routes.v1 import transactions
+
+# BagCoin REST endpoints
+from app.api.routes.v1 import categories, transactions
+from app.api.routes.v1 import budgets, goals, reports
+from app.api.routes.v1 import credit_cards, accounts
+from app.api.routes.v1 import bagcoin_conversations
 
 v1_router = APIRouter()
 
@@ -24,11 +30,14 @@ v1_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 v1_router.include_router(users.router, prefix="/users", tags=["users"])
 
 # Admin routes
-v1_router.include_router(admin_ratings.router, prefix="/admin/ratings", tags=["admin:ratings"])
+v1_router.include_router(
+    admin_ratings.router, prefix="/admin/ratings", tags=["admin:ratings"]
+)
 
 # Conversation routes (AI chat persistence)
-v1_router.include_router(conversations.router, prefix="/conversations", tags=["conversations"])
-
+v1_router.include_router(
+    conversations.router, prefix="/conversations", tags=["conversations"]
+)
 
 # AI Agent routes
 v1_router.include_router(agent.router, tags=["agent"])
@@ -38,16 +47,22 @@ v1_router.include_router(files.router, tags=["files"])
 
 # Admin: conversation browser + user listing
 v1_router.include_router(
-    admin_conversations.router, prefix="/admin/conversations", tags=["admin-conversations"]
+    admin_conversations.router,
+    prefix="/admin/conversations",
+    tags=["admin-conversations"],
 )
 
 # BagCoin Webhook routes (WhatsApp)
 v1_router.include_router(webhook.router, tags=["webhook"])
 
-# BagCoin Category REST routes (API Key auth)
-from app.api.routes.v1 import categories as categories_router
-
-v1_router.include_router(categories_router.router, prefix="/bagcoin", tags=["bagcoin"])
-
-# Transaction REST routes for web frontend (JWT auth)
-v1_router.include_router(transactions.router, prefix="/transactions", tags=["transactions"])
+# BagCoin REST endpoints
+v1_router.include_router(categories.router, prefix="/bagcoin")
+v1_router.include_router(
+    transactions.router, prefix="/bagcoin/transactions", tags=["bagcoin"]
+)
+v1_router.include_router(budgets.router)
+v1_router.include_router(goals.router)
+v1_router.include_router(reports.router)
+v1_router.include_router(credit_cards.router)
+v1_router.include_router(accounts.router)
+v1_router.include_router(bagcoin_conversations.router)

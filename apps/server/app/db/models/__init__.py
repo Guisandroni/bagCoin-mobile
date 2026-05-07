@@ -17,6 +17,8 @@ from app.db.models.goal import Goal
 from app.db.models.report import Report
 from app.db.models.phone_conversation import PhoneConversation
 from app.db.models.agent_log import AgentLog
+from app.db.models.credit_card import CreditCard
+from app.db.models.account import Account
 
 __all__ = [
     "User",
@@ -39,4 +41,6 @@ __all__ = [
     "Report",
     "PhoneConversation",
     "AgentLog",
+    "CreditCard",
+    "Account",
 ]

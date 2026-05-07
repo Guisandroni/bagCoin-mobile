@@ -16,7 +16,8 @@ from app.clients.redis import RedisClient
 from app.core.config import settings
 from app.core.logfire_setup import instrument_app, setup_logfire
 from app.core.logging import setup_logging
-from app.core.middleware import RequestIDMiddleware
+from app.core.middleware import RequestIDMiddleware, SecurityHeadersMiddleware
+from app.core.csrf import CSRFMiddleware
 
 
 class LifespanState(TypedDict, total=False):
@@ -45,10 +46,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[LifespanState, None]:
     # Tables are managed by Alembic migrations (run via entrypoint.sh).
     # create_all is kept as fallback for environments without Alembic.
     try:
+        from sqlalchemy import inspect
+
         import app.db.models  # noqa: F401 - register all models
         from app.db.base import Base
         from app.db.session import sync_engine
-        from sqlalchemy import inspect
 
         if sync_engine is not None:
             inspector = inspect(sync_engine)
@@ -152,6 +154,12 @@ A FastAPI project
 
     # Request ID middleware (for request correlation/debugging)
     app.add_middleware(RequestIDMiddleware)
+
+    # Security hardening: protect against XSS, clickjacking, MIME sniffing
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    # CSRF protection for state-changing endpoints
+    app.add_middleware(CSRFMiddleware)
 
     # Exception handlers
     register_exception_handlers(app)

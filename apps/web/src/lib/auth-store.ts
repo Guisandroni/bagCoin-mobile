@@ -49,10 +49,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       await get().fetchUser()
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const err = error as { response?: { data?: { error?: { message?: string }; detail?: string } } }
+      const message = err.response?.data?.error?.message || err.response?.data?.detail || "Falha ao fazer login"
       set({
         isLoading: false,
-        error: err.response?.data?.detail || "Falha ao fazer login",
+        error: message,
       })
       throw error
     }
@@ -69,11 +70,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       })
       set({ isLoading: false })
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
-      const detail = err.response?.data?.detail
+      const err = error as { response?: { data?: { error?: { message?: string }; detail?: string } } }
+      const errorData = err.response?.data?.error?.message || err.response?.data?.detail
+      const message = typeof errorData === "object" ? "Email já cadastrado" : (errorData || "Falha ao registrar")
       set({
         isLoading: false,
-        error: typeof detail === "object" ? "Email já cadastrado" : detail || "Falha ao registrar",
+        error: message,
       })
       throw error
     }
@@ -90,10 +92,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       await get().fetchUser()
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } } }
+      const err = error as { response?: { data?: { error?: { message?: string }; detail?: string } } }
       set({
         isLoading: false,
-        error: err.response?.data?.detail || "Falha ao fazer login com Google",
+        error: err.response?.data?.error?.message || err.response?.data?.detail || "Falha ao fazer login com Google",
       })
       throw error
     }

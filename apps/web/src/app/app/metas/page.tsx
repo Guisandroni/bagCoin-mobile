@@ -1,13 +1,26 @@
+import dynamic from "next/dynamic"
 import { getGoals } from "@/lib/api-server"
-import { MetasClient, type MetasGoal } from "./metas-client"
+import { serverGoalToRelease } from "@/lib/adapters"
+import MetasLoading from "./loading"
+
+const MetasClient = dynamic(() => import("./metas-client").then((m) => m.MetasClient), {
+  loading: () => <MetasLoading />,
+})
 
 export default async function MetasPage() {
   const serverGoals = await getGoals()
+  const goals = (serverGoals ?? []).map(serverGoalToRelease)
 
-  // getGoals returns ServerGoal[] (which has "name" in the type),
-  // but the API actually returns "title". Cast to MetasGoal shape
-  // which matches the runtime data.
-  const goals: MetasGoal[] = (serverGoals ?? []) as unknown as MetasGoal[]
+  const totalCurrent = goals.reduce((s, g) => s + g.current, 0)
+  const totalTarget = goals.reduce((s, g) => s + g.target, 0)
+  const globalPercentage = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0
 
-  return <MetasClient initialGoals={goals} />
+  return (
+    <MetasClient
+      goals={goals}
+      totalCurrent={totalCurrent}
+      totalTarget={totalTarget}
+      globalPercentage={globalPercentage}
+    />
+  )
 }

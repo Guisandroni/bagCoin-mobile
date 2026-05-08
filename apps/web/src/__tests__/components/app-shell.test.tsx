@@ -17,6 +17,9 @@ vi.mock("@/lib/store", () => ({
       closeModal: vi.fn(),
       activeModal: null,
       selectedTransaction: null,
+      drawerOpen: false,
+      openDrawer: vi.fn(),
+      closeDrawer: vi.fn(),
     }
     return selector ? selector(state) : state
   },
@@ -33,6 +36,15 @@ vi.mock("@/components/layout/sidebar", () => ({
 
 vi.mock("@/components/layout/bottom-nav", () => ({
   BottomNav: () => <nav data-testid="bottom-nav">BottomNav</nav>,
+}))
+
+vi.mock("@/components/layout/settings-drawer", () => ({
+  SettingsDrawer: () => <div data-testid="settings-drawer">SettingsDrawer</div>,
+}))
+
+vi.mock("@/components/ui/avatar", () => ({
+  Avatar: ({ children }: { children: React.ReactNode }) => <div data-testid="avatar">{children}</div>,
+  AvatarFallback: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }))
 
 describe("AppShell", () => {
@@ -55,23 +67,30 @@ describe("AppShell", () => {
     expect(screen.getByTestId("sidebar")).toBeInTheDocument()
   })
 
-  it("envolve children na coluna de conteúdo (max-width)", () => {
-    const { container } = render(
-      <AppShell>
-        <span data-testid="inner">inner content</span>
-      </AppShell>
-    )
-    const column = container.querySelector('[class*="max-w-"]')
-    expect(column).toBeTruthy()
-    expect(column).toContainElement(screen.getByTestId("inner"))
-  })
-
-  it("renderiza BottomNav em mobile (tela 390x844)", () => {
+  it("renderiza BottomNav", () => {
     render(
       <AppShell>
         <p>child</p>
       </AppShell>
     )
     expect(screen.getByTestId("bottom-nav")).toBeInTheDocument()
+  })
+
+  it("renderiza SettingsDrawer", () => {
+    render(
+      <AppShell>
+        <p>child</p>
+      </AppShell>
+    )
+    expect(screen.getByTestId("settings-drawer")).toBeInTheDocument()
+  })
+
+  it("renderiza avatar com nome do usuario", () => {
+    render(
+      <AppShell>
+        <p>child</p>
+      </AppShell>
+    )
+    expect(screen.getByText("AS")).toBeInTheDocument()
   })
 })

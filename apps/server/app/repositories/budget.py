@@ -39,7 +39,7 @@ async def get_budgets_by_user(
     limit: int = 50,
 ) -> list[Budget]:
     """Get budgets for a user with pagination."""
-    query = select(Budget).options(selectinload(Budget.items))
+    query = select(Budget).options(selectinload(Budget.items), selectinload(Budget.category))
     if user_uuid:
         query = query.where(Budget.user_uuid == user_uuid)
     query = query.order_by(Budget.created_at.desc()).offset(skip).limit(limit)
@@ -75,7 +75,7 @@ async def create_budget(
 ) -> Budget:
     """Create a new budget with optional items."""
     budget = Budget(
-        user_id=user_id or 0,
+        user_id=user_id,
         user_uuid=user_uuid,
         category_id=category_id,
         name=name,

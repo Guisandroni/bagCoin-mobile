@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { useAuthStore } from "@/lib/auth-store"
 import { GoogleButton } from "./google-button"
 
-export function RegisterForm() {
+export function RegisterForm({ compact = false }: { compact?: boolean }) {
   const router = useRouter()
   const { register, loginWithGoogle, isLoading, error, clearError } = useAuthStore()
   const [name, setName] = useState("")
@@ -38,12 +38,12 @@ export function RegisterForm() {
 
   return (
     <div className="mx-auto w-full max-w-sm space-y-6">
-      <div className="space-y-2 text-center">
-        <h1 className="text-3xl font-bold font-heading">Criar conta</h1>
-        <p className="text-muted-foreground">
-          Comece a gerenciar suas finanças
-        </p>
-      </div>
+      {!compact && (
+        <div className="space-y-2 text-center">
+          <h1 className="font-heading text-3xl font-bold">Criar conta</h1>
+          <p className="text-muted-foreground">Comece a gerenciar suas finanças</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">

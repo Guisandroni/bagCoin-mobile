@@ -4,6 +4,7 @@ import { BalanceCard } from "@/components/dashboard/balance-card"
 import { StatCards } from "@/components/dashboard/stat-cards"
 import { CategoryBreakdown } from "@/components/dashboard/category-breakdown"
 import { RecentTransactions } from "@/components/dashboard/recent-transactions"
+import type { TransactionSummary } from "@/lib/api-server"
 
 // Shared mock data
 const mockSummaryData = {
@@ -46,6 +47,26 @@ const mockSummaryData = {
   ],
 }
 
+const apiSummary: TransactionSummary = {
+  balance: mockSummaryData.balance,
+  total_income: mockSummaryData.total_income,
+  total_expenses: mockSummaryData.total_expenses,
+  transaction_count: mockSummaryData.transaction_count,
+  categories: mockSummaryData.categories,
+  recent_transactions: mockSummaryData.recent_transactions.map((t) => ({
+    id: t.id,
+    name: t.name,
+    category: t.category,
+    category_name: t.category,
+    amount: t.amount,
+    date: t.date,
+    transaction_date: t.date,
+    source: t.source,
+    status: t.status,
+    type: t.amount > 0 ? ("INCOME" as const) : ("EXPENSE" as const),
+  })),
+}
+
 const mockUseTransactionSummary = vi.hoisted(() => vi.fn())
 
 vi.mock("@/hooks/use-transactions", () => ({
@@ -69,39 +90,28 @@ vi.mock("next/navigation", () => ({
 }))
 
 describe("BalanceCard", () => {
-  it("renderiza loading skeleton quando isLoading", () => {
-    mockUseTransactionSummary.mockReturnValue({ data: undefined, isLoading: true })
-    render(<BalanceCard />)
+  it("mostra zero e badge sem dados quando summary ausente", () => {
+    render(<BalanceCard summary={null} />)
     expect(screen.getByText("Saldo atual")).toBeInTheDocument()
-    // Should render "Carregando..." badge when there's no data
-    expect(screen.getByText("Carregando...")).toBeInTheDocument()
+    expect(screen.getByText("Sem dados")).toBeInTheDocument()
   })
 
   it("renderiza saldo formatado quando dados carregados", () => {
-    mockUseTransactionSummary.mockReturnValue({ data: mockSummaryData, isLoading: false })
-    render(<BalanceCard />)
+    render(<BalanceCard summary={apiSummary} />)
     expect(screen.getByText("Saldo atual")).toBeInTheDocument()
-    // Balance is 3220.5, should show R$ 3.220,50
     expect(screen.getByText(/R\$/)).toBeInTheDocument()
     expect(screen.getByText(/3\.220/)).toBeInTheDocument()
     expect(screen.getByText(/50/)).toBeInTheDocument()
   })
 
   it("renderiza badge com contagem de transacoes", () => {
-    mockUseTransactionSummary.mockReturnValue({ data: mockSummaryData, isLoading: false })
-    render(<BalanceCard />)
+    render(<BalanceCard summary={apiSummary} />)
     expect(screen.getByText(/12 transações/)).toBeInTheDocument()
   })
 
   it("exibe valor negativo com sinal de menos", () => {
-    mockUseTransactionSummary.mockReturnValue({
-      data: { ...mockSummaryData, balance: -1500 },
-      isLoading: false,
-    })
-    render(<BalanceCard />)
-    // Should show "-R$" for negative balance
-    const container = document.querySelector(".relative.overflow-hidden")
-    expect(container?.textContent).toMatch(/-/)
+    render(<BalanceCard summary={{ ...apiSummary, balance: -1500 }} />)
+    expect(screen.getByText(/-R\$/)).toBeInTheDocument()
   })
 })
 
@@ -148,36 +158,20 @@ describe("StatCards", () => {
 })
 
 describe("CategoryBreakdown", () => {
-  it("renderiza estado de loading", () => {
-    mockUseTransactionSummary.mockReturnValue({ data: undefined, isLoading: true })
-    render(<CategoryBreakdown />)
-    expect(screen.getByText("Gastos por categoria")).toBeInTheDocument()
-    expect(screen.getByText("Carregando...")).toBeInTheDocument()
-  })
-
   it("renderiza mensagem quando nao ha categorias", () => {
-    mockUseTransactionSummary.mockReturnValue({
-      data: { ...mockSummaryData, categories: [] },
-      isLoading: false,
-    })
-    render(<CategoryBreakdown />)
+    render(<CategoryBreakdown categories={[]} />)
     expect(screen.getByText("Nenhum gasto registrado")).toBeInTheDocument()
   })
 
-  it("renderiza categorias com donut chart quando ha dados", () => {
-    mockUseTransactionSummary.mockReturnValue({ data: mockSummaryData, isLoading: false })
-    const { container } = render(<CategoryBreakdown />)
-    expect(screen.getByText("Gastos por categoria")).toBeInTheDocument()
+  it("renderiza categorias com grafico quando ha dados", () => {
+    render(<CategoryBreakdown categories={mockSummaryData.categories} />)
     expect(screen.getByText("Alimentação")).toBeInTheDocument()
     expect(screen.getByText("Transporte")).toBeInTheDocument()
   })
 
   it("exibe percentuais corretos para cada categoria", () => {
-    mockUseTransactionSummary.mockReturnValue({ data: mockSummaryData, isLoading: false })
-    const { container } = render(<CategoryBreakdown />)
-    // Alimentação: 1150 / (1150+380) = 1150/1530 = 75%
+    const { container } = render(<CategoryBreakdown categories={mockSummaryData.categories} />)
     expect(container.textContent).toMatch(/75%/)
-    // Transporte: 380 / 1530 = 25%
     expect(container.textContent).toMatch(/25%/)
   })
 })

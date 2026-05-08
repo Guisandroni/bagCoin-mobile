@@ -1,0 +1,54 @@
+/*
+
+  Release Components — Utility classes
+  
+  Design tokens are now global (globals.css / :root).
+  This file only contains component-level utilities that don't
+  belong in the global scope.
+
+*/
+
+/* ── Typography scale (used by release components) ── */
+.rls-text-display-lg {
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 48px;
+  letter-spacing: -0.02em;
+}
+.rls-text-display-md {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+  letter-spacing: -0.01em;
+}
+.rls-text-headline-sm {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+}
+.rls-text-title-lg {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+}
+.rls-text-body-lg {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+.rls-text-body-md {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.rls-text-label-lg {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+}
+.rls-text-label-md {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+}

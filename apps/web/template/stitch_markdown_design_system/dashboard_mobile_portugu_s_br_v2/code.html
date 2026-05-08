@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Painel Financeiro</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#1b1c1e",
+                        "outline-variant": "#c3c5d8",
+                        "tertiary": "#9b0010",
+                        "surface": "#fbf9fb",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#1652f0",
+                        "surface-variant": "#e3e2e5",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#001452",
+                        "secondary-fixed-dim": "#40dfa8",
+                        "surface-container-high": "#e9e7ea",
+                        "on-background": "#1b1c1e",
+                        "primary": "#003cc1",
+                        "secondary-container": "#64fcc2",
+                        "on-tertiary-fixed": "#410003",
+                        "on-primary-fixed-variant": "#0038b6",
+                        "tertiary-container": "#c60f1c",
+                        "surface-container": "#efedf0",
+                        "on-secondary-fixed-variant": "#005139",
+                        "surface-tint": "#064ceb",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "inverse-on-surface": "#f2f0f3",
+                        "on-tertiary-container": "#ffd7d2",
+                        "on-secondary-fixed": "#002115",
+                        "on-secondary-container": "#007352",
+                        "background": "#fbf9fb",
+                        "on-tertiary-fixed-variant": "#93000f",
+                        "tertiary-fixed": "#ffdad6",
+                        "inverse-surface": "#303033",
+                        "outline": "#747687",
+                        "surface-bright": "#fbf9fb",
+                        "on-error": "#ffffff",
+                        "secondary": "#006c4d",
+                        "on-primary-container": "#dadfff",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b7c4ff",
+                        "tertiary-fixed-dim": "#ffb3ac",
+                        "surface-dim": "#dbd9dc",
+                        "surface-container-highest": "#e3e2e5",
+                        "surface-container-low": "#f5f3f6",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#434656",
+                        "inverse-primary": "#b7c4ff",
+                        "secondary-fixed": "#64fcc2",
+                        "primary-fixed": "#dde1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "inline-padding-md": "16px",
+                        "stack-gap-sm": "8px",
+                        "inline-padding-lg": "32px",
+                        "stack-gap-md": "16px",
+                        "container-margin": "20px",
+                        "stack-gap-lg": "24px"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Manrope"],
+                        "label-md": ["Manrope"],
+                        "headline-sm": ["Manrope"],
+                        "label-lg": ["Manrope"],
+                        "display-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "body-md": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "label-md": ["11px", { "lineHeight": "14px", "fontWeight": "600" }],
+                        "headline-sm": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-lg": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-md": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "500" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-container-margin py-stack-gap-md bg-surface sticky top-0 z-40">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-outline">person</span>
+</div>
+<h1 class="font-display-md text-display-md text-primary-container text-2xl">Centro Financeiro</h1>
+<button class="w-10 h-10 flex items-center justify-center text-primary hover:opacity-80 transition-opacity active:scale-95 transition-transform duration-200">
+<span class="material-symbols-outlined">search</span>
+</button>
+</header>
+<main class="px-container-margin flex flex-col gap-stack-gap-lg pt-stack-gap-md">
+<!-- Balance Section -->
+<section class="flex flex-col items-center">
+<span class="font-body-md text-body-md text-on-surface-variant mb-2">Saldo Total</span>
+<h2 class="font-display-lg text-display-lg text-on-surface">R$ 24.562,00</h2>
+<div class="flex gap-stack-gap-md mt-stack-gap-md w-full">
+<!-- Income Card -->
+<div class="flex-1 bg-primary-container text-on-primary p-inline-padding-md flex flex-col gap-2 relative overflow-hidden shadow-lg rounded-lg">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary">arrow_downward</span>
+</div>
+<span class="font-label-lg text-label-lg">Receita</span>
+</div>
+<span class="font-headline-sm text-headline-sm mt-2">R$ 8.450,00</span>
+</div>
+<!-- Expenses Card -->
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant p-inline-padding-md flex flex-col gap-2 relative overflow-hidden shadow-sm rounded-lg">
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full bg-error-container flex items-center justify-center">
+<span class="material-symbols-outlined text-error">arrow_upward</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface-variant">Despesas</span>
+</div>
+<span class="font-headline-sm text-headline-sm text-on-surface mt-2">R$ 3.240,00</span>
+</div>
+</div>
+</section>
+<!-- Recent Transactions List -->
+<section class="bg-surface-container-lowest p-inline-padding-md shadow-sm rounded-lg">
+<div class="flex justify-between items-center mb-stack-gap-md">
+<h3 class="font-title-lg text-title-lg text-on-surface text-base">Transações Recentes</h3>
+<button class="font-label-lg text-label-lg text-primary">Ver tudo</button>
+</div>
+<div class="flex flex-col gap-stack-gap-sm">
+<!-- Transaction Item -->
+<div class="flex justify-between items-center h-[72px] border-b border-surface-variant last:border-0">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">shopping_cart</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface text-sm">Supermercado</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-xs">Hoje, 10:45</span>
+</div>
+</div>
+<span class="font-title-lg text-title-lg text-on-surface text-sm">-R$ 124,50</span>
+</div>
+<!-- Transaction Item -->
+<div class="flex justify-between items-center h-[72px] border-b border-surface-variant last:border-0">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">restaurant</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body-lg text-body-lg text-on-surface text-sm">Jantar</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-xs">Ontem, 20:00</span>
+</div>
+</div>
+<span class="font-title-lg text-title-lg text-on-surface text-sm">-R$ 85,00</span>
+</div>
+</div>
+</section>
+<!-- Donut Chart & Category Image Section -->
+<section class="grid grid-cols-1 gap-stack-gap-md">
+<div class="bg-surface-container-lowest rounded-xl p-inline-padding-md shadow-sm flex flex-col justify-center gap-stack-gap-md">
+<div class="flex justify-center py-4">
+<div class="relative w-32 h-32">
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<circle class="text-surface-container-high" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-width="4"></circle>
+<circle class="text-primary-container" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="45, 100" stroke-linecap="round" stroke-width="4" transform="rotate(-90 18 18)"></circle>
+<circle class="text-secondary-container" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="25, 100" stroke-linecap="round" stroke-width="4" transform="rotate(72 18 18)"></circle>
+<circle class="text-tertiary-container" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="15, 100" stroke-linecap="round" stroke-width="4" transform="rotate(162 18 18)"></circle>
+<circle class="text-outline" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-dasharray="15, 100" stroke-linecap="round" stroke-width="4" transform="rotate(216 18 18)"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-[12px] font-bold text-on-surface">R$ 5.240,00</span>
+<span class="text-[9px] text-on-surface-variant">Gasto Total</span>
+</div>
+</div>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface text-base">Gastos por Categoria</h3>
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary-container"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Moradia</span>
+</div>
+<span class="font-body-lg text-body-lg font-bold text-on-surface">45%</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-secondary-container"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Alimentação</span>
+</div>
+<span class="font-body-lg text-body-lg font-bold text-on-surface">25%</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-tertiary-container"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Transporte</span>
+</div>
+<span class="font-body-lg text-body-lg font-bold text-on-surface">15%</span>
+</div>
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-outline"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Lazer</span>
+</div>
+<span class="font-body-lg text-body-lg font-bold text-on-surface">15%</span>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-surface-container-lowest p-inline-padding-md shadow-sm rounded-lg flex flex-col gap-stack-gap-md mb-4">
+<div class="flex justify-between items-center">
+<h3 class="font-title-lg text-title-lg text-on-surface text-base">Metas e Orçamentos</h3>
+<button class="material-symbols-outlined text-primary">add_circle</button>
+</div>
+<div class="flex flex-col gap-stack-gap-md">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<div class="flex flex-col">
+<span class="font-body-lg text-on-surface text-sm">Reserva de Emergência</span>
+<span class="font-body-md text-on-surface-variant text-xs">R$ 4.200 de R$ 5.000</span>
+</div>
+<span class="font-label-lg text-primary text-[10px]">84%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 84%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<div class="flex flex-col">
+<span class="font-body-lg text-on-surface text-sm">Mercado Mensal</span>
+<span class="font-body-md text-on-surface-variant text-xs">R$ 320 de R$ 600</span>
+</div>
+<span class="font-label-lg text-primary text-[10px]">53%</span>
+</div>
+<div class="w-full h-2 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 53%"></div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-6 pt-3 bg-surface-container-lowest shadow-[0_-4px_12px_rgba(0,0,0,0.08)] md:hidden rounded-t-md">
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-2 active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-lg text-[10px] mt-1">Início</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-2 py-2 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-label-lg text-[10px] mt-1">Portfólio</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-2 py-2 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">swap_horiz</span>
+<span class="font-label-lg text-[10px] mt-1">Transferir</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-2 py-2 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">monitoring</span>
+<span class="font-label-lg text-[10px] mt-1">Mercado</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-2 py-2 hover:bg-surface-container-high transition-colors active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-lg text-[10px] mt-1">Ajustes</span>
+</button>
+</nav>
+</body></html>

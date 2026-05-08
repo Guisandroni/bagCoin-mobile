@@ -1,9 +1,8 @@
 "use client"
 
-import { Moon, Sun, Monitor, Bell, Globe, Shield } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
+import { Moon, Sun, Monitor, Bell, Globe, Shield, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
@@ -34,51 +33,63 @@ export default function ConfiguracoesPage() {
   const { theme, setTheme } = useTheme()
 
   return (
-    <div className="p-4 lg:p-7">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <Card className="rounded-2xl border-border/60 shadow-none">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-[14px] font-semibold">Aparência</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              {appearanceOptions.map((opt) => (
-                <Button
-                  key={opt.value}
-                  variant={theme === opt.value ? "default" : "secondary"}
-                  className={cn("flex-1 gap-2", theme === opt.value && "")}
-                  onClick={() => setTheme(opt.value)}
-                >
-                  <opt.icon className="h-4 w-4" />
-                  {opt.label}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+    <div className="page-in space-y-5 pb-28 lg:pb-10">
+      <h1 className="section-title">Configurações</h1>
 
-        {settingsSections.map((section) => (
-          <Card key={section.title} className="rounded-2xl border-border/60 shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-[14px] font-semibold">{section.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0 p-0">
-              {section.items.map((item, i) => (
-                <div key={i}>
-                  <button className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-muted/50">
-                    <item.icon className="h-5 w-5 text-muted-foreground" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-medium">{item.label}</p>
-                      <p className="text-[12px] text-muted-foreground">{item.description}</p>
-                    </div>
-                  </button>
-                  {i < section.items.length - 1 && <Separator />}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
+      <div className="rounded-2xl border border-border bg-card">
+        <Link
+          href="/app/configuracoes/integracoes"
+          className="flex min-h-[56px] items-center gap-3 border-b border-border px-4 py-3 active:bg-muted/60"
+        >
+          <Globe className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <p className="text-[15px] font-semibold">Integrações</p>
+            <p className="text-[12px] text-muted-foreground">WhatsApp e Telegram</p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+        </Link>
+
+        <div className="px-4 py-3">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            Aparência
+          </p>
+          <div className="flex gap-2">
+            {appearanceOptions.map((opt) => (
+              <Button
+                key={opt.value}
+                variant={theme === opt.value ? "default" : "secondary"}
+                className={cn("flex-1 gap-2 rounded-full")}
+                onClick={() => setTheme(opt.value)}
+              >
+                <opt.icon className="h-4 w-4" />
+                {opt.label}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {settingsSections.map((section) => (
+        <div key={section.title} className="rounded-2xl border border-border bg-card">
+          <p className="border-b border-border px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+            {section.title}
+          </p>
+          {section.items.map((item, i) => (
+            <button
+              key={i}
+              type="button"
+              className="flex w-full min-h-[56px] items-center gap-3 border-b border-border px-4 py-3 text-left transition-colors last:border-b-0 active:bg-muted/60"
+            >
+              <item.icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-medium">{item.label}</p>
+                <p className="text-[12px] text-muted-foreground">{item.description}</p>
+              </div>
+              <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground opacity-50" aria-hidden />
+            </button>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }

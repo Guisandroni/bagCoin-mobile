@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { CATEGORIES } from "@/lib/constants"
+import { CATEGORIES, DIALOG_SHEET_MOBILE } from "@/lib/constants"
 import { useAppStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 
@@ -37,7 +37,7 @@ export function FilterModal() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && closeModal()}>
-      <DialogContent className="max-w-md rounded-2xl">
+      <DialogContent className={cn("max-w-md rounded-2xl", DIALOG_SHEET_MOBILE)}>
         <DialogHeader>
           <DialogTitle className="font-heading">Filtros</DialogTitle>
         </DialogHeader>
@@ -92,7 +92,7 @@ export function FilterModal() {
                     }}
                   />
                   {c.emoji} {c.name}
-                </button>
+                  </button>
               ))}
             </div>
           </div>

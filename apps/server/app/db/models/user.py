@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.db.models.budget import Budget
     from app.db.models.credit_card import CreditCard
     from app.db.models.goal import Goal
+    from app.db.models.integration_link_token import IntegrationLinkToken
     from app.db.models.report import Report
     from app.db.models.transaction import Transaction
 
@@ -38,25 +39,15 @@ class User(Base, TimestampMixin):
 
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    email: Mapped[str] = mapped_column(
-        String(255), unique=True, index=True, nullable=False
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    google_id: Mapped[str | None] = mapped_column(
-        String(255), unique=True, nullable=True
-    )
-    auth_provider: Mapped[str] = mapped_column(
-        String(20), default="email", nullable=False
-    )
+    phone_number: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
+    auth_provider: Mapped[str] = mapped_column(String(20), default="email", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    role: Mapped[str] = mapped_column(
-        String(50), default=UserRole.USER.value, nullable=False
-    )
+    role: Mapped[str] = mapped_column(String(50), default=UserRole.USER.value, nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Relationships
@@ -77,6 +68,11 @@ class User(Base, TimestampMixin):
     )
     accounts: Mapped[list[Account]] = relationship(
         "Account", back_populates="user", cascade="all, delete-orphan"
+    )
+    integration_link_tokens: Mapped[list["IntegrationLinkToken"]] = relationship(
+        "IntegrationLinkToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
 
     @property

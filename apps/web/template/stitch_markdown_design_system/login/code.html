@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - FinVibe</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "surface-container": "#efedf0",
+                  "surface-container-high": "#e9e7ea",
+                  "surface-variant": "#e3e2e5",
+                  "tertiary-container": "#c60f1c",
+                  "on-tertiary-container": "#ffd7d2",
+                  "on-primary-fixed": "#001452",
+                  "primary-container": "#1652f0",
+                  "tertiary": "#9b0010",
+                  "on-surface-variant": "#434656",
+                  "surface-tint": "#064ceb",
+                  "secondary-container": "#64fcc2",
+                  "on-tertiary-fixed": "#410003",
+                  "surface-container-lowest": "#ffffff",
+                  "secondary-fixed-dim": "#40dfa8",
+                  "on-tertiary": "#ffffff",
+                  "on-surface": "#1b1c1e",
+                  "on-secondary-fixed-variant": "#005139",
+                  "on-background": "#1b1c1e",
+                  "on-error-container": "#93000a",
+                  "inverse-surface": "#303033",
+                  "primary": "#003cc1",
+                  "inverse-on-surface": "#f2f0f3",
+                  "background": "#fbf9fb",
+                  "on-primary-container": "#dadfff",
+                  "surface-container-highest": "#e3e2e5",
+                  "error": "#ba1a1a",
+                  "surface-bright": "#fbf9fb",
+                  "on-tertiary-fixed-variant": "#93000f",
+                  "on-secondary-fixed": "#002115",
+                  "surface-dim": "#dbd9dc",
+                  "on-primary-fixed-variant": "#0038b6",
+                  "on-error": "#ffffff",
+                  "tertiary-fixed": "#ffdad6",
+                  "on-primary": "#ffffff",
+                  "tertiary-fixed-dim": "#ffb3ac",
+                  "surface": "#fbf9fb",
+                  "surface-container-low": "#f5f3f6",
+                  "on-secondary-container": "#007352",
+                  "error-container": "#ffdad6",
+                  "inverse-primary": "#b7c4ff",
+                  "secondary-fixed": "#64fcc2",
+                  "outline-variant": "#c3c5d8",
+                  "primary-fixed": "#dde1ff",
+                  "secondary": "#006c4d",
+                  "on-secondary": "#ffffff",
+                  "outline": "#747687",
+                  "primary-fixed-dim": "#b7c4ff"
+          },
+          "borderRadius": {
+                  "DEFAULT": "1rem",
+                  "lg": "2rem",
+                  "xl": "3rem",
+                  "full": "9999px"
+          },
+          "spacing": {
+                  "inline-padding-lg": "32px",
+                  "inline-padding-md": "16px",
+                  "stack-gap-md": "16px",
+                  "stack-gap-lg": "24px",
+                  "container-margin": "20px",
+                  "stack-gap-sm": "8px"
+          },
+          "fontFamily": {
+                  "display-md": [
+                          "Manrope"
+                  ],
+                  "label-lg": [
+                          "Manrope"
+                  ],
+                  "display-lg": [
+                          "Manrope"
+                  ],
+                  "body-md": [
+                          "Manrope"
+                  ],
+                  "label-md": [
+                          "Manrope"
+                  ],
+                  "headline-sm": [
+                          "Manrope"
+                  ],
+                  "body-lg": [
+                          "Manrope"
+                  ],
+                  "title-lg": [
+                          "Manrope"
+                  ]
+          },
+          "fontSize": {
+                  "display-md": [
+                          "32px",
+                          {
+                                  "lineHeight": "40px",
+                                  "letterSpacing": "-0.01em",
+                                  "fontWeight": "700"
+                          }
+                  ],
+                  "label-lg": [
+                          "12px",
+                          {
+                                  "lineHeight": "16px",
+                                  "letterSpacing": "0.05em",
+                                  "fontWeight": "600"
+                          }
+                  ],
+                  "display-lg": [
+                          "40px",
+                          {
+                                  "lineHeight": "48px",
+                                  "letterSpacing": "-0.02em",
+                                  "fontWeight": "700"
+                          }
+                  ],
+                  "body-md": [
+                          "14px",
+                          {
+                                  "lineHeight": "20px",
+                                  "fontWeight": "500"
+                          }
+                  ],
+                  "label-md": [
+                          "11px",
+                          {
+                                  "lineHeight": "14px",
+                                  "fontWeight": "600"
+                          }
+                  ],
+                  "headline-sm": [
+                          "24px",
+                          {
+                                  "lineHeight": "32px",
+                                  "fontWeight": "600"
+                          }
+                  ],
+                  "body-lg": [
+                          "16px",
+                          {
+                                  "lineHeight": "24px",
+                                  "fontWeight": "500"
+                          }
+                  ],
+                  "title-lg": [
+                          "18px",
+                          {
+                                  "lineHeight": "24px",
+                                  "fontWeight": "600"
+                          }
+                  ]
+          }
+  },
+      },
+    }
+  </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased min-h-screen flex flex-col items-center justify-center p-container-margin">
+<!-- Suppressing Shell nav as this is a linear transactional (Login) screen -->
+<main class="w-full max-w-md w-full flex flex-col bg-surface-container-lowest rounded-2xl shadow-sm p-6 sm:p-8">
+<header class="mb-8 text-center flex flex-col items-center">
+<!-- Logo / Brand anchor replacement -->
+<div class="w-16 h-16 bg-primary-container rounded-full flex items-center justify-center mb-6 shadow-md shadow-primary-container/20">
+<span class="material-symbols-outlined text-white text-[32px]" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+</div>
+<h1 class="font-display-md text-display-md text-on-background mb-2">Bem-vindo de volta!</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Acesse sua conta para gerenciar seus investimentos.</p>
+</header>
+<form class="flex flex-col gap-stack-gap-md w-full">
+<!-- Email Field -->
+<div class="flex flex-col gap-1">
+<label class="font-label-lg text-label-lg text-on-background ml-4" for="email">Email</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-outline z-10">mail</span>
+<input class="w-full h-14 pl-12 pr-4 bg-surface-container border-none rounded-full font-body-lg text-body-lg text-on-surface placeholder-on-surface-variant/50 focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-all" id="email" placeholder="exemplo@email.com" type="email"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="flex flex-col gap-1">
+<label class="font-label-lg text-label-lg text-on-background ml-4" for="password">Senha</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-outline z-10">lock</span>
+<input class="w-full h-14 pl-12 pr-4 bg-surface-container border-none rounded-full font-body-lg text-body-lg text-on-surface placeholder-on-surface-variant/50 focus:ring-2 focus:ring-primary focus:bg-surface-container-lowest transition-all" id="password" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 text-outline hover:text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined">visibility</span>
+</button>
+</div>
+</div>
+<!-- Forgot Password -->
+<div class="flex justify-end mt-[-8px]">
+<a class="font-body-md text-body-md text-primary font-semibold hover:text-primary-container transition-colors" href="#">Esqueceu a senha?</a>
+</div>
+<!-- Primary CTA -->
+<button class="w-full h-14 bg-primary-container text-white font-title-lg text-title-lg rounded-full mt-4 hover:bg-primary transition-colors active:scale-[0.98] shadow-md shadow-primary-container/20 flex items-center justify-center gap-2" type="submit">
+        Entrar
+        <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</form>
+<!-- Divider -->
+<div class="flex items-center my-8 w-full gap-4">
+<div class="flex-1 h-px bg-outline-variant/40"></div>
+<span class="font-label-lg text-label-lg text-on-surface-variant uppercase tracking-wider">ou entre com</span>
+<div class="flex-1 h-px bg-outline-variant/40"></div>
+</div>
+<!-- Social Login -->
+<button class="w-full h-14 bg-surface-container-lowest border border-outline-variant text-on-surface font-title-lg text-title-lg rounded-full hover:bg-surface-container-low transition-colors active:scale-[0.98] flex items-center justify-center gap-3" type="button">
+<svg class="w-6 h-6" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+        Continuar com Google
+    </button>
+<!-- Footer -->
+<div class="mt-8 text-center">
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Não tem uma conta? 
+            <a class="text-primary font-bold hover:text-primary-container transition-colors ml-1" href="#">Cadastre-se</a>
+</p>
+</div>
+</main>
+<!-- Decorative Background Elements for High-End Vibe -->
+<div class="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-primary-container/5 blur-[100px] -z-10 pointer-events-none"></div>
+<div class="fixed bottom-[-10%] left-[-10%] w-[400px] h-[400px] rounded-full bg-secondary-container/10 blur-[80px] -z-10 pointer-events-none"></div>
+</body></html>

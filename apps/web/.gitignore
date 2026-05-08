@@ -46,3 +46,6 @@ next-env.d.ts
 # test results
 /test-results/
 /playwright-report/
+
+# npm lockfile (project uses bun)
+package-lock.json

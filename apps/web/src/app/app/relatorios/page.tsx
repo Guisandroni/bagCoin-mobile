@@ -1,14 +1,15 @@
+import dynamic from "next/dynamic"
 import { getReports } from "@/lib/api-server"
-import { RelatoriosClient } from "./relatorios-client"
-import type { Report } from "@/hooks/use-reports"
+import { serverReportToRelease } from "@/lib/adapters"
+import RelatoriosLoading from "./loading"
 
-function mapReport(r: { id: number; user_uuid: string | null; period_start: string; period_end: string; file_url: string | null; created_at: string; updated_at: string }): Report {
-  return { ...r, user_uuid: r.user_uuid ?? "" }
-}
+const RelatoriosClient = dynamic(() => import("./relatorios-client").then((m) => m.RelatoriosClient), {
+  loading: () => <RelatoriosLoading />,
+})
 
 export default async function RelatoriosPage() {
   const serverReports = await getReports()
-  const reports: Report[] = (serverReports ?? []).map(mapReport)
+  const reports = (serverReports ?? []).map(serverReportToRelease)
 
-  return <RelatoriosClient initialReports={reports} />
+  return <RelatoriosClient reports={reports} />
 }

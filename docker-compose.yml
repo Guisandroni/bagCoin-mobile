@@ -27,7 +27,7 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
       # BagCoin env vars
-      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY:-coloque_sua_chave_groq_aqui}
       - OPENCODE_API_KEY=${OPENCODE_API_KEY:-coloque_sua_chave_opencode_aqui}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-sua_chave_deepseek_aqui}
       - TAVILY_API_KEY=${TAVILY_API_KEY:-coloque_sua_chave_tavily_aqui}
@@ -225,16 +225,12 @@ services:
     container_name: bagcoin_web
     ports:
       - "3000:3000"
-    volumes:
-      - ./apps/web/src:/app/src:ro
-      - ./apps/web/public:/app/public:ro
-      - ./apps/web/package.json:/app/package.json:ro
-      - ./apps/web/next.config.ts:/app/next.config.ts:ro
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
       - API_URL=http://app:8000/api/v1
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - NEXT_TELEMETRY_DISABLED=1
+    mem_limit: 1g
     networks:
       - backend
     depends_on:

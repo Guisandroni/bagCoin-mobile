@@ -1,8 +1,9 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { LoginForm } from "@/components/auth/login-form"
-import { BRAND } from "@/lib/constants"
+import { LoginCard } from "@/components/release/login-card"
+import { useAuthStore } from "@/lib/auth-store"
 
 const GoogleProvider = dynamic(
   () => import("@/components/auth/google-provider").then((m) => m.GoogleProvider),
@@ -10,20 +11,27 @@ const GoogleProvider = dynamic(
 )
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { login, loginWithGoogle } = useAuthStore()
+
+  const handleLogin = async (email: string, password: string) => {
+    await login(email, password)
+    router.push("/app")
+  }
+
+  const handleGoogleLogin = async (idToken: string) => {
+    await loginWithGoogle(idToken)
+    router.push("/app")
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="mb-8 text-center">
-        <h1 className="font-heading text-3xl font-bold tracking-tight">
-          <span className="text-brand">{BRAND.pre}</span>
-          <span>{BRAND.suf}</span>
-        </h1>
-        <p className="mt-2 text-[14px] text-muted-foreground">
-          Seu assistente financeiro pessoal
-        </p>
-      </div>
-      <GoogleProvider>
-        <LoginForm />
-      </GoogleProvider>
-    </div>
+    <GoogleProvider>
+      <LoginCard
+        onLogin={handleLogin}
+        onGoogleLogin={handleGoogleLogin}
+        onRegisterClick={() => router.push("/register")}
+        onForgotPassword={() => router.push("/login")}
+      />
+    </GoogleProvider>
   )
 }

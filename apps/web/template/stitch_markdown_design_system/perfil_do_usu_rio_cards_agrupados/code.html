@@ -1,0 +1,256 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Perfil do Usuário - Modern Corporate</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+                  "on-tertiary-fixed-variant": "#93000f",
+                  "on-surface-variant": "#434656",
+                  "error-container": "#ffdad6",
+                  "surface-container-low": "#f5f3f6",
+                  "surface-container": "#efedf0",
+                  "on-tertiary-container": "#ffd7d2",
+                  "on-secondary-fixed": "#002115",
+                  "surface-container-high": "#e9e7ea",
+                  "tertiary-fixed": "#ffdad6",
+                  "primary-fixed": "#dde1ff",
+                  "on-secondary-container": "#007352",
+                  "surface-dim": "#dbd9dc",
+                  "on-tertiary-fixed": "#410003",
+                  "on-surface": "#1b1c1e",
+                  "surface-tint": "#064ceb",
+                  "tertiary-fixed-dim": "#ffb3ac",
+                  "secondary-fixed-dim": "#40dfa8",
+                  "error": "#ba1a1a",
+                  "surface-container-lowest": "#ffffff",
+                  "surface-bright": "#fbf9fb",
+                  "on-error-container": "#93000a",
+                  "inverse-on-surface": "#f2f0f3",
+                  "secondary-container": "#64fcc2",
+                  "tertiary-container": "#c60f1c",
+                  "background": "#fbf9fb",
+                  "primary-container": "#1652f0",
+                  "on-primary-fixed-variant": "#0038b6",
+                  "on-primary-container": "#dadfff",
+                  "inverse-surface": "#303033",
+                  "surface": "#fbf9fb",
+                  "secondary": "#006c4d",
+                  "on-primary-fixed": "#001452",
+                  "inverse-primary": "#b7c4ff",
+                  "surface-container-highest": "#e3e2e5",
+                  "on-secondary-fixed-variant": "#005139",
+                  "primary": "#003cc1",
+                  "on-secondary": "#ffffff",
+                  "on-tertiary": "#ffffff",
+                  "on-background": "#1b1c1e",
+                  "secondary-fixed": "#64fcc2",
+                  "tertiary": "#9b0010",
+                  "on-primary": "#ffffff",
+                  "surface-variant": "#e3e2e5",
+                  "outline-variant": "#c3c5d8",
+                  "outline": "#747687",
+                  "on-error": "#ffffff",
+                  "primary-fixed-dim": "#b7c4ff"
+          },
+          "borderRadius": {
+                  "DEFAULT": "1rem",
+                  "lg": "2rem",
+                  "xl": "3rem",
+                  "full": "9999px"
+          },
+          "spacing": {
+                  "stack-gap-md": "16px",
+                  "stack-gap-sm": "8px",
+                  "inline-padding-md": "16px",
+                  "stack-gap-lg": "24px",
+                  "inline-padding-lg": "32px",
+                  "container-margin": "20px"
+          },
+          "fontFamily": {
+                  "headline-sm": [
+                          "Manrope"
+                  ],
+                  "label-md": [
+                          "Manrope"
+                  ],
+                  "body-md": [
+                          "Manrope"
+                  ],
+                  "body-lg": [
+                          "Manrope"
+                  ],
+                  "display-lg": [
+                          "Manrope"
+                  ],
+                  "title-lg": [
+                          "Manrope"
+                  ],
+                  "display-md": [
+                          "Manrope"
+                  ],
+                  "label-lg": [
+                          "Manrope"
+                  ]
+          },
+          "fontSize": {
+                  "headline-sm": [
+                          "24px",
+                          {
+                                  "lineHeight": "32px",
+                                  "fontWeight": "600"
+                          }
+                  ],
+                  "label-md": [
+                          "11px",
+                          {
+                                  "lineHeight": "14px",
+                                  "fontWeight": "600"
+                          }
+                  ],
+                  "body-md": [
+                          "14px",
+                          {
+                                  "lineHeight": "20px",
+                                  "fontWeight": "500"
+                          }
+                  ],
+                  "body-lg": [
+                          "16px",
+                          {
+                                  "lineHeight": "24px",
+                                  "fontWeight": "500"
+                          }
+                  ],
+                  "display-lg": [
+                          "40px",
+                          {
+                                  "lineHeight": "48px",
+                                  "letterSpacing": "-0.02em",
+                                  "fontWeight": "700"
+                          }
+                  ],
+                  "title-lg": [
+                          "18px",
+                          {
+                                  "lineHeight": "24px",
+                                  "fontWeight": "600"
+                          }
+                  ],
+                  "display-md": [
+                          "32px",
+                          {
+                                  "lineHeight": "40px",
+                                  "letterSpacing": "-0.01em",
+                                  "fontWeight": "700"
+                          }
+                  ],
+                  "label-lg": [
+                          "12px",
+                          {
+                                  "lineHeight": "16px",
+                                  "letterSpacing": "0.05em",
+                                  "fontWeight": "600"
+                          }
+                  ]
+          }
+  },
+      },
+    }
+  </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface docked full-width top-0 bg-surface-container-low dark:bg-surface-container-low flat no shadows flex items-center justify-between px-container-margin w-full h-16 fixed z-50">
+<button class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-surface-container-high rounded-full p-2 transition-colors">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary dark:text-primary-fixed-dim">Perfil</h1>
+<div class="w-10"></div> <!-- Placeholder for balance -->
+</header>
+<main class="pt-20 px-container-margin md:px-0 md:max-w-3xl md:mx-auto space-y-stack-gap-lg">
+<!-- Hero Header / Cover -->
+<!-- Pessoais Card -->
+<section class="bg-surface-container-lowest rounded-xl p-5 shadow-sm relative z-10 mx-2 md:mx-0 border border-surface-container-high mt-4">
+<!-- Profile Picture -->
+<div class="flex flex-col items-center -mt-12 mb-6">
+<div class="w-24 h-24 rounded-full border-4 border-surface-container-lowest overflow-hidden shadow-md relative">
+<img alt="Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/ADBb0uhYEwFquAUQsqtrDM2JMAIrt0HWREUE2TM4NQLZJpseQz2O9HuCRIoOUqRF5IIoBTG6lH_8u0xZHkWp_M357A54oZgvX-cc4V_f8aw2am6FHXYU6wMoWDPECHKISX9IUBPiSQPBchmUpw_iTLdqpVN34vtFgMyNjWspj5aoMXKwsVI0XzVnzGrZP8vGeDoXthNdbXso4XlNpxsC--U_gWdjQ8gtezTY88rlZw6Ko1UeOJess7OHlW-Jucabynj4btP2ljwjmCMTIOA">
+<button class="absolute bottom-0 right-0 bg-primary-container text-on-primary rounded-full p-1 shadow-sm flex items-center justify-center w-8 h-8 transform translate-x-1/4 translate-y-1/4 border-2 border-surface-container-lowest">
+<span class="material-symbols-outlined text-sm" data-icon="edit">edit</span>
+</button>
+</div>
+<h2 class="font-title-lg text-title-lg text-on-surface mt-3">João Silva</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Investidor Pro</p>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-4 flex items-center gap-2 border-b border-surface-container-high pb-2">
+<span class="material-symbols-outlined text-primary-container" data-icon="person">person</span>
+        Informações Pessoais
+      </h3>
+<form class="space-y-stack-gap-md">
+<!-- Input Group: Name -->
+<div class="flex flex-col">
+<label class="font-label-lg text-label-lg text-on-surface-variant mb-1 ml-4" for="nome">Nome Completo</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-outline" data-icon="badge">badge</span>
+<input class="w-full bg-surface-container-low text-on-surface font-body-lg text-body-lg rounded-full py-4 pl-12 pr-4 border-transparent focus:border-primary-container focus:bg-surface-container-lowest transition-colors shadow-sm outline-none" id="nome" type="text" value="João Silva">
+</div>
+</div>
+<!-- Input Group: Email -->
+<div class="flex flex-col">
+<label class="font-label-lg text-label-lg text-on-surface-variant mb-1 ml-4" for="email">E-mail</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-outline" data-icon="mail">mail</span>
+<input class="w-full bg-surface-container-low text-on-surface font-body-lg text-body-lg rounded-full py-4 pl-12 pr-4 border-transparent focus:border-primary-container focus:bg-surface-container-lowest transition-colors shadow-sm outline-none" id="email" type="email" value="joao.silva@email.com">
+</div>
+</div>
+<!-- Input Group: Phone -->
+<div class="flex flex-col">
+<label class="font-label-lg text-label-lg text-on-surface-variant mb-1 ml-4" for="telefone">Telefone</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-outline" data-icon="phone">phone</span>
+<input class="w-full bg-surface-container-low text-on-surface font-body-lg text-body-lg rounded-full py-4 pl-12 pr-4 border-transparent focus:border-primary-container focus:bg-surface-container-lowest transition-colors shadow-sm outline-none" id="telefone" type="tel" value="+55 (11) 98765-4321">
+</div>
+</div>
+</form>
+</section>
+<!-- Banner Graphic -->
+<!-- Segurança Card -->
+<section class="bg-surface-container-lowest rounded-xl p-5 shadow-sm mx-2 md:mx-0 border border-surface-container-high">
+<h3 class="font-title-lg text-title-lg text-on-surface mb-4 flex items-center gap-2 border-b border-surface-container-high pb-2">
+<span class="material-symbols-outlined text-primary-container" data-icon="lock">lock</span>
+        Segurança
+      </h3>
+<div class="space-y-stack-gap-md">
+<div class="flex flex-col">
+<label class="font-label-lg text-label-lg text-on-surface-variant mb-1 ml-4" for="senha">Senha Atual</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-outline" data-icon="key">key</span>
+<input class="w-full bg-surface-container-low text-on-surface font-body-lg text-body-lg rounded-full py-4 pl-12 pr-4 border-transparent opacity-70 outline-none" id="senha" readonly="" type="password" value="********">
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 font-body-lg text-body-lg text-primary-container border-2 border-primary-container/20 hover:bg-primary-container/5 rounded-full py-4 transition-colors">
+<span class="material-symbols-outlined" data-icon="password">password</span>
+          Alterar Senha
+        </button>
+</div>
+</section>
+<!-- Save Action -->
+<div class="mx-2 md:mx-0 pb-6 pt-4">
+<button class="w-full bg-primary-container text-on-primary font-body-lg text-body-lg font-bold rounded-full py-5 shadow-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="save">save</span>
+         Salvar Alterações
+      </button>
+</div>
+</main>
+<!-- BottomNavBar -->
+
+
+</body></html>

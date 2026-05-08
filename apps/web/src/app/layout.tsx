@@ -1,14 +1,16 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Manrope } from "next/font/google"
 import { ThemeProvider } from "next-themes"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { QueryProvider } from "@/lib/query-client"
 import { Toaster } from "sonner"
 import "./globals.css"
+import "@/components/release/release.css"
 
-const inter = Inter({
-  variable: "--font-sans",
+const manrope = Manrope({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-manrope",
   display: "swap",
 })
 
@@ -23,8 +25,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
-      <body className={`${inter.variable} min-h-full font-sans antialiased`}>
+    <html lang="pt-BR" suppressHydrationWarning className={manrope.variable}>
+      <body className="min-h-full font-sans antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

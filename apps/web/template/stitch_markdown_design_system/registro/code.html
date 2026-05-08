@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Registration - FinVibe</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#efedf0",
+                        "surface-container-high": "#e9e7ea",
+                        "surface-variant": "#e3e2e5",
+                        "tertiary-container": "#c60f1c",
+                        "on-tertiary-container": "#ffd7d2",
+                        "on-primary-fixed": "#001452",
+                        "primary-container": "#1652f0",
+                        "tertiary": "#9b0010",
+                        "on-surface-variant": "#434656",
+                        "surface-tint": "#064ceb",
+                        "secondary-container": "#64fcc2",
+                        "on-tertiary-fixed": "#410003",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed-dim": "#40dfa8",
+                        "on-tertiary": "#ffffff",
+                        "on-surface": "#1b1c1e",
+                        "on-secondary-fixed-variant": "#005139",
+                        "on-background": "#1b1c1e",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#303033",
+                        "primary": "#003cc1",
+                        "inverse-on-surface": "#f2f0f3",
+                        "background": "#fbf9fb",
+                        "on-primary-container": "#dadfff",
+                        "surface-container-highest": "#e3e2e5",
+                        "error": "#ba1a1a",
+                        "surface-bright": "#fbf9fb",
+                        "on-tertiary-fixed-variant": "#93000f",
+                        "on-secondary-fixed": "#002115",
+                        "surface-dim": "#dbd9dc",
+                        "on-primary-fixed-variant": "#0038b6",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb3ac",
+                        "surface": "#fbf9fb",
+                        "surface-container-low": "#f5f3f6",
+                        "on-secondary-container": "#007352",
+                        "error-container": "#ffdad6",
+                        "inverse-primary": "#b7c4ff",
+                        "secondary-fixed": "#64fcc2",
+                        "outline-variant": "#c3c5d8",
+                        "primary-fixed": "#dde1ff",
+                        "secondary": "#006c4d",
+                        "on-secondary": "#ffffff",
+                        "outline": "#747687",
+                        "primary-fixed-dim": "#b7c4ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "inline-padding-lg": "32px",
+                        "inline-padding-md": "16px",
+                        "stack-gap-md": "16px",
+                        "stack-gap-lg": "24px",
+                        "container-margin": "20px",
+                        "stack-gap-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "display-md": ["Manrope"],
+                        "label-lg": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "body-md": ["Manrope"],
+                        "label-md": ["Manrope"],
+                        "headline-sm": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "title-lg": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "display-md": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-lg": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "label-md": ["11px", { "lineHeight": "14px", "fontWeight": "600" }],
+                        "headline-sm": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "500" }],
+                        "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col justify-center pb-20 md:py-0 md:items-center">
+<!-- Top Navigation for Context, though intent is transactional, keeping minimal branding -->
+<main class="w-full max-w-[480px] px-container-margin md:px-0 mx-auto md:mt-0 flex flex-col gap-stack-gap-lg pt-8">
+<!-- Header Section -->
+<div class="text-center mb-stack-gap-sm md:mb-stack-gap-lg md:pt-0">
+<!-- Hidden on mobile, visible on desktop to replace TopAppBar branding -->
+<div class="hidden md:flex justify-center mb-8">
+<h1 class="font-display-lg text-display-lg font-extrabold text-primary tracking-tight">FinVibe</h1>
+</div>
+<h2 class="font-display-md text-display-md text-on-background mb-2">Crie sua conta</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Junte-se à próxima geração de finanças.</p>
+</div>
+<!-- Registration Form Card -->
+<div class="bg-surface-container-lowest rounded-[24px] p-container-margin md:p-8 shadow-sm border border-surface-variant/50">
+<form class="flex flex-col gap-stack-gap-md" onsubmit="event.preventDefault();">
+<!-- Nome Completo Input -->
+<div class="flex flex-col gap-2">
+<label class="font-label-lg text-label-lg text-on-surface-variant ml-2" for="fullName">Nome Completo</label>
+<div class="relative flex items-center bg-[#ECEFF3] rounded-full focus-within:ring-2 focus-within:ring-primary focus-within:bg-surface-container-lowest transition-all">
+<span class="material-symbols-outlined absolute left-4 text-outline" data-icon="person">person</span>
+<input class="w-full bg-transparent border-none py-[16px] pl-12 pr-6 rounded-full font-body-lg text-body-lg text-on-surface placeholder-outline-variant focus:ring-0" id="fullName" placeholder="Ex: João Silva" type="text"/>
+</div>
+</div>
+<!-- Email Input -->
+<div class="flex flex-col gap-2">
+<label class="font-label-lg text-label-lg text-on-surface-variant ml-2" for="email">Email</label>
+<div class="relative flex items-center bg-[#ECEFF3] rounded-full focus-within:ring-2 focus-within:ring-primary focus-within:bg-surface-container-lowest transition-all">
+<span class="material-symbols-outlined absolute left-4 text-outline" data-icon="mail">mail</span>
+<input class="w-full bg-transparent border-none py-[16px] pl-12 pr-6 rounded-full font-body-lg text-body-lg text-on-surface placeholder-outline-variant focus:ring-0" id="email" placeholder="seu@email.com" type="email"/>
+</div>
+</div>
+<!-- Senha Input -->
+<div class="flex flex-col gap-2">
+<label class="font-label-lg text-label-lg text-on-surface-variant ml-2" for="password">Senha</label>
+<div class="relative flex items-center bg-[#ECEFF3] rounded-full focus-within:ring-2 focus-within:ring-primary focus-within:bg-surface-container-lowest transition-all">
+<span class="material-symbols-outlined absolute left-4 text-outline" data-icon="lock">lock</span>
+<input class="w-full bg-transparent border-none py-[16px] pl-12 pr-12 rounded-full font-body-lg text-body-lg text-on-surface placeholder-outline-variant focus:ring-0" id="password" placeholder="Mínimo 8 caracteres" type="password"/>
+<button class="absolute right-4 text-outline hover:text-primary transition-colors flex items-center justify-center" type="button">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility_off">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Confirmar Senha Input -->
+<div class="flex flex-col gap-2">
+<label class="font-label-lg text-label-lg text-on-surface-variant ml-2" for="confirmPassword">Confirmar Senha</label>
+<div class="relative flex items-center bg-[#ECEFF3] rounded-full focus-within:ring-2 focus-within:ring-primary focus-within:bg-surface-container-lowest transition-all">
+<span class="material-symbols-outlined absolute left-4 text-outline" data-icon="lock_clock">lock_clock</span>
+<input class="w-full bg-transparent border-none py-[16px] pl-12 pr-12 rounded-full font-body-lg text-body-lg text-on-surface placeholder-outline-variant focus:ring-0" id="confirmPassword" placeholder="Repita a senha" type="password"/>
+</div>
+</div>
+<!-- Primary CTA -->
+<button class="mt-4 w-full min-h-[56px] bg-primary-container text-white rounded-full font-title-lg text-title-lg flex items-center justify-center gap-2 hover:bg-surface-tint active:scale-95 transition-all shadow-md shadow-primary-container/20" type="submit">
+                    Criar Conta
+                    <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</form>
+<!-- Divider -->
+<div class="flex items-center gap-4 my-stack-gap-lg">
+<div class="h-[1px] flex-1 bg-surface-variant"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">ou cadastre-se com</span>
+<div class="h-[1px] flex-1 bg-surface-variant"></div>
+</div>
+<!-- Social Login -->
+<button class="w-full min-h-[56px] bg-transparent border border-outline-variant text-on-surface rounded-full font-title-lg text-title-lg flex items-center justify-center gap-3 hover:bg-surface-container-low active:scale-95 transition-all" type="button">
+<!-- Using a material symbol placeholder for Google as requested by standard practices when actual SVG isn't provided via JSON, adhering to strict material symbol rules -->
+<span class="material-symbols-outlined text-[#EA4335]" data-icon="language" style="font-variation-settings: 'FILL' 1;">language</span>
+                Continuar com Google
+            </button>
+</div>
+<!-- Footer Text -->
+<div class="text-center mt-4">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Já tem uma conta? 
+                <a class="font-title-lg text-title-lg text-primary hover:underline ml-1" href="#">Entre</a>
+</p>
+</div>
+</main>
+<!-- Bottom Navigation Suppressed as this is a Transactional/Linear page (Registration) -->
+</body></html>

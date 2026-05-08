@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Success Toast Notification</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#ffdad6",
+                    "background": "#fbf9fb",
+                    "on-error-container": "#93000a",
+                    "surface-container-low": "#f5f3f6",
+                    "on-primary-fixed-variant": "#0038b6",
+                    "on-secondary-container": "#007352",
+                    "primary-fixed-dim": "#b7c4ff",
+                    "on-tertiary-fixed-variant": "#93000f",
+                    "primary": "#003cc1",
+                    "on-secondary-fixed": "#002115",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-bright": "#fbf9fb",
+                    "surface": "#fbf9fb",
+                    "primary-container": "#1652f0",
+                    "on-primary-container": "#dadfff",
+                    "on-surface-variant": "#434656",
+                    "on-secondary": "#ffffff",
+                    "secondary-container": "#64fcc2",
+                    "on-primary-fixed": "#001452",
+                    "outline": "#747687",
+                    "tertiary": "#9b0010",
+                    "on-tertiary-fixed": "#410003",
+                    "secondary-fixed": "#64fcc2",
+                    "secondary-fixed-dim": "#40dfa8",
+                    "inverse-on-surface": "#f2f0f3",
+                    "surface-variant": "#e3e2e5",
+                    "inverse-primary": "#b7c4ff",
+                    "on-error": "#ffffff",
+                    "on-surface": "#1b1c1e",
+                    "surface-dim": "#dbd9dc",
+                    "on-background": "#1b1c1e",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#dde1ff",
+                    "outline-variant": "#c3c5d8",
+                    "tertiary-fixed-dim": "#ffb3ac",
+                    "tertiary-container": "#c60f1c",
+                    "on-primary": "#ffffff",
+                    "surface-container-highest": "#e3e2e5",
+                    "on-tertiary-container": "#ffd7d2",
+                    "on-tertiary": "#ffffff",
+                    "surface-tint": "#064ceb",
+                    "surface-container-high": "#e9e7ea",
+                    "surface-container": "#efedf0",
+                    "on-secondary-fixed-variant": "#005139",
+                    "error": "#ba1a1a",
+                    "inverse-surface": "#303033",
+                    "secondary": "#006c4d"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-gap-sm": "8px",
+                    "inline-padding-md": "16px",
+                    "stack-gap-lg": "24px",
+                    "stack-gap-md": "16px",
+                    "inline-padding-lg": "32px",
+                    "container-margin": "20px"
+            },
+            "fontFamily": {
+                    "label-lg": [
+                            "Manrope"
+                    ],
+                    "headline-sm": [
+                            "Manrope"
+                    ],
+                    "display-md": [
+                            "Manrope"
+                    ],
+                    "body-lg": [
+                            "Manrope"
+                    ],
+                    "title-lg": [
+                            "Manrope"
+                    ],
+                    "display-lg": [
+                            "Manrope"
+                    ],
+                    "label-md": [
+                            "Manrope"
+                    ],
+                    "body-md": [
+                            "Manrope"
+                    ]
+            },
+            "fontSize": {
+                    "label-lg": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-sm": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-md": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-lg": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "title-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-lg": [
+                            "40px",
+                            {
+                                    "lineHeight": "48px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "label-md": [
+                            "11px",
+                            {
+                                    "lineHeight": "14px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "500"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Manrope', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen relative overflow-hidden flex justify-center">
+<!-- Blurred Background Context (Simulating Settings Screen) -->
+<div class="w-full max-w-md bg-surface min-h-screen relative opacity-40 blur-sm pointer-events-none filter">
+<!-- Header -->
+<header class="px-container-margin py-stack-gap-md flex items-center mb-6">
+<span class="material-symbols-outlined text-on-surface text-[24px]">arrow_back</span>
+<h1 class="font-headline-sm text-headline-sm text-on-surface ml-4">Segurança</h1>
+</header>
+<!-- Content -->
+<div class="px-container-margin space-y-stack-gap-lg">
+<div class="bg-surface-container-lowest rounded-DEFAULT p-inline-padding-md">
+<div class="flex items-center justify-between mb-4">
+<div>
+<h2 class="font-title-lg text-title-lg text-on-surface">Alterar Senha</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Atualize sua senha de acesso</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded-DEFAULT p-inline-padding-md">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-title-lg text-title-lg text-on-surface">Autenticação em 2 Fatores</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Proteção adicional para sua conta</p>
+</div>
+<span class="material-symbols-outlined text-primary">toggle_on</span>
+</div>
+</div>
+<img alt="Security graphic placeholder" class="w-full rounded-DEFAULT mt-8" src="https://lh3.googleusercontent.com/aida/ADBb0uhYEwFquAUQsqtrDM2JMAIrt0HWREUE2TM4NQLZJpseQz2O9HuCRIoOUqRF5IIoBTG6lH_8u0xZHkWp_M357A54oZgvX-cc4V_f8aw2am6FHXYU6wMoWDPECHKISX9IUBPiSQPBchmUpw_iTLdqpVN34vtFgMyNjWspj5aoMXKwsVI0XzVnzGrZP8vGeDoXthNdbXso4XlNpxsC--U_gWdjQ8gtezTY88rlZw6Ko1UeOJess7OHlW-Jucabynj4btP2ljwjmCMTIOA"/>
+</div>
+</div>
+<!-- Modal Backdrop -->
+<div class="absolute inset-0 bg-on-background/40 z-40 backdrop-blur-sm"></div>
+<!-- Success Toast Notification -->
+<div class="absolute top-12 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm">
+<div class="bg-surface-container-lowest rounded-full shadow-[0_8px_24px_rgba(0,0,0,0.12)] p-inline-padding-md flex items-center border border-surface-variant">
+<div class="bg-[#E6F4EA] rounded-full p-2 flex-shrink-0 mr-4">
+<span class="material-symbols-outlined text-[#137333]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<p class="font-body-lg text-body-lg text-on-surface flex-grow">Senha alterada com sucesso!</p>
+</div>
+</div>
+<!-- Password Modal (Dimmed in background) -->
+<div class="absolute bottom-0 left-0 w-full bg-surface-container-lowest rounded-t-lg shadow-lg z-30 opacity-70 blur-[1px] pointer-events-none transform translate-y-4">
+<div class="w-12 h-1.5 bg-surface-variant rounded-full mx-auto mt-4 mb-6"></div>
+<div class="px-container-margin pb-8 space-y-stack-gap-md">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-6">Nova Senha</h2>
+<div class="space-y-4">
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface-variant mb-2">Senha Atual</label>
+<div class="relative">
+<input class="w-full h-14 bg-surface-container-low rounded-full px-inline-padding-md font-body-lg text-body-lg text-on-surface border-none focus:ring-0" disabled="" type="password" value="********"/>
+<span class="material-symbols-outlined absolute right-4 top-4 text-on-surface-variant">visibility_off</span>
+</div>
+</div>
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface-variant mb-2">Nova Senha</label>
+<div class="relative">
+<input class="w-full h-14 bg-surface-container-low rounded-full px-inline-padding-md font-body-lg text-body-lg text-on-surface border-none focus:ring-0" disabled="" type="password" value="********"/>
+<span class="material-symbols-outlined absolute right-4 top-4 text-on-surface-variant">visibility_off</span>
+</div>
+</div>
+</div>
+<button class="w-full h-14 bg-primary-container text-on-primary-container rounded-full font-title-lg text-title-lg mt-8 opacity-50">
+                Confirmar Alteração
+            </button>
+</div>
+</div>
+</body></html>

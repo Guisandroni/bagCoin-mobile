@@ -4,14 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@font-face {
-  font-family: "Space Grotesk";
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url("https://fonts.gstatic.com/s/spacegrotesk/v16/V8mDoQDjQSkFtoMM3T6zyfTX_6L9i2rS.woff2") format("woff2");
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -23,9 +15,11 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: "Space Grotesk", var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-heading);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,6 +33,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-market-orange: var(--market-orange);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -55,60 +50,166 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: var(--radius-card);
+  --radius-lg: var(--radius-sheet);
+  --radius-xl: calc(var(--radius) * 1.25);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 2);
+  --radius-4xl: calc(var(--radius) * 2.25);
 }
 
 :root {
-  /* ── The Kinetic Monolith: Light-Luxe Palette ── */
-  --background: oklch(0.985 0.002 110);   /* #fbffe1 */
-  --foreground: oklch(0.35 0.08 110);     /* #323c0f */
-  --card: oklch(0.97 0.008 110);          /* #f5f9d8 */
-  --card-foreground: oklch(0.35 0.08 110);
-  --popover: oklch(0.97 0.008 110);
-  --popover-foreground: oklch(0.35 0.08 110);
-  --primary: oklch(0.88 0.18 140);        /* #a9fb73 */
-  --primary-foreground: oklch(0.2 0.05 110); /* #1a2400 */
-  --secondary: oklch(0.97 0.008 110);
-  --secondary-foreground: oklch(0.35 0.08 110);
-  --muted: oklch(0.95 0.01 110);          /* #f0f4c9 */
-  --muted-foreground: oklch(0.5 0.06 110); /* #6b7a3a */
-  --accent: oklch(0.88 0.18 140);
-  --accent-foreground: oklch(0.2 0.05 110);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.999 0 0);
-  --border: oklch(0.85 0.02 110);
-  --input: oklch(0.85 0.02 110);
-  --ring: oklch(0.88 0.18 140);
-  --chart-1: oklch(0.88 0.18 140);
-  --chart-2: oklch(0.7 0.15 75);
-  --chart-3: oklch(0.6 0.18 250);
-  --chart-4: oklch(0.577 0.245 27.325);
-  --chart-5: oklch(0.6 0.2 280);
-  --sidebar: oklch(0.97 0.008 110);
-  --sidebar-foreground: oklch(0.35 0.08 110);
-  --sidebar-primary: oklch(0.88 0.18 140);
-  --sidebar-primary-foreground: oklch(0.2 0.05 110);
-  --sidebar-accent: oklch(0.93 0.015 110);
-  --sidebar-accent-foreground: oklch(0.35 0.08 110);
-  --sidebar-border: oklch(0.85 0.02 110);
-  --sidebar-ring: oklch(0.88 0.18 140);
-  --radius: 0.625rem;
-  --brand: oklch(0.88 0.18 140);
-  --brand-foreground: oklch(0.2 0.05 110);
-  --success: oklch(0.88 0.18 140);
-  --success-foreground: oklch(0.2 0.05 110);
-  --warning: oklch(0.7 0.15 75);
-  --warning-foreground: oklch(0.3 0.1 40);
-  --danger: oklch(0.577 0.245 27.325);
-  --danger-foreground: oklch(0.999 0 0);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-  --font-geist-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* ── MD3 Design System (Manrope, #1652F0 primary) ── */
+  --background: #fbf9fb;
+  --foreground: #1b1c1e;
+  --card: #ffffff;
+  --card-foreground: #1b1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1b1c1e;
+
+  --primary: #1652f0;
+  --primary-foreground: #ffffff;
+  --secondary: #006c4d;
+  --secondary-foreground: #ffffff;
+  --muted: #efedf0;
+  --muted-foreground: #434656;
+  --accent: #1652f0;
+  --accent-foreground: #ffffff;
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+  --border: #c3c5d8;
+  --input: #eceff3;
+  --ring: #1652f0;
+
+  /* ── MD3 Surface tokens ── */
+  --surface: #fbf9fb;
+  --surface-dim: #dbd9dc;
+  --surface-bright: #fbf9fb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f5f3f6;
+  --surface-container: #efedf0;
+  --surface-container-high: #e9e7ea;
+  --surface-container-highest: #e3e2e5;
+  --surface-variant: #e3e2e5;
+  --on-surface: #1b1c1e;
+  --on-surface-variant: #434656;
+  --inverse-surface: #303033;
+  --inverse-on-surface: #f2f0f3;
+  --outline: #747687;
+  --outline-variant: #c3c5d8;
+
+  /* ── MD3 Color tokens ── */
+  --primary-container: #1652f0;
+  --on-primary-container: #dadfff;
+  --primary-fixed: #dde1ff;
+  --primary-fixed-dim: #b7c4ff;
+  --on-primary-fixed: #001452;
+  --on-primary-fixed-variant: #0038b6;
+  --secondary-container: #64fcc2;
+  --on-secondary-container: #007352;
+  --secondary-fixed: #64fcc2;
+  --secondary-fixed-dim: #40dfa8;
+  --tertiary: #9b0010;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #c60f1c;
+  --on-tertiary-container: #ffd7d2;
+  --tertiary-fixed: #ffdad6;
+  --tertiary-fixed-dim: #ffb3ac;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+  --inverse-primary: #b7c4ff;
+
+  /* ── Semantic colors (kept for shadcn compatibility) ── */
+  --brand: #1652f0;
+  --brand-foreground: #ffffff;
+  --market-orange: #e67e22;
+  --success: #006c4d;
+  --success-foreground: #ffffff;
+  --success-bg: #e6f9f0;
+  --warning: #e67e22;
+  --warning-foreground: #ffffff;
+  --warning-bg: #fef3e6;
+  --danger: #ba1a1a;
+  --danger-foreground: #ffffff;
+  --danger-bg: #ffdad6;
+  --info: #1652f0;
+  --info-foreground: #ffffff;
+  --info-bg: #dde1ff;
+
+  /* ── Charts ── */
+  --chart-1: #1652f0;
+  --chart-2: #64fcc2;
+  --chart-3: #c60f1c;
+  --chart-4: #e67e22;
+  --chart-5: #9b0010;
+
+  /* ── Sidebar ── */
+  --sidebar: #f5f3f6;
+  --sidebar-foreground: #1b1c1e;
+  --sidebar-primary: #1652f0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #dde1ff;
+  --sidebar-accent-foreground: #001452;
+  --sidebar-border: #c3c5d8;
+  --sidebar-ring: #1652f0;
+
+  /* ── Radii (MD3 — extra rounded, pill shapes) ── */
+  --radius: 1.5rem;
+  --radius-pill: 9999px;
+  --radius-card: 24px;
+  --radius-sheet: 24px;
+  --radius-chip: 12px;
+  --sidebar-w: 260px;
+  --sidebar-collapsed-w: 68px;
+
+  /* ── Typography (Manrope) ── */
+  --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
+  --font-heading: "Manrope", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  /* ── Shadows ── */
+  --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.12);
+
+  /* ── Release component aliases (--rls-* → unprefixed tokens) ── */
+  --rls-background: var(--background);
+  --rls-on-background: var(--foreground);
+  --rls-surface: var(--surface);
+  --rls-on-surface: var(--on-surface);
+  --rls-on-surface-variant: var(--on-surface-variant);
+  --rls-surface-variant: var(--surface-variant);
+  --rls-surface-container: var(--surface-container);
+  --rls-surface-container-low: var(--surface-container-low);
+  --rls-surface-container-lowest: var(--surface-container-lowest);
+  --rls-surface-container-high: var(--surface-container-high);
+  --rls-primary: var(--primary);
+  --rls-on-primary: var(--primary-foreground);
+  --rls-primary-container: var(--primary-container);
+  --rls-on-primary-container: var(--on-primary-container);
+  --rls-secondary: var(--secondary);
+  --rls-secondary-container: var(--secondary-container);
+  --rls-on-secondary-container: var(--on-secondary-container);
+  --rls-tertiary: var(--tertiary);
+  --rls-tertiary-container: var(--tertiary-container);
+  --rls-error: var(--destructive);
+  --rls-on-error: var(--destructive-foreground);
+  --rls-error-container: var(--error-container);
+  --rls-on-error-container: var(--on-error-container);
+  --rls-outline: var(--outline);
+  --rls-outline-variant: var(--outline-variant);
+
+  /* ── Release spacing tokens ── */
+  --rls-container-margin: 20px;
+  --rls-stack-gap-lg: 24px;
+  --rls-stack-gap-md: 16px;
+  --rls-stack-gap-sm: 8px;
+  --rls-inline-padding-lg: 32px;
+  --rls-inline-padding-md: 16px;
+
+  /* ── Release radius tokens ── */
+  --rls-radius: 1.5rem;
+  --rls-radius-lg: 2rem;
+  --rls-radius-pill: 9999px;
 }
 
 @layer base {
@@ -121,34 +222,113 @@
   html {
     @apply font-sans;
   }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: "Space Grotesk", var(--font-sans);
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
     font-weight: 700;
     letter-spacing: -0.02em;
   }
 }
 
-/* ── Noise texture ── */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .page-in {
+    animation: page-in 160ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  .amount-display {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    font-size: clamp(2rem, 6vw, 2.75rem);
+  }
+
+  .section-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .row-amount {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-feature-settings: "tnum" 1;
+    font-size: 0.875rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .shadow-sheet {
+    box-shadow: var(--shadow-sheet);
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .bg-primary-gradient {
+    background-image: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--primary) 85%, white) 0%,
+      var(--primary) 100%
+    );
+  }
+
+  .bg-primary-gradient-hover:hover {
+    background-image: linear-gradient(
+      180deg,
+      var(--primary) 0%,
+      color-mix(in srgb, var(--primary) 85%, white) 100%
+    );
+  }
+}
+
 .noise {
   position: relative;
 }
 .noise::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E") repeat;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E")
+    repeat;
   pointer-events: none;
   z-index: 0;
 }
 
-/* ── Glassmorphism utility ── */
 .glass {
-  background: rgba(251, 255, 225, 0.7);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
 
-/* ── Pill shape for buttons ── */
 .pill {
   border-radius: 9999px;
 }

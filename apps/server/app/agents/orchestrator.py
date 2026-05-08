@@ -40,6 +40,7 @@ from app.agents.tenant_context import tenant_phone_error
 from app.agents.text_to_sql import process_query
 from app.agents.wizard import wizard_node
 from app.schemas.enums import IntentType
+from app.services.integration_service import redact_message_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,30 @@ def process_multimodal_node(state: AgentState) -> AgentState:
         s = dict(state)
         s["error"] = terr
         return AgentState(**s)
+
+    # Web ↔ bot pairing (same entry as multimodal; text-only)
+    from app.services.integration_service import try_consume_link_pairing_sync
+
+    ctx = state.get("context") or {}
+    integration_channel: str = ctx.get("channel") or (
+        "telegram"
+        if str(state.get("phone_number", "")).startswith("telegram:")
+        else "whatsapp"
+    )
+    if integration_channel not in ("whatsapp", "telegram"):
+        integration_channel = "whatsapp"
+    if state.get("source_format") == "text":
+        reply = try_consume_link_pairing_sync(
+            phone_number=state["phone_number"],
+            message=state.get("message") or "",
+            channel=integration_channel,  # type: ignore[arg-type]
+            source_format=state.get("source_format", "text"),
+        )
+        if reply is not None:
+            s = dict(state)
+            s["response"] = reply
+            return AgentState(**s)
+
     logger.info(f"Processando mídia: {state.get('source_format', 'text')}")
     result = process_multimodal(dict(state))
     return AgentState(**result)
@@ -91,7 +116,9 @@ def import_statement_node(state: AgentState) -> AgentState:
 def classify_intent_node(state: AgentState) -> AgentState:
     """Nó de classificação de intenção."""
     logger.info(
-        f"Classificando intenção para: {state['phone_number']} — msg: {state.get('message', '')[:60]}"
+        "Classificando intenção para: %s — msg: %s",
+        state["phone_number"],
+        redact_message_for_log(state.get("message", ""), 60),
     )
     result = classify_intent(dict(state))
     return AgentState(**result)
@@ -216,9 +243,7 @@ def update_category_handler_node(state: AgentState) -> AgentState:
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
     msg_norm = (
-        unicodedata.normalize("NFKD", message.lower())
-        .encode("ASCII", "ignore")
-        .decode("ASCII")
+        unicodedata.normalize("NFKD", message.lower()).encode("ASCII", "ignore").decode("ASCII")
     )
     match = re.search(
         r'(?:renomear|mudar nome da|alterar)\s+categoria\s+["\']?(.+?)["\']?\s+(?:para|->)\s+["\']?(.+?)["\']?$',
@@ -247,11 +272,7 @@ def update_category_handler_node(state: AgentState) -> AgentState:
 def _msg_norm(message: str) -> str:
     import unicodedata
 
-    return (
-        unicodedata.normalize("NFKD", message.lower())
-        .encode("ASCII", "ignore")
-        .decode("ASCII")
-    )
+    return unicodedata.normalize("NFKD", message.lower()).encode("ASCII", "ignore").decode("ASCII")
 
 
 def create_category_handler_node(state: AgentState) -> AgentState:
@@ -273,9 +294,7 @@ def create_category_handler_node(state: AgentState) -> AgentState:
             name = message[idx:].strip().capitalize()
             break
     if not name or len(name) < 2:
-        state["response"] = (
-            "Qual o nome da nova categoria? Ex: 'Criar categoria Academia'"
-        )
+        state["response"] = "Qual o nome da nova categoria? Ex: 'Criar categoria Academia'"
         return state
     result = create_category(phone_number, name)
     if result is None:
@@ -382,8 +401,7 @@ def correction_handler_node(state: AgentState) -> AgentState:
     )
     if not cat_match:
         cat_match = regex.search(
-            r"(?:corrige|muda)\s+(?:a\s+)?categoria\s+(?:para|como)\s+([a-zA-ZÀ-ÿ\s]+)",
-            msg_lower,
+            r"(?:corrige|muda)\s+(?:a\s+)?categoria\s+(?:para|como)\s+([a-zA-ZÀ-ÿ\s]+)", msg_lower
         )
     if cat_match:
         state["extracted_data"] = {
@@ -392,9 +410,7 @@ def correction_handler_node(state: AgentState) -> AgentState:
         return update_transaction_handler_node(state)
 
     # 3. Correção de descrição: "o nome é Mercado" / "descrição certa é Padaria"
-    desc_match = regex.search(
-        r"(?:o\s+)?nome\s+(?:[ée]|certo\s+[ée])\s+(.+)", msg_lower
-    )
+    desc_match = regex.search(r"(?:o\s+)?nome\s+(?:[ée]|certo\s+[ée])\s+(.+)", msg_lower)
     if not desc_match:
         desc_match = regex.search(r"descrição\s+(?:certa\s+)?[ée]\s+(.+)", msg_lower)
     if desc_match:
@@ -470,7 +486,8 @@ def chat_node(state: AgentState) -> AgentState:
                 r, _ = timed_invoke(llm, msgs, operation="help_response")
                 state["response"] = r.content[:1000]
                 logger.info(
-                    f"[chat_node] HELP específico gerado em resposta a: {message[:50]}"
+                    "[chat_node] HELP específico gerado em resposta a: %s",
+                    redact_message_for_log(message, 50),
                 )
                 return state
             except Exception as e:
@@ -537,8 +554,7 @@ def chat_node(state: AgentState) -> AgentState:
             return state
 
         if any(
-            w in msg_lower
-            for w in ["ok", "certo", "entendi", "tendi", "blz", "perfeito", "legal"]
+            w in msg_lower for w in ["ok", "certo", "entendi", "tendi", "blz", "perfeito", "legal"]
         ):
             state["response"] = "Show! O que mais posso ajudar?"
             return state
@@ -555,8 +571,7 @@ def chat_node(state: AgentState) -> AgentState:
         import re as regex
 
         if any(
-            w in msg_lower
-            for w in ["na verdade", "era na verdade", "corrigindo", "foi na verdade"]
+            w in msg_lower for w in ["na verdade", "era na verdade", "corrigindo", "foi na verdade"]
         ):
             amount_match = regex.search(r"R?\$?\s*(\d+(?:[.,]\d{1,2})?)", message)
             if amount_match:
@@ -729,20 +744,11 @@ def smart_manage_node(state: AgentState) -> AgentState:
 
     # 1. Fast-path: comandos explicitos com keywords claras
     # Categoria — mantido deterministico pois e simples
-    if any(
-        w in msg_norm
-        for w in ["criar categoria", "nova categoria", "adicionar categoria"]
-    ):
+    if any(w in msg_norm for w in ["criar categoria", "nova categoria", "adicionar categoria"]):
         return create_category_handler_node(state)
-    if any(
-        w in msg_norm
-        for w in ["excluir categoria", "apagar categoria", "remover categoria"]
-    ):
+    if any(w in msg_norm for w in ["excluir categoria", "apagar categoria", "remover categoria"]):
         return delete_category_handler_node(state)
-    if any(
-        w in msg_norm
-        for w in ["minhas categorias", "quais categorias", "listar categorias"]
-    ):
+    if any(w in msg_norm for w in ["minhas categorias", "quais categorias", "listar categorias"]):
         return list_categories_handler_node(state)
     if any(w in msg_norm for w in ["renomear categoria", "mudar nome da categoria"]):
         return update_category_handler_node(state)
@@ -833,16 +839,10 @@ Responda APENAS JSON:
             state["extracted_data"] = {"title": params.get("goal_name", "")}
             return delete_goal_handler_node(state)
         elif action == "update_budget":
-            state["extracted_data"] = {
-                "name": params.get("budget_name", ""),
-                "total_limit": params.get("new_limit", 0),
-            }
+            state["extracted_data"] = {"name": params.get("budget_name", ""), "total_limit": params.get("new_limit", 0)}
             return update_budget_handler_node(state)
         elif action == "contribute_goal":
-            state["extracted_data"] = {
-                "title": params.get("goal_name", ""),
-                "amount": params.get("amount", 0),
-            }
+            state["extracted_data"] = {"title": params.get("goal_name", ""), "amount": params.get("amount", 0)}
             return contribute_goal_handler_node(state)
         elif action == "delete_transaction":
             state["extracted_data"] = {"description": params.get("description", "")}
@@ -908,10 +908,7 @@ def build_response_node(state: AgentState) -> AgentState:
         _save_history(phone_number, message, state.get("response", ""))
         return state
 
-    if (
-        intent == IntentType.REGISTER_EXPENSE.value
-        or intent == IntentType.REGISTER_INCOME.value
-    ):
+    if intent == IntentType.REGISTER_EXPENSE.value or intent == IntentType.REGISTER_INCOME.value:
         extracted = state.get("extracted_data", {})
         tx_type = extracted.get("type", "EXPENSE")
         amount = extracted.get("amount", 0)
@@ -935,9 +932,9 @@ def build_response_node(state: AgentState) -> AgentState:
                 active_goals = [g for g in goals if g.get("status") == "active"]
                 if active_goals:
                     goal_names = ", ".join([g["title"] for g in active_goals[:3]])
-                    state[
-                        "response"
-                    ] += f"\n\nQuer direcionar parte para alguma meta? Você tem: {goal_names}"
+                    state["response"] += (
+                        f"\n\nQuer direcionar parte para alguma meta? Você tem: {goal_names}"
+                    )
             except Exception:
                 pass
             finally:
@@ -1030,16 +1027,10 @@ def build_response_node(state: AgentState) -> AgentState:
 
                 # Filter: detect LLM-generated error/generic responses
                 _bad_llm_patterns = [
-                    "sorry, i couldn't",
-                    "i couldn't process",
-                    "i'm sorry",
-                    "i am sorry",
-                    "sorry, i can't",
-                    "i cannot",
-                    "i'm unable",
-                    "i am unable",
-                    "as an ai",
-                    "as a language model",
+                    "sorry, i couldn't", "i couldn't process",
+                    "i'm sorry", "i am sorry", "sorry, i can't",
+                    "i cannot", "i'm unable", "i am unable",
+                    "as an ai", "as a language model",
                 ]
                 if any(p in response_text.lower() for p in _bad_llm_patterns):
                     logger.warning(
@@ -1073,6 +1064,8 @@ def route_after_multimodal(state: AgentState) -> str:
     """
     error = state.get("error")
     if error:
+        return "build_response"
+    if state.get("response"):
         return "build_response"
     if state.get("source_format") == "document" and detect_statement(dict(state)):
         logger.info("Extrato bancário detectado. Roteando para importação.")

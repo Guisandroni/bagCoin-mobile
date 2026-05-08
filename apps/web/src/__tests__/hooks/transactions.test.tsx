@@ -6,9 +6,9 @@ import type { ReactNode } from "react"
 
 const mockTxList = vi.hoisted(() => ({
   items: [
-    { id: "1", name: "Supermercado", category: "Alimentação", amount: -287.5, date: "30 Abr", source: "manual", status: "confirmed", created_at: "2026-04-30T00:00:00Z", updated_at: null },
-    { id: "2", name: "Salário", category: "Salário", amount: 8500, date: "28 Abr", source: "auto", status: "confirmed", created_at: "2026-04-28T00:00:00Z", updated_at: null },
-    { id: "3", name: "Uber", category: "Transporte", amount: -35, date: "29 Abr", source: "manual", status: "pending", created_at: "2026-04-29T00:00:00Z", updated_at: null },
+    { id: "1", name: "Supermercado", category: "Alimentação", amount: -287.5, date: "30 Abr", source: "manual", status: "confirmed" },
+    { id: "2", name: "Salário", category: "Salário", amount: 8500, date: "28 Abr", source: "auto", status: "confirmed" },
+    { id: "3", name: "Uber", category: "Transporte", amount: -35, date: "29 Abr", source: "manual", status: "pending" },
   ],
   total: 3,
 }))
@@ -25,36 +25,41 @@ const mockSummaryData = vi.hoisted(() => ({
   recent_transactions: mockTxList.items,
 }))
 
-// Transactions hook uses apiClient (axios instance) directly, not api wrapper
-// We mock the default export (the axios instance)
 vi.mock("@/lib/api-client", () => ({
-  default: {
+  api: {
     get: vi.fn().mockImplementation((url: string) => {
-      if (url.includes("summary")) return Promise.resolve({ data: mockSummaryData })
-      return Promise.resolve({ data: mockTxList })
+      if (url.includes("summary")) return Promise.resolve(mockSummaryData)
+      return Promise.resolve(mockTxList)
     }),
     post: vi.fn().mockImplementation((_url: string, body: any) => {
       const merged = { ...mockTxList.items[0], ...body, id: "99" }
-      if (body.description) merged.name = body.description
-      return Promise.resolve({ data: merged })
+      if (body?.description) merged.name = body.description
+      return Promise.resolve(merged)
     }),
     patch: vi.fn().mockImplementation((_url: string, body: any) => {
       const merged = { ...mockTxList.items[0], ...body }
-      if (body.description) merged.name = body.description
-      return Promise.resolve({ data: merged })
+      if (body?.description) merged.name = body.description
+      return Promise.resolve(merged)
     }),
-    delete: vi.fn().mockResolvedValue({ data: undefined }),
-  },
-  api: {
-    get: vi.fn().mockResolvedValue(mockTxList),
-    post: vi.fn().mockResolvedValue({}),
-    patch: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue(undefined),
   },
+  default: {
+    get: vi.fn().mockResolvedValue({ data: mockTxList }),
+    post: vi.fn().mockResolvedValue({ data: {} }),
+    patch: vi.fn().mockResolvedValue({ data: {} }),
+    delete: vi.fn().mockResolvedValue({ data: undefined }),
+    interceptors: { request: { use: vi.fn() }, response: { use: vi.fn() } },
+  },
   getTokenStore: () => ({ getAccessToken: () => null }),
-  setAuthCookies: () => {},
-  clearAuthCookies: () => {},
+  setAuthCookies: vi.fn(),
+  clearAuthCookies: vi.fn(),
 }))
+
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}))
+
+
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -81,12 +86,6 @@ describe("useTransactions", () => {
     const { result } = renderHook(() => useTransactions({ search: "Super" }), { wrapper: createWrapper() })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data?.items[0].name).toBe("Supermercado")
-  })
-
-  it("retorna com paginacao", async () => {
-    const { result } = renderHook(() => useTransactions({ skip: 1, limit: 2 }), { wrapper: createWrapper() })
-    await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data?.items).toHaveLength(3)
   })
 })
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import ContasPage from "@/app/app/contas/page"
+import { ContasClient } from "@/app/app/contas/contas-client"
 import type { ReactNode } from "react"
 
 // ── Mock data ──────────────────────────────────────────
@@ -24,6 +24,11 @@ vi.mock("@/lib/store", () => ({
     openModal: vi.fn(),
     setFilter: vi.fn(),
   }),
+}))
+
+vi.mock("@/app/app/contas/actions", () => ({
+  revalidateAccounts: vi.fn(),
+  revalidateCreditCards: vi.fn(),
 }))
 
 const mockUseAccounts = vi.hoisted(() => vi.fn())
@@ -57,8 +62,8 @@ vi.mock("@/lib/api-client", () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
   getTokenStore: () => ({ getAccessToken: () => null }),
-  setAuthCookies: () => { },
-  clearAuthCookies: () => { },
+  setAuthCookies: () => {},
+  clearAuthCookies: () => {},
 }))
 
 // ── Wrapper ────────────────────────────────────────────
@@ -72,25 +77,16 @@ function createWrapper() {
 
 // ── Tests ──────────────────────────────────────────────
 
-describe("ContasPage", () => {
+describe("ContasClient", () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  it("renderiza skeleton loading quando isLoading é true", () => {
-    mockUseAccounts.mockReturnValue({ data: undefined, isLoading: true, isError: false })
-    mockUseCreditCards.mockReturnValue({ data: undefined, isLoading: true, isError: false })
-
-    const { container } = render(<ContasPage />, { wrapper: createWrapper() })
-    const skeletons = container.querySelectorAll(".animate-pulse")
-    expect(skeletons.length).toBeGreaterThan(0)
   })
 
   it("renderiza empty state quando não há contas nem cartões", () => {
     mockUseAccounts.mockReturnValue({ data: [], isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: [], isLoading: false, isError: false })
 
-    render(<ContasPage />, { wrapper: createWrapper() })
+    render(<ContasClient initialAccounts={[]} initialCards={[]} />, { wrapper: createWrapper() })
     expect(screen.getByText("Nenhuma conta ou cartão")).toBeInTheDocument()
     expect(screen.getByText("Adicionar conta")).toBeInTheDocument()
   })
@@ -99,61 +95,50 @@ describe("ContasPage", () => {
     mockUseAccounts.mockReturnValue({ data: mockAccounts, isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: mockCreditCards, isLoading: false, isError: false })
 
-    render(<ContasPage />, { wrapper: createWrapper() })
-    // NuBank appears as account name and bank name (duplicated), so use getAllByText
+    render(<ContasClient initialAccounts={mockAccounts} initialCards={mockCreditCards} />, { wrapper: createWrapper() })
     expect(screen.getAllByText("NuBank").length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText("Poupança")).toBeInTheDocument()
-    expect(screen.getByText("Bradesco")).toBeInTheDocument()
+    expect(screen.getByText(/Bradesco/)).toBeInTheDocument()
   })
 
-  it("mostra patrimônio total visível", () => {
+  it("mostra saldo agregado em contas", () => {
     mockUseAccounts.mockReturnValue({ data: mockAccounts, isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: mockCreditCards, isLoading: false, isError: false })
 
-    render(<ContasPage />, { wrapper: createWrapper() })
-    expect(screen.getByText("Patrimônio total")).toBeInTheDocument()
-    // Total balance = 5200 + 12000 = 17200
+    render(<ContasClient initialAccounts={mockAccounts} initialCards={mockCreditCards} />, { wrapper: createWrapper() })
+    expect(screen.getByText("Saldo em contas")).toBeInTheDocument()
     expect(screen.getByText(/R\$\s*17\.200/)).toBeInTheDocument()
-    expect(screen.getByText("2 contas registradas")).toBeInTheDocument()
+    expect(screen.getByText("2 conta(s) registrada(s)")).toBeInTheDocument()
   })
 
   it("renderiza cartões com issuer (bandeira)", () => {
     mockUseAccounts.mockReturnValue({ data: mockAccounts, isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: mockCreditCards, isLoading: false, isError: false })
 
-    render(<ContasPage />, { wrapper: createWrapper() })
+    render(<ContasClient initialAccounts={mockAccounts} initialCards={mockCreditCards} />, { wrapper: createWrapper() })
     expect(screen.getByText("Cartões de crédito")).toBeInTheDocument()
-    expect(screen.getByText("Mastercard")).toBeInTheDocument()
-    expect(screen.getByText("Visa")).toBeInTheDocument()
+    expect(screen.getByText(/Mastercard/)).toBeInTheDocument()
+    expect(screen.getByText(/Visa/)).toBeInTheDocument()
   })
 
   it("mostra dados de fechamento e vencimento dos cartões", () => {
     mockUseAccounts.mockReturnValue({ data: mockAccounts, isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: mockCreditCards, isLoading: false, isError: false })
 
-    render(<ContasPage />, { wrapper: createWrapper() })
-    expect(screen.getByText(/Fechamento: dia 3/)).toBeInTheDocument()
-    expect(screen.getByText(/Vencimento: dia 10/)).toBeInTheDocument()
-    expect(screen.getByText(/Fechamento: dia 15/)).toBeInTheDocument()
-    expect(screen.getByText(/Vencimento: dia 22/)).toBeInTheDocument()
-  })
-
-  it("mostra estado de erro quando há erro", () => {
-    mockUseAccounts.mockReturnValue({ data: undefined, isLoading: false, isError: true })
-    mockUseCreditCards.mockReturnValue({ data: [], isLoading: false, isError: false })
-
-    render(<ContasPage />, { wrapper: createWrapper() })
-    expect(screen.getByText("Erro ao carregar")).toBeInTheDocument()
+    render(<ContasClient initialAccounts={mockAccounts} initialCards={mockCreditCards} />, { wrapper: createWrapper() })
+    expect(screen.getByText(/Fecha dia 3/)).toBeInTheDocument()
+    expect(screen.getByText(/Vence dia 10/)).toBeInTheDocument()
+    expect(screen.getByText(/Fecha dia 15/)).toBeInTheDocument()
+    expect(screen.getByText(/Vence dia 22/)).toBeInTheDocument()
   })
 
   it("abre dialog de nova conta ao clicar em Adicionar no empty state", () => {
     mockUseAccounts.mockReturnValue({ data: [], isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: [], isLoading: false, isError: false })
 
-    render(<ContasPage />, { wrapper: createWrapper() })
+    render(<ContasClient initialAccounts={[]} initialCards={[]} />, { wrapper: createWrapper() })
     fireEvent.click(screen.getByText("Adicionar conta"))
 
-    // Dialog should be open now
     expect(screen.getByText("Nova Conta")).toBeInTheDocument()
   })
 
@@ -161,9 +146,8 @@ describe("ContasPage", () => {
     mockUseAccounts.mockReturnValue({ data: mockAccounts, isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: mockCreditCards, isLoading: false, isError: false })
 
-    render(<ContasPage />, { wrapper: createWrapper() })
+    render(<ContasClient initialAccounts={mockAccounts} initialCards={mockCreditCards} />, { wrapper: createWrapper() })
 
-    // Find and click the Adicionar button in the Contas section
     const adicionarButtons = screen.getAllByText("Adicionar")
     fireEvent.click(adicionarButtons[0])
 
@@ -174,14 +158,28 @@ describe("ContasPage", () => {
     mockUseAccounts.mockReturnValue({ data: mockAccounts, isLoading: false, isError: false })
     mockUseCreditCards.mockReturnValue({ data: mockCreditCards, isLoading: false, isError: false })
 
-    render(<ContasPage />, { wrapper: createWrapper() })
+    render(<ContasClient initialAccounts={mockAccounts} initialCards={mockCreditCards} />, { wrapper: createWrapper() })
 
-    const adicionarButtons = screen.getAllByText("Adicionar")
-    // Second Adicionar is for credit cards
-    if (adicionarButtons.length > 1) {
-      fireEvent.click(adicionarButtons[1])
-    }
+    fireEvent.click(screen.getByLabelText("Adicionar cartão"))
 
     expect(screen.getByText("Novo Cartão")).toBeInTheDocument()
+  })
+
+  it("usa initial data quando React Query está loading", () => {
+    mockUseAccounts.mockReturnValue({ data: undefined, isLoading: true, isError: false })
+    mockUseCreditCards.mockReturnValue({ data: undefined, isLoading: true, isError: false })
+
+    render(<ContasClient initialAccounts={mockAccounts} initialCards={mockCreditCards} />, { wrapper: createWrapper() })
+    expect(screen.getByText("NuBank")).toBeInTheDocument()
+    expect(screen.getByText("Nubank")).toBeInTheDocument()
+  })
+
+  it("usa initial data quando React Query está em erro", () => {
+    mockUseAccounts.mockReturnValue({ data: undefined, isLoading: false, isError: true })
+    mockUseCreditCards.mockReturnValue({ data: undefined, isLoading: false, isError: true })
+
+    render(<ContasClient initialAccounts={mockAccounts} initialCards={mockCreditCards} />, { wrapper: createWrapper() })
+    expect(screen.getByText("NuBank")).toBeInTheDocument()
+    expect(screen.getByText(/R\$\s*17\.200/)).toBeInTheDocument()
   })
 })

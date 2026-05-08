@@ -1,0 +1,231 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "primary-container": "#1652f0",
+                "on-secondary-fixed-variant": "#005139",
+                "on-tertiary-container": "#ffd7d2",
+                "surface-container-lowest": "#ffffff",
+                "on-primary-fixed": "#001452",
+                "on-error": "#ffffff",
+                "secondary-container": "#64fcc2",
+                "secondary": "#006c4d",
+                "tertiary": "#9b0010",
+                "on-secondary-container": "#007352",
+                "surface-bright": "#fbf9fb",
+                "tertiary-container": "#c60f1c",
+                "on-surface-variant": "#434656",
+                "background": "#fbf9fb",
+                "on-primary": "#ffffff",
+                "secondary-fixed": "#64fcc2",
+                "on-primary-container": "#dadfff",
+                "surface": "#fbf9fb",
+                "on-tertiary-fixed-variant": "#93000f",
+                "error-container": "#ffdad6",
+                "surface-variant": "#e3e2e5",
+                "outline": "#747687",
+                "on-primary-fixed-variant": "#0038b6",
+                "surface-container-low": "#f5f3f6",
+                "primary-fixed-dim": "#b7c4ff",
+                "surface-tint": "#064ceb",
+                "primary-fixed": "#dde1ff",
+                "inverse-surface": "#303033",
+                "on-background": "#1b1c1e",
+                "secondary-fixed-dim": "#40dfa8",
+                "on-tertiary": "#ffffff",
+                "on-error-container": "#93000a",
+                "on-secondary-fixed": "#002115",
+                "inverse-on-surface": "#f2f0f3",
+                "on-surface": "#1b1c1e",
+                "tertiary-fixed-dim": "#ffb3ac",
+                "surface-dim": "#dbd9dc",
+                "surface-container-high": "#e9e7ea",
+                "surface-container-highest": "#e3e2e5",
+                "primary": "#003cc1",
+                "outline-variant": "#c3c5d8",
+                "on-secondary": "#ffffff",
+                "tertiary-fixed": "#ffdad6",
+                "inverse-primary": "#b7c4ff",
+                "on-tertiary-fixed": "#410003",
+                "error": "#ba1a1a",
+                "surface-container": "#efedf0"
+        },
+        "borderRadius": {
+                "DEFAULT": "1rem",
+                "lg": "2rem",
+                "xl": "3rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "inline-padding-md": "16px",
+                "inline-padding-lg": "32px",
+                "stack-gap-sm": "8px",
+                "stack-gap-lg": "24px",
+                "container-margin": "20px",
+                "stack-gap-md": "16px"
+        },
+        "fontFamily": {
+                "headline-sm": [
+                        "Manrope"
+                ],
+                "display-md": [
+                        "Manrope"
+                ],
+                "body-lg": [
+                        "Manrope"
+                ],
+                "label-md": [
+                        "Manrope"
+                ],
+                "title-lg": [
+                        "Manrope"
+                ],
+                "label-lg": [
+                        "Manrope"
+                ],
+                "body-md": [
+                        "Manrope"
+                ],
+                "display-lg": [
+                        "Manrope"
+                ]
+        },
+        "fontSize": {
+                "headline-sm": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-md": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "body-lg": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-md": [
+                        "11px",
+                        {
+                                "lineHeight": "14px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "title-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-lg": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "body-md": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "display-lg": [
+                        "40px",
+                        {
+                                "lineHeight": "48px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md">
+<!-- TopAppBar -->
+<div class="docked full-width top-0 bg-surface dark:bg-background text-primary dark:text-primary-fixed-dim font-title-lg text-title-lg flat no shadows flex justify-between items-center w-full px-container-margin py-stack-gap-md z-40 sticky top-0">
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[24px] text-on-surface" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="font-display-md text-display-md font-bold text-primary-container dark:text-primary-fixed">Configurações</span>
+</div>
+</div>
+<!-- Main Canvas -->
+<main class="flex-1 px-container-margin py-stack-gap-lg flex flex-col gap-stack-gap-lg w-full max-w-3xl mx-auto"><section class="flex flex-col items-center gap-2 mb-2">
+<div class="w-24 h-24 rounded-full overflow-hidden border-4 border-surface-container-high shadow-sm">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAo-QfW3Z0kKyRAr7KhnK-Cxpufcpu8dFGeVHhnIXsNRLacI98nqgcG7ggUu2wRJNDR-KpGCsJ1oaugLgejBEfNzdTt-4vBpmYRzAlEVTiewrLlZqUwnbvX-idjAOZ6a4n80tmh1j3CA4RMBMnxzFhUuGztG0jKphC1h_Y3JZX_bjk82ifJ3P-bRon6A9hMa8p6G6J2pNU_KCtSXLou35hNKSh3PXbmxKso82FTp4es1E6DbGh3iX7jCHDA6Yxg_JXhdap1wgq9LSIS">
+</div>
+<div class="text-center">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">João Silva</h2>
+<p class="font-body-md text-body-md text-outline">joao.silva@email.com</p>
+</div>
+</section>
+<!-- User Profile Card -->
+<!-- Settings List Group -->
+<section class="flex flex-col gap-stack-gap-sm">
+<div class="bg-surface-container-lowest rounded-lg overflow-hidden flex flex-col">
+<!-- Item: Perfil -->
+<button class="flex items-center p-inline-padding-md hover:bg-surface-container-low transition-colors group border-b border-surface-container-high last:border-b-0 active:bg-surface-variant">
+<div class="w-12 h-12 rounded-lg bg-primary-fixed-dim/20 flex items-center justify-center mr-4 text-primary-container group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[24px]" data-icon="person">person</span>
+</div>
+<div class="flex-1 text-left">
+<h3 class="font-title-lg text-title-lg text-on-surface">Perfil</h3>
+<p class="font-body-md text-body-md text-outline">Informações pessoais e de contato</p>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary-container transition-colors" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Item: Notificações -->
+<!-- Item: Segurança -->
+<!-- Item: Aparência -->
+<button class="flex items-center p-inline-padding-md hover:bg-surface-container-low transition-colors group border-b border-surface-container-high last:border-b-0 active:bg-surface-variant">
+<div class="w-12 h-12 rounded-lg bg-primary-fixed-dim/20 flex items-center justify-center mr-4 text-primary-container group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-[24px]" data-icon="palette">palette</span>
+</div>
+<div class="flex-1 text-left">
+<h3 class="font-title-lg text-title-lg text-on-surface">Relatórios</h3>
+<p class="font-body-md text-body-md text-outline">Veja seus ultimos relatórios</p>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary-container transition-colors" data-icon="chevron_right">chevron_right</span>
+</button>
+<!-- Item: Sobre -->
+<button class="flex items-center p-inline-padding-md hover:bg-surface-container-low transition-colors group border-b border-surface-container-high last:border-b-0 active:bg-surface-variant"><div class="w-12 h-12 rounded-lg bg-primary-fixed-dim/20 flex items-center justify-center mr-4 text-primary-container group-hover:scale-105 transition-transform"><span class="material-symbols-outlined text-[24px]" data-icon="chat">chat</span></div><div class="flex-1 text-left"><h3 class="font-title-lg text-title-lg text-on-surface">WhatsApp</h3><p class="font-body-md text-body-md text-outline">Fale com o chat bot pelo WhatsApp</p></div><span class="material-symbols-outlined text-outline group-hover:text-primary-container transition-colors" data-icon="chevron_right">chevron_right</span></button><button class="flex items-center p-inline-padding-md hover:bg-surface-container-low transition-colors group border-b border-surface-container-high last:border-b-0 active:bg-surface-variant"><div class="w-12 h-12 rounded-lg bg-primary-fixed-dim/20 flex items-center justify-center mr-4 text-primary-container group-hover:scale-105 transition-transform"><span class="material-symbols-outlined text-[24px]" data-icon="send">send</span></div><div class="flex-1 text-left"><h3 class="font-title-lg text-title-lg text-on-surface">Telegram</h3><p class="font-body-md text-body-md text-outline">Fale com o chat bot pelo Telegram</p></div><span class="material-symbols-outlined text-outline group-hover:text-primary-container transition-colors" data-icon="chevron_right">chevron_right</span></button></div>
+</section>
+<!-- Logout Action -->
+<section class="mt-4">
+<button class="w-full flex items-center justify-center gap-2 py-4 rounded-full bg-error-container text-on-error-container hover:opacity-90 active:scale-95 transition-all font-title-lg text-title-lg">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+      Sair da Conta
+    </button>
+</section>
+</main>
+<!-- BottomNavBar -->
+
+
+</body></html>

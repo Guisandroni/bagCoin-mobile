@@ -14,6 +14,7 @@ from app.db.models.agent_log import AgentLog
 from app.db.models.category import Category
 from app.db.models.phone_conversation import PhoneConversation
 from app.db.models.phone_user import PhoneUser
+from app.db.models.user import User
 from app.db.models.transaction import Transaction, TransactionType
 from app.db.session import sync_session_maker
 
@@ -35,9 +36,7 @@ def get_or_create_user_sync(phone_number: str) -> PhoneUser:
     assert_valid_tenant_phone(phone_number)
     db = sync_session_maker()
     try:
-        user = (
-            db.query(PhoneUser).filter(PhoneUser.phone_number == phone_number).first()
-        )
+        user = db.query(PhoneUser).filter(PhoneUser.phone_number == phone_number).first()
         if not user:
             user = PhoneUser(
                 phone_number=phone_number,
@@ -56,9 +55,7 @@ def get_or_create_user_sync(phone_number: str) -> PhoneUser:
 def get_or_create_user(phone_number: str, db=None) -> PhoneUser:
     """Get or create a phone user, optionally with an existing session."""
     if db:
-        user = (
-            db.query(PhoneUser).filter(PhoneUser.phone_number == phone_number).first()
-        )
+        user = db.query(PhoneUser).filter(PhoneUser.phone_number == phone_number).first()
         if not user:
             assert_valid_tenant_phone(phone_number)
             user = PhoneUser(
@@ -155,6 +152,9 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
 
         transaction = Transaction(
             user_id=user.id,
+            user_uuid=(
+                db.query(User.id).filter(User.phone_number == phone_number).scalar()
+            ),
             type=tx_type.value,
             amount=extracted["amount"],
             currency=extracted.get("currency", "BRL"),
@@ -340,9 +340,7 @@ def update_transaction(
             "amount": tx.amount,
             "description": tx.description,
             "category": category_name
-            or (
-                db.query(Category).get(tx.category_id).name if tx.category_id else None
-            ),
+            or (db.query(Category).get(tx.category_id).name if tx.category_id else None),
         }
     except Exception as e:
         db.rollback()
@@ -568,8 +566,7 @@ def update_financial_profile_sync(phone_number: str) -> dict:
                     func.sum(Transaction.amount).filter(Transaction.type == "INCOME"), 0
                 ).label("income"),
                 func.coalesce(
-                    func.sum(Transaction.amount).filter(Transaction.type == "EXPENSE"),
-                    0,
+                    func.sum(Transaction.amount).filter(Transaction.type == "EXPENSE"), 0
                 ).label("expense"),
             )
             .filter(
@@ -589,11 +586,9 @@ def update_financial_profile_sync(phone_number: str) -> dict:
             ],
             "total_income_90d": total_income,
             "total_expense_90d": total_expense,
-            "savings_rate": (
-                round((total_income - total_expense) / total_income * 100, 1)
-                if total_income > 0
-                else 0
-            ),
+            "savings_rate": round((total_income - total_expense) / total_income * 100, 1)
+            if total_income > 0
+            else 0,
             "average_monthly_spending": round(total_expense / 3, 2),
             "transaction_count_90d": sum(cat.count for cat in cat_totals),
             "last_updated": datetime.now(UTC).isoformat(),
@@ -605,9 +600,7 @@ def update_financial_profile_sync(phone_number: str) -> dict:
         flag_modified(user, "financial_profile")
         db.commit()
 
-        logger.info(
-            f"Financial profile updated for {phone_number}: {len(cat_totals)} categories"
-        )
+        logger.info(f"Financial profile updated for {phone_number}: {len(cat_totals)} categories")
         return profile
 
     except Exception as e:

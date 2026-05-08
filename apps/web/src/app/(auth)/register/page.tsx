@@ -1,8 +1,9 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { RegisterForm } from "@/components/auth/register-form"
-import { BRAND } from "@/lib/constants"
+import { RegisterCard } from "@/components/release/register-card"
+import { useAuthStore } from "@/lib/auth-store"
 
 const GoogleProvider = dynamic(
   () => import("@/components/auth/google-provider").then((m) => m.GoogleProvider),
@@ -10,20 +11,26 @@ const GoogleProvider = dynamic(
 )
 
 export default function RegisterPage() {
+  const router = useRouter()
+  const { register, loginWithGoogle } = useAuthStore()
+
+  const handleRegister = async (data: { name: string; email: string; password: string }) => {
+    await register(data.email, data.password, data.name)
+    router.push("/login?registered=true")
+  }
+
+  const handleGoogleRegister = async (idToken: string) => {
+    await loginWithGoogle(idToken)
+    router.push("/app")
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="mb-8 text-center">
-        <h1 className="font-heading text-3xl font-bold tracking-tight">
-          <span className="text-brand">{BRAND.pre}</span>
-          <span>{BRAND.suf}</span>
-        </h1>
-        <p className="mt-2 text-[14px] text-muted-foreground">
-          Comece a gerenciar suas finanças
-        </p>
-      </div>
-      <GoogleProvider>
-        <RegisterForm />
-      </GoogleProvider>
-    </div>
+    <GoogleProvider>
+      <RegisterCard
+        onRegister={handleRegister}
+        onGoogleRegister={handleGoogleRegister}
+        onLoginClick={() => router.push("/login")}
+      />
+    </GoogleProvider>
   )
 }

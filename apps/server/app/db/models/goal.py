@@ -36,10 +36,10 @@ class Goal(Base, TimestampMixin):
         nullable=True,
         index=True,
     )
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("phone_users.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)

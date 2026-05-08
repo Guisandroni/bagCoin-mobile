@@ -45,7 +45,7 @@ async def create(
 ) -> Goal:
     """Create a new goal."""
     goal = Goal(
-        user_id=user_id or 0,
+        user_id=user_id,
         title=title,
         target_amount=target_amount,
         current_amount=current_amount,
@@ -165,7 +165,7 @@ async def create_goal(
     from datetime import date, datetime
 
     goal = Goal(
-        user_id=user_id or 0,
+        user_id=user_id,
         user_uuid=user_uuid,
         title=title,
         target_amount=target_amount,

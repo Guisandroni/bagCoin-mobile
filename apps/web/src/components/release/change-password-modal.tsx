@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { X, Eye, EyeOff } from "lucide-react"
+import { X } from "lucide-react"
+import { changePasswordSchema } from "@/lib/validations"
 import { PillInput } from "./pill-input"
 
 interface ChangePasswordModalProps {
@@ -24,11 +25,23 @@ export function ChangePasswordModal({
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   if (!isOpen) return null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrors({})
+    const result = changePasswordSchema.safeParse({ currentPassword, newPassword, confirmPassword })
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.issues.forEach((err) => {
+        const path = err.path[0] as string
+        fieldErrors[path] = err.message
+      })
+      setErrors(fieldErrors)
+      return
+    }
     onSubmit?.({ currentPassword, newPassword, confirmPassword })
   }
 
@@ -72,7 +85,11 @@ export function ChangePasswordModal({
               type="password"
               showPasswordToggle
               value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
+              error={errors.currentPassword}
+              onChange={(e) => {
+                setCurrentPassword(e.target.value)
+                if (errors.currentPassword) setErrors((prev) => ({ ...prev, currentPassword: "" }))
+              }}
             />
 
             <PillInput
@@ -81,7 +98,11 @@ export function ChangePasswordModal({
               type="password"
               showPasswordToggle
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              error={errors.newPassword}
+              onChange={(e) => {
+                setNewPassword(e.target.value)
+                if (errors.newPassword) setErrors((prev) => ({ ...prev, newPassword: "" }))
+              }}
             />
 
             <PillInput
@@ -90,7 +111,11 @@ export function ChangePasswordModal({
               type="password"
               showPasswordToggle
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              error={errors.confirmPassword}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value)
+                if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: "" }))
+              }}
             />
 
             <button

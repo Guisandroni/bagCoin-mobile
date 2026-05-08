@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { User, Mail, Lock, LockKeyhole, ArrowRight } from "lucide-react"
+import { registerSchema } from "@/lib/validations"
 import { PillInput } from "./pill-input"
 import { AuthCard, AuthHeader, AuthDivider, AuthFooter, DecorativeBlobs } from "./auth-card"
-import type { ReleaseBudgetType } from "./types"
 
 interface RegisterCardProps {
   onRegister?: (data: {
@@ -12,7 +12,7 @@ interface RegisterCardProps {
     email: string
     password: string
   }) => void
-  onGoogleRegister?: () => void
+  onGoogleRegister?: (idToken: string) => void
   onLoginClick?: () => void
   isLoading?: boolean
 }
@@ -27,9 +27,21 @@ export function RegisterCard({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrors({})
+    const result = registerSchema.safeParse({ name, email, password, confirmPassword })
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.issues.forEach((err) => {
+        const path = err.path[0] as string
+        fieldErrors[path] = err.message
+      })
+      setErrors(fieldErrors)
+      return
+    }
     onRegister?.({ name, email, password })
   }
 
@@ -48,7 +60,11 @@ export function RegisterCard({
             icon={<User className="w-5 h-5" />}
             placeholder="Ex: João Silva"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            error={errors.name}
+            onChange={(e) => {
+              setName(e.target.value)
+              if (errors.name) setErrors((prev) => ({ ...prev, name: "" }))
+            }}
           />
 
           <PillInput
@@ -57,7 +73,11 @@ export function RegisterCard({
             placeholder="seu@email.com"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            error={errors.email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (errors.email) setErrors((prev) => ({ ...prev, email: "" }))
+            }}
           />
 
           <PillInput
@@ -67,7 +87,11 @@ export function RegisterCard({
             type="password"
             showPasswordToggle
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            error={errors.password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (errors.password) setErrors((prev) => ({ ...prev, password: "" }))
+            }}
           />
 
           <PillInput
@@ -77,7 +101,11 @@ export function RegisterCard({
             type="password"
             showPasswordToggle
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            error={errors.confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value)
+              if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: "" }))
+            }}
           />
 
           <button
@@ -94,7 +122,7 @@ export function RegisterCard({
 
         <button
           type="button"
-          onClick={onGoogleRegister}
+          onClick={() => onGoogleRegister?.("")}
           className="w-full h-14 bg-[var(--rls-surface-container-lowest)] border border-[var(--rls-outline-variant)] text-[var(--rls-on-surface)] rls-text-title-lg rounded-[var(--rls-radius-pill)] hover:bg-[var(--rls-surface-container-low)] transition-colors active:scale-[0.98] flex items-center justify-center gap-3"
         >
           <svg className="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

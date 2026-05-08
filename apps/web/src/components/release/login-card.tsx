@@ -1,13 +1,15 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Mail, Lock, ArrowRight } from "lucide-react"
+import { loginSchema } from "@/lib/validations"
 import { PillInput } from "./pill-input"
 import { AuthCard, AuthHeader, AuthDivider, AuthFooter, DecorativeBlobs } from "./auth-card"
 
 interface LoginCardProps {
   onLogin?: (email: string, password: string) => void
-  onGoogleLogin?: () => void
+  onGoogleLogin?: (idToken: string) => void
   onRegisterClick?: () => void
   onForgotPassword?: () => void
   isLoading?: boolean
@@ -22,9 +24,21 @@ export function LoginCard({
 }: LoginCardProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setErrors({})
+    const result = loginSchema.safeParse({ email, password })
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {}
+      result.error.issues.forEach((err) => {
+        const path = err.path[0] as string
+        fieldErrors[path] = err.message
+      })
+      setErrors(fieldErrors)
+      return
+    }
     onLogin?.(email, password)
   }
 
@@ -34,9 +48,14 @@ export function LoginCard({
       <AuthCard>
         <AuthHeader
           icon={
-            <span className="text-white text-[32px] material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
-              monitoring
-            </span>
+            <Image
+              src="/bagcoin.png"
+              alt="Bagcoin"
+              width={64}
+              height={64}
+              className="h-full w-full rounded-full object-cover"
+              priority
+            />
           }
           title="Bem-vindo de volta!"
           subtitle="Acesse sua conta para gerenciar seus investimentos."
@@ -49,7 +68,11 @@ export function LoginCard({
             placeholder="exemplo@email.com"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            error={errors.email}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (errors.email) setErrors((prev) => ({ ...prev, email: "" }))
+            }}
           />
 
           <PillInput
@@ -59,10 +82,14 @@ export function LoginCard({
             type="password"
             showPasswordToggle
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            error={errors.password}
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (errors.password) setErrors((prev) => ({ ...prev, password: "" }))
+            }}
           />
 
-          <div className="flex justify-end -mt-2">
+          {/* <div className="flex justify-end -mt-2">
             <button
               type="button"
               onClick={onForgotPassword}
@@ -70,7 +97,7 @@ export function LoginCard({
             >
               Esqueceu a senha?
             </button>
-          </div>
+          </div> */}
 
           <button
             type="submit"
@@ -86,7 +113,7 @@ export function LoginCard({
 
         <button
           type="button"
-          onClick={onGoogleLogin}
+          onClick={() => onGoogleLogin?.("")}
           className="w-full h-14 bg-[var(--rls-surface-container-lowest)] border border-[var(--rls-outline-variant)] text-[var(--rls-on-surface)] rls-text-title-lg rounded-[var(--rls-radius-pill)] hover:bg-[var(--rls-surface-container-low)] transition-colors active:scale-[0.98] flex items-center justify-center gap-3"
         >
           <svg className="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

@@ -14,22 +14,36 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
   if (token) headers["Authorization"] = `Bearer ${token}`
 
+  const url = `${API_BASE}${path}`
+  const start = Date.now()
+
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(url, {
       ...options,
       headers,
     } as RequestInit)
 
+    const duration = Date.now() - start
+
     if (!res.ok) {
-      if (res.status === 401) return null as T
-      throw new Error(`API error ${res.status}: ${res.statusText}`)
+      const body = await res.text().catch(() => "<unreadable>")
+      if (res.status === 401) {
+        console.warn(`[api-server] 401 ${path} (${duration}ms)`)
+        return null as T
+      }
+      console.error(
+        `[api-server] ${res.status} ${path} (${duration}ms)\n` +
+        `  request: ${options?.method || "GET"} ${url}\n` +
+        `  response: ${body.slice(0, 300)}`
+      )
+      return null as T
     }
 
     return res.json() as Promise<T>
   } catch (err) {
-    if (process.env.NODE_ENV === "production") {
-      console.error(`[api-server] fetch failed for ${path}:`, (err as Error).message)
-    }
+    const duration = Date.now() - start
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`[api-server] ERR ${path} (${duration}ms): ${message}`)
     return null as T
   }
 }

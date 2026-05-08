@@ -57,20 +57,27 @@ export function useBudget(id: number) {
   })
 }
 
+const TOAST_ID_CREATE_BUDGET = "budgets-create"
+
 export function useCreateBudget() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: BudgetCreate) =>
       api.post<Budget>("/bagcoin/budgets", data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE_BUDGET)
       qc.invalidateQueries({ queryKey: ["budgets"] })
-      toast.success("Orçamento criado com sucesso!")
+      toast.success("Orçamento criado com sucesso!", { id: TOAST_ID_CREATE_BUDGET })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar orçamento")
+      toast.dismiss(TOAST_ID_CREATE_BUDGET)
+      console.error('[hook:budgets]', err)
+      toast.error(err.message || "Erro ao criar orçamento", { id: TOAST_ID_CREATE_BUDGET })
     },
   })
 }
+
+const TOAST_ID_UPDATE_BUDGET = "budgets-update"
 
 export function useUpdateBudget() {
   const qc = useQueryClient()
@@ -78,14 +85,19 @@ export function useUpdateBudget() {
     mutationFn: ({ id, data }: { id: number; data: BudgetUpdate }) =>
       api.patch<Budget>(`/bagcoin/budgets/${id}`, data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_UPDATE_BUDGET)
       qc.invalidateQueries({ queryKey: ["budgets"] })
-      toast.success("Orçamento atualizado com sucesso!")
+      toast.success("Orçamento atualizado com sucesso!", { id: TOAST_ID_UPDATE_BUDGET })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao atualizar orçamento")
+      toast.dismiss(TOAST_ID_UPDATE_BUDGET)
+      console.error('[hook:budgets]', err)
+      toast.error(err.message || "Erro ao atualizar orçamento", { id: TOAST_ID_UPDATE_BUDGET })
     },
   })
 }
+
+const TOAST_ID_DELETE_BUDGET = "budgets-delete"
 
 export function useDeleteBudget() {
   const qc = useQueryClient()
@@ -93,11 +105,14 @@ export function useDeleteBudget() {
     mutationFn: (id: number) =>
       api.delete(`/bagcoin/budgets/${id}`),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_DELETE_BUDGET)
       qc.invalidateQueries({ queryKey: ["budgets"] })
-      toast.success("Orçamento excluído com sucesso!")
+      toast.success("Orçamento excluído com sucesso!", { id: TOAST_ID_DELETE_BUDGET })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao excluir orçamento")
+      toast.dismiss(TOAST_ID_DELETE_BUDGET)
+      console.error('[hook:budgets]', err)
+      toast.error(err.message || "Erro ao excluir orçamento", { id: TOAST_ID_DELETE_BUDGET })
     },
   })
 }

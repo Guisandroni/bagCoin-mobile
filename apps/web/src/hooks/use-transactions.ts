@@ -74,20 +74,27 @@ export function useTransactionSummary() {
   })
 }
 
+const TOAST_ID_CREATE_TRANSACTION = "transactions-create"
+
 export function useCreateTransaction() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (data: CreateTransactionData) =>
       api.post<TransactionResponse>("/bagcoin/transactions", data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE_TRANSACTION)
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
-      toast.success("Transação criada com sucesso!")
+      toast.success("Transação criada com sucesso!", { id: TOAST_ID_CREATE_TRANSACTION })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar transação")
+      toast.dismiss(TOAST_ID_CREATE_TRANSACTION)
+      console.error('[hook:transactions]', err)
+      toast.error(err.message || "Erro ao criar transação", { id: TOAST_ID_CREATE_TRANSACTION })
     },
   })
 }
+
+const TOAST_ID_UPDATE_TRANSACTION = "transactions-update"
 
 export function useUpdateTransaction() {
   const queryClient = useQueryClient()
@@ -95,25 +102,33 @@ export function useUpdateTransaction() {
     mutationFn: ({ id, ...data }: UpdateTransactionData) =>
       api.patch<TransactionResponse>(`/bagcoin/transactions/${id}`, data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_UPDATE_TRANSACTION)
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
-      toast.success("Transação atualizada com sucesso!")
+      toast.success("Transação atualizada com sucesso!", { id: TOAST_ID_UPDATE_TRANSACTION })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao atualizar transação")
+      toast.dismiss(TOAST_ID_UPDATE_TRANSACTION)
+      console.error('[hook:transactions]', err)
+      toast.error(err.message || "Erro ao atualizar transação", { id: TOAST_ID_UPDATE_TRANSACTION })
     },
   })
 }
+
+const TOAST_ID_DELETE_TRANSACTION = "transactions-delete"
 
 export function useDeleteTransaction() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.delete(`/bagcoin/transactions/${id}`),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_DELETE_TRANSACTION)
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
-      toast.success("Transação excluída com sucesso!")
+      toast.success("Transação excluída com sucesso!", { id: TOAST_ID_DELETE_TRANSACTION })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao excluir transação")
+      toast.dismiss(TOAST_ID_DELETE_TRANSACTION)
+      console.error('[hook:transactions]', err)
+      toast.error(err.message || "Erro ao excluir transação", { id: TOAST_ID_DELETE_TRANSACTION })
     },
   })
 }

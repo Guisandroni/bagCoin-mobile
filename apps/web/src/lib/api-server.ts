@@ -1,15 +1,9 @@
 import { cookies } from "next/headers"
-import { USE_MOCK_DATA } from "@/lib/feature-flags"
-import * as mock from "@/lib/mock-api"
+import { cacheLife, cacheTag } from "next/cache"
 
-/** Prefer API_URL (server); fall back to NEXT_PUBLIC_API_URL then local dev default. */
 const API_BASE =
   process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
 
-/**
- * Fetch data from the backend API from a Server Component.
- * Reads the JWT from cookies and passes it as Bearer token.
- */
 async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const cookieStore = await cookies()
   const token = cookieStore.get("access_token")?.value
@@ -24,8 +18,7 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers,
-      next: { revalidate: 60 },
-    } as RequestInit & { next?: { revalidate?: number } })
+    } as RequestInit)
 
     if (!res.ok) {
       if (res.status === 401) return null as T
@@ -34,7 +27,6 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
     return res.json() as Promise<T>
   } catch (err) {
-    // Network error during build or backend unreachable — return null
     if (process.env.NODE_ENV === "production") {
       console.error(`[api-server] fetch failed for ${path}:`, (err as Error).message)
     }
@@ -42,7 +34,7 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 }
 
-// ── Typed data fetchers ──────────────────────────────────
+// ── Typed data fetchers with 'use cache' ──────────────────
 
 export interface ServerTransaction {
   id: string
@@ -68,7 +60,9 @@ export interface TransactionSummary {
 }
 
 export async function getTransactionSummary(): Promise<TransactionSummary | null> {
-  if (USE_MOCK_DATA) return mock.getMockTransactionSummary()
+  "use cache: private"
+  cacheTag("transactions", "summary")
+  cacheLife("minutes")
   return serverFetch<TransactionSummary>("/bagcoin/transactions/summary")
 }
 
@@ -80,6 +74,9 @@ export async function getTransactions(params?: {
   skip?: number
   limit?: number
 }): Promise<{ items: ServerTransaction[]; total: number } | null> {
+  "use cache: private"
+  cacheTag("transactions")
+  cacheLife("minutes")
   const qs = new URLSearchParams()
   if (params?.search) qs.set("search", params.search)
   if (params?.type) qs.set("type", params.type)
@@ -88,7 +85,6 @@ export async function getTransactions(params?: {
   if (params?.skip !== undefined) qs.set("skip", String(params.skip))
   if (params?.limit) qs.set("limit", String(params.limit))
   const query = qs.toString()
-  if (USE_MOCK_DATA) return mock.getMockTransactionsServer(params) ?? null
   return serverFetch(`/bagcoin/transactions${query ? `?${query}` : ""}`)
 }
 
@@ -108,13 +104,15 @@ export interface ServerBudget {
 }
 
 export async function getBudgets(): Promise<ServerBudget[] | null> {
-  if (USE_MOCK_DATA) return mock.getMockBudgetsServer()
+  "use cache: private"
+  cacheTag("budgets")
+  cacheLife("hours")
   return serverFetch("/bagcoin/budgets")
 }
 
 export interface ServerGoal {
   id: number
-  name: string
+  title: string
   target_amount: number
   current_amount: number
   remaining_amount: number
@@ -126,7 +124,9 @@ export interface ServerGoal {
 }
 
 export async function getGoals(): Promise<ServerGoal[] | null> {
-  if (USE_MOCK_DATA) return mock.getMockGoalsServer()
+  "use cache: private"
+  cacheTag("goals")
+  cacheLife("hours")
   return serverFetch("/bagcoin/goals")
 }
 
@@ -142,7 +142,9 @@ export interface ServerAccount {
 }
 
 export async function getAccounts(): Promise<ServerAccount[] | null> {
-  if (USE_MOCK_DATA) return mock.getMockAccountsServer()
+  "use cache: private"
+  cacheTag("accounts")
+  cacheLife("hours")
   return serverFetch("/bagcoin/accounts")
 }
 
@@ -159,7 +161,9 @@ export interface ServerCreditCard {
 }
 
 export async function getCreditCards(): Promise<ServerCreditCard[] | null> {
-  if (USE_MOCK_DATA) return mock.getMockCreditCardsServer()
+  "use cache: private"
+  cacheTag("credit-cards")
+  cacheLife("hours")
   return serverFetch("/bagcoin/credit-cards")
 }
 
@@ -174,7 +178,9 @@ export interface ServerReport {
 }
 
 export async function getReports(): Promise<ServerReport[] | null> {
-  if (USE_MOCK_DATA) return mock.getMockReportsServer()
+  "use cache: private"
+  cacheTag("reports")
+  cacheLife("hours")
   return serverFetch("/bagcoin/reports")
 }
 
@@ -190,6 +196,8 @@ export interface ServerConversation {
 }
 
 export async function getConversations(): Promise<ServerConversation[] | null> {
-  if (USE_MOCK_DATA) return mock.getMockConversationsServer()
+  "use cache: private"
+  cacheTag("conversations")
+  cacheLife("minutes")
   return serverFetch("/bagcoin/conversations")
 }

@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
     "framer-motion",
   ],
   serverExternalPackages: [],
+
+  // Tree-shake icon libraries more aggressively
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
 };
 
 export default nextConfig;

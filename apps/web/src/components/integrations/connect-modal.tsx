@@ -90,9 +90,6 @@ export function ConnectIntegrationModal({
     }
   }, [open, statusQuery.data, tab, onOpenChange])
 
-  const manual =
-    tab === "whatsapp" ? tokenPayload?.manual_command_whatsapp : tokenPayload?.manual_command_telegram
-
   const deeplinkWhatsApp = tokenPayload?.deeplink_whatsapp ?? null
   const deeplinkTelegram = tokenPayload?.deeplink_telegram ?? null
 
@@ -123,10 +120,10 @@ export function ConnectIntegrationModal({
             <TabsTrigger value="telegram">Telegram</TabsTrigger>
           </TabsList>
           <TabsContent value="whatsapp" className="space-y-4 pt-4">
-            <ChannelPanel deeplink={deeplinkWhatsApp} manual={manual} label="WhatsApp" busy={busy} />
+            <ChannelPanel deeplink={deeplinkWhatsApp} label="WhatsApp" busy={busy} />
           </TabsContent>
           <TabsContent value="telegram" className="space-y-4 pt-4">
-            <ChannelPanel deeplink={deeplinkTelegram} manual={manual} label="Telegram" busy={busy} />
+            <ChannelPanel deeplink={deeplinkTelegram} label="Telegram" busy={busy} />
           </TabsContent>
         </Tabs>
 
@@ -157,44 +154,33 @@ export function ConnectIntegrationModal({
 
 function ChannelPanel({
   deeplink,
-  manual,
   label,
   busy,
 }: {
   deeplink: string | null | undefined
-  manual: string | undefined
   label: string
   busy: boolean
 }) {
   const openApp = () => {
-    if (deeplink) {
-      const w = window.open(deeplink, "_blank", "noopener,noreferrer")
-      if (!w || w.closed) window.location.href = deeplink
-    }
-    // No deeplink: silent; user can still use "Copiar comando" if manual exists.
+    if (!deeplink) return
+    // Try window.open first; if blocked by popup, fall back to location.href
+    const w = window.open(deeplink, "_blank", "noopener,noreferrer")
+    if (!w || w.closed) window.location.href = deeplink
   }
 
-  const copyManual = () => {
-    if (!manual) return
-    void navigator.clipboard.writeText(manual)
+  if (!deeplink) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Bot não configurado no servidor. Peça ao administrador para definir <code className="rounded bg-muted px-1 py-0.5 text-xs">BOT_WHATSAPP_NUMBER</code> (WhatsApp) ou <code className="rounded bg-muted px-1 py-0.5 text-xs">BOT_TELEGRAM_USERNAME</code> (Telegram).
+      </p>
+    )
   }
 
   return (
     <div className="space-y-3">
-      <Button className="w-full" size="lg" onClick={openApp} disabled={busy || (!deeplink && !manual)}>
-        {deeplink ? `Abrir ${label}` : `Copiar comando (${label})`}
+      <Button className="w-full" size="lg" onClick={openApp} disabled={busy}>
+        Abrir {label}
       </Button>
-      {manual && (
-        <div className="rounded-xl border border-border bg-muted/30 p-3">
-          <p className="mb-2 text-xs font-medium text-muted-foreground">
-            Comando técnico (auto-hospedagem / quando já tens o contacto do bot)
-          </p>
-          <code className="block break-all text-sm">{manual}</code>
-          <Button variant="secondary" size="sm" className="mt-2 w-full" onClick={copyManual}>
-            Copiar comando
-          </Button>
-        </div>
-      )}
     </div>
   )
 }

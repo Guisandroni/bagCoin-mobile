@@ -9,14 +9,18 @@ import {
   ArrowLeftRight,
   BarChart3,
   Settings,
+  Target,
+  LayoutGrid,
 } from "lucide-react"
 
 const iconMap: Record<string, ReactNode> = {
   home: <Home className="w-5 h-5" />,
-  portfolio: <Wallet className="w-5 h-5" />,
-  transferir: <ArrowLeftRight className="w-5 h-5" />,
+  portfolio: <ArrowLeftRight className="w-5 h-5" />,
+  wallet: <Wallet className="w-5 h-5" />,
   mercado: <BarChart3 className="w-5 h-5" />,
   ajustes: <Settings className="w-5 h-5" />,
+  target: <Target className="w-5 h-5" />,
+  categorias: <LayoutGrid className="w-5 h-5" />,
 }
 
 interface BottomNavBarProps {

@@ -47,7 +47,13 @@ export function ProfileView({
                   </span>
                 )}
               </div>
-              
+              <button
+                type="button"
+                className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[var(--rls-primary-container)] flex items-center justify-center shadow-md hover:bg-[var(--rls-primary)] transition-colors"
+                aria-label="Editar foto"
+              >
+                <Pencil className="w-4 h-4 text-white" />
+              </button>
             </div>
           </div>
 
@@ -56,11 +62,13 @@ export function ProfileView({
             <h2 className="rls-text-title-lg text-[var(--rls-on-surface)]">
               {profile.name}
             </h2>
-           
+            <p className="rls-text-body-md text-[var(--rls-on-surface-variant)] mt-1">
+              {profile.tier || "Investidor Pro"}
+            </p>
           </div>
 
           {/* Section Header */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 border-b border-[var(--rls-outline-variant)] pb-2">
             <Badge className="w-5 h-5 text-[var(--rls-primary)]" />
             <h3 className="rls-text-body-lg text-[var(--rls-on-surface)] font-semibold">
               Informações Pessoais
@@ -95,7 +103,7 @@ export function ProfileView({
         {/* Security Card */}
         <div className="bg-[var(--rls-surface-container-lowest)] border border-[var(--rls-outline-variant)] rounded-[var(--rls-radius-lg)] p-[var(--rls-inline-padding-md)] flex flex-col gap-[var(--rls-stack-gap-md)]">
           {/* Section Header */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 border-b border-[var(--rls-outline-variant)] pb-2">
             <Lock className="w-5 h-5 text-[var(--rls-primary)]" />
             <h3 className="rls-text-body-lg text-[var(--rls-on-surface)] font-semibold">
               Segurança

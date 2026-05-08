@@ -32,7 +32,7 @@ export function SettingsView({
   return (
     <div className="rls min-h-screen bg-[var(--rls-background)]">
       <AppBar
-        title={isMobile ? "Menu" : "Configurações"}
+        title="Configurações"
         onBack={onBack}
       />
 
@@ -79,8 +79,8 @@ export function SettingsView({
           {!isMobile && (
             <>
               <ListItem
-                icon={<MessageSquare className="w-5 h-5 text-green-600" />}
-                iconBg="bg-green-100"
+                icon={<MessageSquare className="w-5 h-5 text-[var(--rls-secondary)]" />}
+                iconBg="bg-[var(--rls-secondary-container)]/20"
                 title="WhatsApp"
                 description="Chat bot para transações"
                 onClick={() => onNavigate?.("whatsapp")}

@@ -35,11 +35,11 @@ export function CategoriesView({
   ]
 
   const categoryBgColors: Record<string, string> = {
-    alimentacao: "bg-red-100",
-    moradia: "bg-blue-100",
-    transporte: "bg-green-100",
-    lazer: "bg-orange-100",
-    saude: "bg-purple-100",
+    alimentacao: "bg-[var(--rls-tertiary-container)]/20",
+    moradia: "bg-[var(--rls-primary-container)]/10",
+    transporte: "bg-[var(--rls-secondary-container)]/20",
+    lazer: "bg-[var(--rls-tertiary-container)]/10",
+    saude: "bg-[var(--rls-primary-container)]/10",
   }
 
   return (
@@ -101,6 +101,7 @@ export function CategoriesView({
         </div>
       </main>
 
+      <BottomNavBar items={navItems} onNavigate={onNavigate} />
     </div>
   )
 }

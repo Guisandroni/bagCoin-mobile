@@ -17,7 +17,7 @@ interface ToastBannerProps {
 
 const variantStyles: Record<ToastVariant, { bg: string; icon: typeof CheckCircle }> = {
   success: {
-    bg: "bg-green-50 border-green-200 text-green-800",
+    bg: "bg-[var(--rls-secondary-container)]/20 border-[var(--rls-secondary-container)] text-[var(--rls-on-secondary-container)]",
     icon: CheckCircle,
   },
   error: {

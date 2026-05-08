@@ -77,35 +77,27 @@ export function TransactionsView({
         />
 
         {/* Insights Banner */}
-        <div className="bg-[var(--rls-surface-container-lowest)] rounded-[var(--rls-radius-lg)] p-[var(--rls-inline-padding-md)] shadow-sm flex flex-col gap-2">
-          <div className="flex justify-between items-center">
-            <span className="rls-text-title-lg text-[var(--rls-on-surface)]">
-              Visão Mensal
-            </span>
-            <button className="text-[var(--rls-on-surface-variant)]">
-              <SlidersHorizontal className="w-5 h-5" />
-            </button>
-          </div>
-          <div className="flex flex-col">
-            <span className="rls-text-body-lg text-[var(--rls-on-surface)]">
-              Total Gasto:{" "}
-              <span className="text-[var(--rls-error)]">
+        <div className="bg-[var(--rls-surface-container-lowest)] rounded-[24px] p-[var(--rls-inline-padding-md)] shadow-sm">
+          <div className="grid grid-cols-2 divide-x divide-[var(--rls-outline-variant)]">
+            <div className="flex flex-col items-center gap-1 pr-4">
+              <span className="rls-text-label-lg text-[var(--rls-on-surface-variant)]">Total Gasto</span>
+              <span className="rls-text-headline-sm text-[var(--rls-error)]">
                 R$ {totalSpent.toLocaleString("pt-BR")}
               </span>
-            </span>
-            <span className="rls-text-body-lg text-[var(--rls-on-surface)]">
-              Total Recebido:{" "}
-              <span className="text-green-600">
+            </div>
+            <div className="flex flex-col items-center gap-1 pl-4">
+              <span className="rls-text-label-lg text-[var(--rls-on-surface-variant)]">Total Recebido</span>
+              <span className="rls-text-headline-sm text-[var(--rls-secondary)]">
                 R$ {totalReceived.toLocaleString("pt-BR")}
               </span>
-            </span>
+            </div>
           </div>
         </div>
 
         {/* Transaction Groups */}
         {Object.entries(grouped).map(([dateLabel, txs]) => (
           <div key={dateLabel} className="flex flex-col gap-2">
-            <h3 className="rls-text-label-lg text-[var(--rls-on-surface-variant)] sticky top-0 bg-[var(--rls-background)] py-2 z-10 uppercase">
+            <h3 className="rls-text-label-lg text-[var(--rls-on-surface-variant)] sticky top-0 bg-[var(--rls-background)]/90 backdrop-blur-sm py-2 z-10 uppercase">
               {dateLabel}
             </h3>
             <div className="flex flex-col">
@@ -119,7 +111,7 @@ export function TransactionsView({
                       className={cn(
                         "w-12 h-12 rounded-xl flex items-center justify-center",
                         tx.type === "receita"
-                          ? "bg-green-100"
+                          ? "bg-[var(--rls-secondary-container)]/20"
                           : "bg-[var(--rls-surface-container)]"
                       )}
                     >
@@ -138,7 +130,7 @@ export function TransactionsView({
                     className={cn(
                       "rls-text-body-lg font-semibold",
                       tx.type === "receita"
-                        ? "text-green-600"
+                        ? "text-[var(--rls-secondary)]"
                         : "text-[var(--rls-on-surface)]"
                     )}
                   >
@@ -154,7 +146,7 @@ export function TransactionsView({
         ))}
       </main>
 
-      {/* <BottomNavBar items={navItems} onNavigate={onNavigate} /> */}
+      <BottomNavBar items={navItems} onNavigate={onNavigate} />
     </div>
   )
 }

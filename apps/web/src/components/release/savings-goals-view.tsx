@@ -4,6 +4,7 @@ import { ArrowLeft, Plus } from "lucide-react"
 import { AppBar } from "./app-bar"
 import { InfoCard } from "./info-card"
 import type { ReleaseGoal } from "./types"
+import { CategoryIcon } from "@/lib/category"
 
 interface SavingsGoalsViewProps {
   goals: ReleaseGoal[]
@@ -12,13 +13,6 @@ interface SavingsGoalsViewProps {
   globalPercentage: number
   onBack?: () => void
   onAddGoal?: () => void
-}
-
-const goalIcons: Record<string, React.ReactNode> = {
-  viagem: "✈️",
-  veiculo: "🚗",
-  casa: "🏠",
-  outro: "🎯",
 }
 
 export function SavingsGoalsView({
@@ -90,8 +84,8 @@ export function SavingsGoalsView({
               >
                 <div className="flex justify-between items-end">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-[var(--rls-surface-container)] flex items-center justify-center text-xl">
-                      {goalIcons[goal.category] || goalIcons.outro}
+                    <div className="w-12 h-12 rounded-xl bg-[var(--rls-surface-container)] flex items-center justify-center">
+                      <CategoryIcon name={goal.category} size={24} />
                     </div>
                     <div className="flex flex-col">
                       <span className="rls-text-body-lg text-[var(--rls-on-surface)]">

@@ -96,10 +96,10 @@ export function MonthlyBudgetsView({
                 budget.categoryColor === "red"
                   ? "bg-[var(--rls-error-container)]"
                   : budget.categoryColor === "green"
-                    ? "bg-[var(--rls-secondary-container)]/20"
+                    ? "bg-[var(--rls-secondary-container)]"
                     : budget.categoryColor === "pink"
-                      ? "bg-[var(--rls-tertiary-container)]/20"
-                      : "bg-[var(--rls-primary-container)]/10"
+                      ? "bg-[var(--rls-tertiary-container)]"
+                      : "bg-[var(--rls-primary-container)]"
               }
             />
             )

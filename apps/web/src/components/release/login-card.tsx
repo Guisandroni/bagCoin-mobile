@@ -48,14 +48,9 @@ export function LoginCard({
       <AuthCard>
         <AuthHeader
           icon={
-            <Image
-              src="/bagcoin.png"
-              alt="Bagcoin"
-              width={64}
-              height={64}
-              className="h-full w-full rounded-full object-cover"
-              priority
-            />
+            <div className="w-16 h-16 rounded-full bg-[var(--rls-primary-container)] flex items-center justify-center">
+              <span className="text-white text-2xl font-bold">bC</span>
+            </div>
           }
           title="Bem-vindo de volta!"
           subtitle="Acesse sua conta para gerenciar seus investimentos."
@@ -89,7 +84,7 @@ export function LoginCard({
             }}
           />
 
-          {/* <div className="flex justify-end -mt-2">
+          <div className="flex justify-end -mt-2">
             <button
               type="button"
               onClick={onForgotPassword}
@@ -97,7 +92,7 @@ export function LoginCard({
             >
               Esqueceu a senha?
             </button>
-          </div> */}
+          </div>
 
           <button
             type="submit"

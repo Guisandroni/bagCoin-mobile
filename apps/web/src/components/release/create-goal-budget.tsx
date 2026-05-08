@@ -59,7 +59,7 @@ export function CreateGoalBudget({
           className="bg-[var(--rls-surface-container-lowest)] rounded-[var(--rls-radius-lg)] shadow-sm p-[var(--rls-inline-padding-md)] flex flex-col gap-[var(--rls-stack-gap-md)]"
         >
           <PillInput
-            label="Nome da Meta"
+            label={type === "meta" ? "Nome do Objetivo" : "Nome do Orçamento"}
             icon={<Edit2 className="w-5 h-5" />}
             placeholder={type === "meta" ? "Ex: Viagem para o Japão" : "Ex: Mercado Mensal"}
             value={name}

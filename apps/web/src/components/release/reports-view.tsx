@@ -19,8 +19,8 @@ interface ReportsViewProps {
 const statusConfig = {
   concluido: {
     label: "Concluído",
-    bg: "bg-green-100",
-    text: "text-green-800",
+    bg: "bg-[var(--rls-secondary-container)]/20",
+    text: "text-[var(--rls-on-secondary-container)]",
     icon: <CheckCircle className="w-3.5 h-3.5" />,
   },
   arquivado: {
@@ -59,7 +59,7 @@ export function ReportsView({
         onBack={onBack}
         title="Relatórios Financeiros"
         titleClassName="rls-text-title-lg text-[var(--rls-primary)]"
-        // actions={[AppBarMoreAction(() => {})]}
+        actions={[AppBarMoreAction(() => {})]}
       />
 
       <main className="px-[var(--rls-container-margin)] flex flex-col gap-[var(--rls-stack-gap-md)] pt-[var(--rls-stack-gap-md)]">
@@ -107,7 +107,7 @@ export function ReportsView({
                   <button
                     onClick={() => onDownload?.(Number(report.id))}
                     className={cn(
-                      "self-start px-4 py-2 rounded-[var(--rls-radius-pill)] rls-text-label-lg flex items-center gap-2 transition-all",
+                      "w-full h-14 rounded-[var(--rls-radius-pill)] rls-text-label-lg flex items-center justify-center gap-2 transition-all",
                       report.status === "concluido" && report.type === "mensal"
                         ? "bg-[var(--rls-primary-container)] text-white hover:bg-[var(--rls-primary)]"
                         : "border border-[var(--rls-primary-container)] text-[var(--rls-primary-container)] hover:bg-[var(--rls-primary-container)]/5"
@@ -123,7 +123,7 @@ export function ReportsView({
         </div>
       </main>
 
-      {/* <BottomNavBar items={navItems} onNavigate={onNavigate} /> */}
+      <BottomNavBar items={navItems} onNavigate={onNavigate} />
     </div>
   )
 }

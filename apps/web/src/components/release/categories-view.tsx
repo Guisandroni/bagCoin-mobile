@@ -8,6 +8,7 @@ import { InfoCard } from "./info-card"
 import { BottomNavBar } from "./bottom-nav-bar"
 import type { ReleaseCategory, ReleaseNavItem } from "./types"
 import { cn } from "@/lib/utils"
+import { CategoryIcon } from "@/lib/category"
 
 interface CategoriesViewProps {
   categories: ReleaseCategory[]
@@ -32,14 +33,6 @@ export function CategoriesView({
     { label: "Receitas", value: "receita" as const },
     { label: "Investimentos", value: "investimento" as const },
   ]
-
-  const categoryIcons: Record<string, React.ReactNode> = {
-    alimentacao: "🍽️",
-    moradia: "🏠",
-    transporte: "🚗",
-    lazer: "🎬",
-    saude: "❤️",
-  }
 
   const categoryBgColors: Record<string, string> = {
     alimentacao: "bg-red-100",
@@ -90,7 +83,7 @@ export function CategoriesView({
                 )}
                 style={{ backgroundColor: cat.color ? `${cat.color}20` : undefined }}
               >
-                {categoryIcons[cat.name.toLowerCase()] || cat.icon}
+                <CategoryIcon name={cat.name} size={20} />
               </div>
               <div className="flex-1 min-w-0">
                 <span className="rls-text-body-lg text-[var(--rls-on-surface)] block">

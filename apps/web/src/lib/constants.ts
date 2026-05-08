@@ -26,16 +26,7 @@ export const MOBILE_NAV_ITEMS = [
 export const DIALOG_SHEET_MOBILE =
   "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:left-0 max-sm:max-h-[min(92dvh,800px)] max-sm:max-w-full max-sm:translate-x-0 max-sm:translate-y-0 max-sm:overflow-y-auto max-sm:rounded-b-none max-sm:rounded-t-2xl"
 
-export const CATEGORIES = [
-  { label: "Alimentação", icon: "🍔", name: "Alimentação", color: "#FF6B6B", emoji: "🍔" },
-  { label: "Transporte", icon: "🚗", name: "Transporte", color: "#4ECDC4", emoji: "🚗" },
-  { label: "Moradia", icon: "🏠", name: "Moradia", color: "#45B7D1", emoji: "🏠" },
-  { label: "Saúde", icon: "🏥", name: "Saúde", color: "#96CEB4", emoji: "🏥" },
-  { label: "Educação", icon: "📚", name: "Educação", color: "#FFEAA7", emoji: "📚" },
-  { label: "Lazer", icon: "🎮", name: "Lazer", color: "#DDA0DD", emoji: "🎮" },
-  { label: "Salário", icon: "💼", name: "Salário", color: "#98D8C8", emoji: "💼" },
-  { label: "Investimentos", icon: "📈", name: "Investimentos", color: "#F7DC6F", emoji: "📈" },
-]
+export { CATEGORY_LIST, CATEGORIES_WITH_EMOJI, EXPENSE_CATEGORIES, INCOME_CATEGORIES, CATEGORIES } from "@/lib/category"
 
 export const PERIODS = [
   { value: "monthly", label: "Mensal" },

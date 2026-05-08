@@ -6,6 +6,7 @@ import { InfoCard } from "./info-card"
 import { DonutChart } from "./donut-chart"
 import { BottomNavBar } from "./bottom-nav-bar"
 import { cn } from "@/lib/utils"
+import { CategoryIcon } from "@/lib/category"
 import type { ReleaseDashboardSummary, ReleaseNavItem } from "./types"
 
 interface DashboardViewProps {
@@ -91,7 +92,11 @@ export function DashboardView({
                         : "bg-[var(--rls-surface-container)]"
                     )}
                   >
-                    {tx.type === "receita" ? "💰" : "🛒"}
+                    <CategoryIcon
+                      name={tx.category}
+                      size={24}
+                      className={tx.type === "receita" ? "text-green-600" : "text-[var(--rls-on-surface-variant)]"}
+                    />
                   </div>
                   <div className="flex flex-col">
                     <span className="rls-text-body-lg text-[var(--rls-on-surface)] text-sm">

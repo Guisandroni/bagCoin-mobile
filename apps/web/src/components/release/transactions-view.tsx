@@ -7,6 +7,7 @@ import { FilterChips } from "./filter-chips"
 import { PillInput } from "./pill-input"
 import { BottomNavBar } from "./bottom-nav-bar"
 import { cn } from "@/lib/utils"
+import { CategoryIcon } from "@/lib/category"
 import type { ReleaseTransaction, ReleaseFilterPeriod, ReleaseNavItem } from "./types"
 
 interface TransactionsViewProps {
@@ -16,16 +17,6 @@ interface TransactionsViewProps {
   navItems: ReleaseNavItem[]
   onNavigate: (href: string) => void
   onSearch?: (query: string) => void
-}
-
-const transactionIcons: Record<string, React.ReactNode> = {
-  alimentacao: "🍽️",
-  transporte: "🚕",
-  receita: "💰",
-  compras: "🛍️",
-  lazer: "🎬",
-  restaurantes: "☕",
-  saude: "❤️",
 }
 
 export function TransactionsView({
@@ -132,7 +123,7 @@ export function TransactionsView({
                           : "bg-[var(--rls-surface-container)]"
                       )}
                     >
-                      {transactionIcons[tx.category] || tx.categoryIcon || "💳"}
+                      <CategoryIcon name={tx.category} size={24} />
                     </div>
                     <div className="flex flex-col">
                       <span className="rls-text-body-lg text-[var(--rls-on-surface)]">

@@ -16,15 +16,7 @@ import type {
   ServerReport,
 } from "@/lib/api-server"
 import { useAuthStore } from "@/lib/auth-store"
-import { CATEGORIES } from "@/lib/constants"
-
-const categoryEmojiMap: Record<string, string> = Object.fromEntries(
-  CATEGORIES.map((c) => [c.name, c.emoji])
-)
-
-const categoryColorMap: Record<string, string> = Object.fromEntries(
-  CATEGORIES.map((c) => [c.name, c.color])
-)
+import { getCategoryEmoji, getCategoryColor } from "@/lib/category"
 
 export function serverTransactionToRelease(
   tx: ServerTransaction
@@ -35,7 +27,7 @@ export function serverTransactionToRelease(
     id: tx.id,
     name: tx.name || tx.description || "",
     category: catName,
-    categoryIcon: categoryEmojiMap[catName] || "💳",
+    categoryIcon: getCategoryEmoji(catName),
     amount: tx.amount,
     date: tx.date || tx.transaction_date || "",
     type: typeName,
@@ -52,7 +44,7 @@ export function serverGoalToRelease(goal: ServerGoal): ReleaseGoal {
     current: goal.current_amount,
     deadline: goal.deadline ?? undefined,
     category: catType,
-    color: categoryColorMap[goal.title] ?? "#1652f0",
+    color: getCategoryColor(goal.title),
   }
 }
 
@@ -61,7 +53,7 @@ export function serverBudgetToRelease(budget: ServerBudget): ReleaseBudget {
   return {
     id: String(budget.id),
     category: catName,
-    categoryIcon: categoryEmojiMap[catName] || "💰",
+    categoryIcon: getCategoryEmoji(catName),
     categoryColor: mapBudgetColor(budget.percentage),
     spent: budget.total_spent,
     total: budget.total_limit,
@@ -129,7 +121,7 @@ export function categoriesFromSummary(
   if (!summary) return []
   return (summary.categories ?? []).map((cat, i) => ({
     name: cat.name,
-    icon: categoryEmojiMap[cat.name] ?? "📁",
+    icon: getCategoryEmoji(cat.name),
     color: cat.color,
     allocated: cat.amount,
     percentage: summary.total_expenses

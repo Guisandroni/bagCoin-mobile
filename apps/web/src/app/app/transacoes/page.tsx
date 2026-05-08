@@ -1,24 +1,16 @@
+import dynamic from "next/dynamic"
 import { getTransactions } from "@/lib/api-server"
-import type { ServerTransaction } from "@/lib/api-server"
-import type { Transaction } from "@/types"
-import TransacoesClient from "./transacoes-client"
+import { serverTransactionToRelease } from "@/lib/adapters"
+import TransacoesLoading from "./loading"
 
-function mapServerTransaction(t: ServerTransaction): Transaction {
-  return {
-    id: t.id,
-    name: t.name || t.description || "",
-    category: t.category || t.category_name || "",
-    amount: t.amount,
-    date: t.date || t.transaction_date || "",
-    source: (t.source || "manual") as Transaction["source"],
-    status: (t.status || "confirmed") as Transaction["status"],
-  }
-}
+const TransacoesClient = dynamic(() => import("./transacoes-client").then((m) => m.TransacoesClient), {
+  loading: () => <TransacoesLoading />,
+})
 
 export default async function TransacoesPage() {
   const result = await getTransactions()
   const serverTransactions = result?.items ?? []
-  const transactions: Transaction[] = serverTransactions.map(mapServerTransaction)
+  const transactions = serverTransactions.map(serverTransactionToRelease)
 
   return <TransacoesClient transactions={transactions} />
 }

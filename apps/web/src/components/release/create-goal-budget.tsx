@@ -28,8 +28,8 @@ export function CreateGoalBudget({
 }: CreateGoalBudgetProps) {
   const [type, setType] = useState<ReleaseBudgetType>(initialType)
   const [name, setName] = useState("")
-  const [target, setTarget] = useState("R$ 0,00")
-  const [initial, setInitial] = useState("R$ 0,00")
+  const [target, setTarget] = useState("0,00")
+  const [initial, setInitial] = useState("0,00")
   const [category, setCategory] = useState<ReleaseCategoryType>("viagem")
   const [deadline, setDeadline] = useState("")
 
@@ -59,7 +59,7 @@ export function CreateGoalBudget({
           className="bg-[var(--rls-surface-container-lowest)] rounded-[var(--rls-radius-lg)] shadow-sm p-[var(--rls-inline-padding-md)] flex flex-col gap-[var(--rls-stack-gap-md)]"
         >
           <PillInput
-            label="Nome do Objetivo"
+            label="Nome da Meta"
             icon={<Edit2 className="w-5 h-5" />}
             placeholder={type === "meta" ? "Ex: Viagem para o Japão" : "Ex: Mercado Mensal"}
             value={name}
@@ -69,7 +69,7 @@ export function CreateGoalBudget({
           <PillInput
             label="Valor Alvo"
             icon={<DollarSign className="w-5 h-5" />}
-            placeholder="R$ 0,00"
+            placeholder="0,00"
             value={target}
             onChange={(e) => setTarget(e.target.value)}
           />
@@ -78,7 +78,7 @@ export function CreateGoalBudget({
             <PillInput
               label="Valor Inicial"
               icon={<DollarSign className="w-5 h-5" />}
-              placeholder="R$ 0,00"
+              placeholder="0,00"
               value={initial}
               onChange={(e) => setInitial(e.target.value)}
             />

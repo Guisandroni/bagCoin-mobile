@@ -108,7 +108,6 @@ export function CategoriesView({
         </div>
       </main>
 
-      <BottomNavBar items={navItems} onNavigate={onNavigate} />
     </div>
   )
 }

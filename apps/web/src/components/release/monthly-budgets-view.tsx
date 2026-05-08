@@ -47,7 +47,7 @@ export function MonthlyBudgetsView({
 
   return (
     <div className="rls min-h-screen bg-[var(--rls-background)]">
-      <AppBar title="Orçamentos Mensais" onBack={onBack} />
+      <AppBar title="Meus Orçamentos" onBack={onBack} />
 
       <main className="px-[var(--rls-container-margin)] flex flex-col gap-[var(--rls-stack-gap-lg)] pt-[var(--rls-stack-gap-md)] pb-32">
         {/* Total Budget Card */}

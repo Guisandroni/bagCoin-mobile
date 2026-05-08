@@ -63,23 +63,10 @@ export function TransactionsView({
   return (
     <div className="rls min-h-screen bg-[var(--rls-background)] pb-24">
       <AppBar
-        title="Financial Hub"
+        title="Minhas Transações"
         titleClassName="rls-text-display-md text-[var(--rls-primary-container)]"
-        avatar={
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--rls-surface-variant)] flex items-center justify-center">
-            <span className="text-[var(--rls-on-surface-variant)]">👤</span>
-          </div>
-        }
-        actions={[
-          {
-            icon: (
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                <Search className="w-5 h-5 text-[var(--rls-primary)]" />
-              </div>
-            ),
-            onClick: () => {},
-          },
-        ]}
+       
+        
       />
 
       <main className="px-[var(--rls-container-margin)] flex flex-col gap-[var(--rls-stack-gap-md)] pt-[var(--rls-stack-gap-sm)]">
@@ -176,7 +163,7 @@ export function TransactionsView({
         ))}
       </main>
 
-      <BottomNavBar items={navItems} onNavigate={onNavigate} />
+      {/* <BottomNavBar items={navItems} onNavigate={onNavigate} /> */}
     </div>
   )
 }

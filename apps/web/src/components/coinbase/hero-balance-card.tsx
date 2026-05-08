@@ -5,7 +5,6 @@ import { Loader2, ChevronDown, ChevronUp } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { TransactionSummary } from "@/lib/api-server"
-import { SEED_BALANCE_HISTORY } from "@/data/seed"
 import { DashboardAreaChart, type AreaChartPoint } from "@/components/charts/area-chart"
 import { TimeRangeSelector, type TimeRangeKey } from "./time-range-selector"
 
@@ -15,8 +14,18 @@ interface HeroBalanceCardProps {
   connectBusy?: boolean
 }
 
+const BALANCE_HISTORY = [
+  { day: "28/04", val: 14800 },
+  { day: "29/04", val: 16100 },
+  { day: "30/04", val: 15300 },
+  { day: "01/05", val: 18200 },
+  { day: "02/05", val: 19900 },
+  { day: "03/05", val: 21500 },
+  { day: "04/05", val: 23568 },
+] as const
+
 export function chartPointsForRange(range: TimeRangeKey): AreaChartPoint[] {
-  const base = [...SEED_BALANCE_HISTORY].map((p) => ({ day: p.day, val: p.val }))
+  const base = BALANCE_HISTORY.map((p) => ({ day: p.day, val: p.val }))
   switch (range) {
     case "1d":
       return base.slice(-2)

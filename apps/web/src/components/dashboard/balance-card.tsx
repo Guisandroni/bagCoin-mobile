@@ -4,7 +4,6 @@ import { Loader2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { TransactionSummary } from "@/lib/api-server"
-import { SEED_BALANCE_HISTORY } from "@/data/seed"
 import { DashboardAreaChart } from "@/components/charts/area-chart"
 import { cn } from "@/lib/utils"
 
@@ -14,6 +13,16 @@ interface Props {
   connectBusy?: boolean
 }
 
+const BALANCE_HISTORY = [
+  { day: "28/04", val: 14800 },
+  { day: "29/04", val: 16100 },
+  { day: "30/04", val: 15300 },
+  { day: "01/05", val: 18200 },
+  { day: "02/05", val: 19900 },
+  { day: "03/05", val: 21500 },
+  { day: "04/05", val: 23568 },
+] as const
+
 export function BalanceCard({ summary, onConnectWhatsApp, connectBusy }: Props) {
   const balance = summary?.balance ?? 0
   const txCount = summary?.transaction_count ?? 0
@@ -22,7 +31,7 @@ export function BalanceCard({ summary, onConnectWhatsApp, connectBusy }: Props) 
   const mainPart = balanceStr.split(",")[0]
   const decimalPart = balanceStr.split(",")[1] || "00"
 
-  const chartPoints = [...SEED_BALANCE_HISTORY].map((p) => ({ day: p.day, val: p.val }))
+  const chartPoints = BALANCE_HISTORY.map((p) => ({ day: p.day, val: p.val }))
 
   return (
     <div

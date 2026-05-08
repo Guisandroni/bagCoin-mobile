@@ -47,9 +47,7 @@ export function ProfileView({
                   </span>
                 )}
               </div>
-              <button className="absolute bottom-0 right-0 w-8 h-8 bg-[var(--rls-primary-container)] rounded-full flex items-center justify-center shadow-md">
-                <Pencil className="w-4 h-4 text-white" />
-              </button>
+              
             </div>
           </div>
 
@@ -58,11 +56,7 @@ export function ProfileView({
             <h2 className="rls-text-title-lg text-[var(--rls-on-surface)]">
               {profile.name}
             </h2>
-            {profile.tier && (
-              <p className="rls-text-body-md text-[var(--rls-on-surface-variant)]">
-                {profile.tier}
-              </p>
-            )}
+           
           </div>
 
           {/* Section Header */}

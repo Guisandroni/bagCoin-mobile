@@ -31,20 +31,19 @@ export function DashboardView({
             <User className="w-6 h-6 text-[var(--rls-outline)]" />
           </div>
         }
-        title="Centro Financeiro"
-        titleClassName="text-2xl"
-        actions={[{ icon: <Search className="w-6 h-6" />, onClick: () => {} }]}
+
       />
 
       <main className="px-[var(--rls-container-margin)] flex flex-col gap-[var(--rls-stack-gap-lg)] pt-[var(--rls-stack-gap-md)]">
         {/* Balance Section */}
         <section className="flex flex-col items-center">
-          <span className="rls-text-body-md text-[var(--rls-on-surface-variant)] mb-2">
-            Saldo Total
-          </span>
+
           <h2 className="rls-text-display-lg text-[var(--rls-on-surface)]">
             R$ {summary.totalBalance.toLocaleString("pt-BR")}
           </h2>
+          <span className="rls-text-body-md text-[var(--rls-on-surface-variant)] mb-2">
+            Saldo Total
+          </span>
 
           <div className="flex gap-[var(--rls-stack-gap-md)] mt-[var(--rls-stack-gap-md)] w-full">
             <InfoCard
@@ -142,9 +141,9 @@ export function DashboardView({
             <h3 className="rls-text-title-lg text-[var(--rls-on-surface)] text-base">
               Metas e Orçamentos
             </h3>
-            <button onClick={onAddGoal} className="text-[var(--rls-primary)]">
+            {/* <button onClick={onAddGoal} className="text-[var(--rls-primary)]">
               <PlusCircle className="w-6 h-6" />
-            </button>
+            </button> */}
           </div>
 
           <div className="flex flex-col gap-[var(--rls-stack-gap-md)]">
@@ -153,7 +152,7 @@ export function DashboardView({
                 <div className="flex justify-between items-end">
                   <div className="flex flex-col">
                     <span className="rls-text-body-lg text-[var(--rls-on-surface)] text-sm">
-                      {goal.name}
+                      {goal.name} 
                     </span>
                     <span className="rls-text-body-md text-[var(--rls-on-surface-variant)] text-xs">
                       R$ {goal.current.toLocaleString("pt-BR")} de R${" "}

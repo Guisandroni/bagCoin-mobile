@@ -17,6 +17,7 @@ interface SettingsViewProps {
   onBack?: () => void
   onNavigate?: (section: string) => void
   onLogout?: () => void
+  variant?: "full" | "mobile"
 }
 
 export function SettingsView({
@@ -24,11 +25,14 @@ export function SettingsView({
   onBack,
   onNavigate,
   onLogout,
+  variant = "full",
 }: SettingsViewProps) {
+  const isMobile = variant === "mobile"
+
   return (
     <div className="rls min-h-screen bg-[var(--rls-background)]">
       <AppBar
-        title="Configurações"
+        title={isMobile ? "Menu" : "Configurações"}
         onBack={onBack}
       />
 
@@ -68,24 +72,28 @@ export function SettingsView({
           <ListItem
             icon={<Palette className="w-5 h-5 text-[var(--rls-secondary)]" />}
             iconBg="bg-[var(--rls-secondary-container)]/20"
-            title="Aparência"
-            description="Tema e personalização"
-            onClick={() => onNavigate?.("aparencia")}
+            title="Relatórios"
+            description="Veja seus ultimos relatórios"
+            onClick={() => onNavigate?.("relatorios")}
           />
-          <ListItem
-            icon={<MessageSquare className="w-5 h-5 text-green-600" />}
-            iconBg="bg-green-100"
-            title="WhatsApp"
-            description="Chat bot para transações"
-            onClick={() => onNavigate?.("whatsapp")}
-          />
-          <ListItem
-            icon={<Send className="w-5 h-5 text-blue-600" />}
-            iconBg="bg-blue-100"
-            title="Telegram"
-            description="Bot para notificações"
-            onClick={() => onNavigate?.("telegram")}
-          />
+          {!isMobile && (
+            <>
+              <ListItem
+                icon={<MessageSquare className="w-5 h-5 text-green-600" />}
+                iconBg="bg-green-100"
+                title="WhatsApp"
+                description="Chat bot para transações"
+                onClick={() => onNavigate?.("whatsapp")}
+              />
+              <ListItem
+                icon={<Send className="w-5 h-5 text-blue-600" />}
+                iconBg="bg-blue-100"
+                title="Telegram"
+                description="Bot para notificações"
+                onClick={() => onNavigate?.("telegram")}
+              />
+            </>
+          )}
         </div>
 
         {/* Logout */}

@@ -13,7 +13,7 @@ interface ReportsViewProps {
   navItems: ReleaseNavItem[]
   onBack?: () => void
   onNavigate: (href: string) => void
-  onDownload?: (reportId: string) => void
+  onDownload?: (reportId: number) => void
 }
 
 const statusConfig = {
@@ -59,7 +59,7 @@ export function ReportsView({
         onBack={onBack}
         title="Relatórios Financeiros"
         titleClassName="rls-text-title-lg text-[var(--rls-primary)]"
-        actions={[AppBarMoreAction(() => {})]}
+        // actions={[AppBarMoreAction(() => {})]}
       />
 
       <main className="px-[var(--rls-container-margin)] flex flex-col gap-[var(--rls-stack-gap-md)] pt-[var(--rls-stack-gap-md)]">
@@ -105,7 +105,7 @@ export function ReportsView({
                   </div>
 
                   <button
-                    onClick={() => onDownload?.(report.id)}
+                    onClick={() => onDownload?.(Number(report.id))}
                     className={cn(
                       "self-start px-4 py-2 rounded-[var(--rls-radius-pill)] rls-text-label-lg flex items-center gap-2 transition-all",
                       report.status === "concluido" && report.type === "mensal"
@@ -123,7 +123,7 @@ export function ReportsView({
         </div>
       </main>
 
-      <BottomNavBar items={navItems} onNavigate={onNavigate} />
+      {/* <BottomNavBar items={navItems} onNavigate={onNavigate} /> */}
     </div>
   )
 }

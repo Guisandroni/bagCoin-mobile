@@ -101,13 +101,12 @@ export async function openIntegrationChat(
   void queryClient.invalidateQueries({ queryKey: ["integrations", "status"] })
   startIntegrationPairingPoll(queryClient)
 
-  if (deeplink) {
-    const w = window.open(deeplink, "_blank", "noopener,noreferrer")
-    if (!w || w.closed) window.location.href = deeplink
-    return
+  if (!deeplink) {
+    throw new Error("Deeplink não disponível. Verifique se o bot está configurado no servidor.")
   }
 
-  // No deeplink / manual fallback — silent (no toast).
+  const w = window.open(deeplink, "_blank", "noopener,noreferrer")
+  if (!w || w.closed) window.location.href = deeplink
 }
 
 export function useIntegrationStatus(pollWhileOpen: boolean) {

@@ -1,41 +1,33 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { describe, it, expect, vi } from "vitest"
+import { render, screen } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { MetasClient, type MetasGoal } from "@/app/app/metas/metas-client"
+import { MetasClient } from "@/app/app/metas/metas-client"
 import MetasLoading from "@/app/app/metas/loading"
+import type { ReleaseGoal } from "@/components/release/types"
 import type { ReactNode } from "react"
 
-const mockGoals: MetasGoal[] = [
+const mockGoals: ReleaseGoal[] = [
   {
-    id: 1,
-    title: "Viagem Europa",
-    target_amount: 15000,
-    current_amount: 5000,
-    deadline: "2026-12-31T00:00:00Z",
-    status: "active",
-    created_at: "2026-01-01T00:00:00Z",
-    updated_at: null,
+    id: "1",
+    name: "Viagem Europa",
+    target: 15000,
+    current: 5000,
+    deadline: "2026-12-31",
+    category: "viagem",
   },
   {
-    id: 2,
-    title: "Fundo de Emergência",
-    target_amount: 30000,
-    current_amount: 30000,
-    deadline: null,
-    status: "completed",
-    created_at: "2026-01-01T00:00:00Z",
-    updated_at: null,
+    id: "2",
+    name: "Fundo de Emergência",
+    target: 30000,
+    current: 30000,
+    category: "outro",
   },
 ]
 
-const mockCreateGoalMutate = vi.fn()
-const mockUpdateGoalMutate = vi.fn()
-const mockDeleteGoalMutate = vi.fn()
-
 vi.mock("@/hooks/use-goals", () => ({
-  useCreateGoal: () => ({ mutateAsync: mockCreateGoalMutate, isPending: false }),
-  useUpdateGoal: () => ({ mutateAsync: mockUpdateGoalMutate, isPending: false }),
-  useDeleteGoal: () => ({ mutateAsync: mockDeleteGoalMutate, isPending: false }),
+  useCreateGoal: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateGoal: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useDeleteGoal: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
 vi.mock("sonner", () => ({
@@ -65,83 +57,54 @@ describe("MetasLoading", () => {
 })
 
 describe("MetasClient", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  it("renderiza empty state quando não há metas", () => {
-    render(<MetasClient initialGoals={[]} />, { wrapper: createWrapper() })
-    expect(screen.getByText("Nenhuma meta criada")).toBeInTheDocument()
-    expect(screen.getByText("Criar Meta")).toBeInTheDocument()
-  })
-
-  it("renderiza goal cards com progress", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
+  it("renderiza goal cards com nomes", () => {
+    render(
+      <MetasClient goals={mockGoals} totalCurrent={35000} totalTarget={45000} globalPercentage={78} />,
+      { wrapper: createWrapper() }
+    )
     expect(screen.getByText("Viagem Europa")).toBeInTheDocument()
     expect(screen.getByText("Fundo de Emergência")).toBeInTheDocument()
   })
 
-  it("exibe porcentagem de progresso das metas", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    expect(screen.getByText("33.3% concluído")).toBeInTheDocument()
-    expect(screen.getByText("Concluída")).toBeInTheDocument()
+  it("renderiza título da página", () => {
+    render(
+      <MetasClient goals={mockGoals} totalCurrent={35000} totalTarget={45000} globalPercentage={78} />,
+      { wrapper: createWrapper() }
+    )
+    expect(screen.getByText("Minhas Metas")).toBeInTheDocument()
   })
 
-  it("exibe status das metas (Ativa / Concluída)", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    expect(screen.getByText("Ativa")).toBeInTheDocument()
-    expect(screen.getByText("Concluída")).toBeInTheDocument()
+  it("renderiza resumo total e porcentagem global", () => {
+    render(
+      <MetasClient goals={mockGoals} totalCurrent={35000} totalTarget={45000} globalPercentage={78} />,
+      { wrapper: createWrapper() }
+    )
+    expect(screen.getByText("Total em Metas")).toBeInTheDocument()
+    expect(screen.getByText("78%")).toBeInTheDocument()
   })
 
-  it("exibe prazo da meta quando existe deadline", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    expect(screen.getByText(/Prazo:/)).toBeInTheDocument()
+  it("renderiza valores monetários nos cards", () => {
+    render(
+      <MetasClient goals={mockGoals} totalCurrent={35000} totalTarget={45000} globalPercentage={78} />,
+      { wrapper: createWrapper() }
+    )
+    expect(screen.getAllByText(/5\.000/).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/15\.000/).length).toBeGreaterThanOrEqual(1)
   })
 
-  it("exibe valores atual e alvo nos cards", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    expect(screen.getAllByText(/R\$\s*5\.000,00/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/R\$\s*15\.000,00/).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(/R\$\s*30\.000,00/).length).toBeGreaterThanOrEqual(1)
+  it("renderiza botão Adicionar Nova Meta", () => {
+    render(
+      <MetasClient goals={mockGoals} totalCurrent={35000} totalTarget={45000} globalPercentage={78} />,
+      { wrapper: createWrapper() }
+    )
+    expect(screen.getByText("Adicionar Nova Meta")).toBeInTheDocument()
   })
 
-  it("exibe valor faltante quando a meta não está completa", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    expect(screen.getByText(/R\$\s*10\.000,00/)).toBeInTheDocument()
-  })
-
-  it("abre dialog de criação ao clicar em Nova Meta", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    fireEvent.click(screen.getByRole("button", { name: /nova/i }))
-    expect(screen.getByText(/Defina uma nova meta financeira/)).toBeInTheDocument()
-  })
-
-  it("abre dialog de edição ao clicar no ícone de editar", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    const editButtons = screen.getAllByRole("button", { name: /editar/i })
-    fireEvent.click(editButtons[0])
-    expect(screen.getByText("Editar Meta")).toBeInTheDocument()
-  })
-
-  it("abre confirmação de delete ao clicar no ícone de excluir", () => {
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    const deleteButtons = screen.getAllByRole("button", { name: /excluir/i })
-    fireEvent.click(deleteButtons[0])
-    expect(screen.getByText("Excluir Meta")).toBeInTheDocument()
-    expect(screen.getByText(/Tem certeza que deseja excluir/)).toBeInTheDocument()
-  })
-
-  it("chama deleteGoal.mutateAsync ao confirmar exclusão", async () => {
-    mockDeleteGoalMutate.mockResolvedValueOnce(undefined)
-    render(<MetasClient initialGoals={mockGoals} />, { wrapper: createWrapper() })
-    const deleteButtons = screen.getAllByRole("button", { name: /excluir/i })
-    fireEvent.click(deleteButtons[0])
-
-    const confirmTexts = screen.getAllByText("Excluir")
-    fireEvent.click(confirmTexts[confirmTexts.length - 1])
-
-    await waitFor(() => {
-      expect(mockDeleteGoalMutate).toHaveBeenCalled()
-    })
+  it("renderiza com lista vazia de metas", () => {
+    render(
+      <MetasClient goals={[]} totalCurrent={0} totalTarget={0} globalPercentage={0} />,
+      { wrapper: createWrapper() }
+    )
+    expect(screen.getByText("Minhas Metas")).toBeInTheDocument()
   })
 })

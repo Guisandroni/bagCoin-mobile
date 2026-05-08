@@ -3,8 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
-import { USE_MOCK_DATA } from "@/lib/feature-flags"
-import { getMockCreditCards } from "@/lib/mock-api"
 
 export interface CreditCardResponse {
   id: number
@@ -39,7 +37,6 @@ export function useCreditCards() {
   return useQuery({
     queryKey: ["credit-cards"],
     queryFn: async () => {
-      if (USE_MOCK_DATA) return getMockCreditCards()
       return api.get<CreditCardResponse[]>("/bagcoin/credit-cards")
     },
   })

@@ -3,10 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
-import { USE_MOCK_DATA } from "@/lib/feature-flags"
-import { getMockBudgetsList, getMockBudgetById } from "@/lib/mock-api"
-
-// ---- TYPES ----
 
 export interface Budget {
   id: number
@@ -42,16 +38,10 @@ export interface BudgetListResponse {
   total: number
 }
 
-// ---- HOOKS ----
-
 export function useBudgets() {
   return useQuery({
     queryKey: ["budgets"],
     queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        const items = getMockBudgetsList()
-        return { items, total: items.length } as BudgetListResponse
-      }
       const data = await api.get<Budget[]>("/bagcoin/budgets")
       if (Array.isArray(data)) return { items: data, total: data.length } as BudgetListResponse
       return (data as unknown as BudgetListResponse)
@@ -62,14 +52,7 @@ export function useBudgets() {
 export function useBudget(id: number) {
   return useQuery({
     queryKey: ["budgets", id],
-    queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        const b = getMockBudgetById(id)
-        if (!b) throw new Error("Orçamento não encontrado")
-        return b
-      }
-      return api.get<Budget>(`/bagcoin/budgets/${id}`)
-    },
+    queryFn: () => api.get<Budget>(`/bagcoin/budgets/${id}`),
     enabled: !!id,
   })
 }

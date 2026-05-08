@@ -3,10 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
-import { USE_MOCK_DATA } from "@/lib/feature-flags"
-import { getMockReports, getMockReportById } from "@/lib/mock-api"
-
-// ---- TYPES ----
 
 export interface Report {
   id: number
@@ -38,16 +34,10 @@ export interface ReportGenerateResponse extends Report {
   }
 }
 
-// ---- HOOKS ----
-
 export function useReports() {
   return useQuery({
     queryKey: ["reports"],
     queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        const items = getMockReports()
-        return { items, total: items.length } as ReportListResponse
-      }
       const data = await api.get<Report[]>("/bagcoin/reports")
       if (Array.isArray(data)) return { items: data, total: data.length } as ReportListResponse
       return (data as unknown as ReportListResponse)
@@ -58,14 +48,7 @@ export function useReports() {
 export function useReport(id: number) {
   return useQuery({
     queryKey: ["reports", id],
-    queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        const r = getMockReportById(id)
-        if (!r) throw new Error("Relatório não encontrado")
-        return r
-      }
-      return api.get<Report>(`/bagcoin/reports/${id}`)
-    },
+    queryFn: () => api.get<Report>(`/bagcoin/reports/${id}`),
     enabled: !!id,
   })
 }
@@ -96,6 +79,26 @@ export function useDeleteReport() {
     },
     onError: (err: Error) => {
       toast.error(err.message || "Erro ao excluir relatório")
+    },
+  })
+}
+
+export function useDownloadReport() {
+  return useMutation({
+    mutationFn: async (reportId: number) => {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+      const url = `${apiBase}/bagcoin/reports/${reportId}/download`
+      const res = await fetch(url, { credentials: "include" })
+      if (!res.ok) throw new Error("Erro ao baixar relatório")
+      return res.blob()
+    },
+    onSuccess: (blob, reportId) => {
+      const u = URL.createObjectURL(blob)
+      window.open(u, "_blank")
+      URL.revokeObjectURL(u)
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro ao baixar relatório")
     },
   })
 }

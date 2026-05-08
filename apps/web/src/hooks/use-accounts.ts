@@ -3,8 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
-import { USE_MOCK_DATA } from "@/lib/feature-flags"
-import { getMockAccounts } from "@/lib/mock-api"
 
 export interface AccountResponse {
   id: number
@@ -36,7 +34,6 @@ export function useAccounts() {
   return useQuery({
     queryKey: ["accounts"],
     queryFn: async () => {
-      if (USE_MOCK_DATA) return getMockAccounts()
       return api.get<AccountResponse[]>("/bagcoin/accounts")
     },
   })

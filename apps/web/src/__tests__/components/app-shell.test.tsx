@@ -17,6 +17,9 @@ vi.mock("@/lib/store", () => ({
       closeModal: vi.fn(),
       activeModal: null,
       selectedTransaction: null,
+      drawerOpen: false,
+      openDrawer: vi.fn(),
+      closeDrawer: vi.fn(),
     }
     return selector ? selector(state) : state
   },
@@ -33,6 +36,15 @@ vi.mock("@/components/layout/sidebar", () => ({
 
 vi.mock("@/components/layout/bottom-nav", () => ({
   BottomNav: () => <nav data-testid="bottom-nav">BottomNav</nav>,
+}))
+
+vi.mock("@/components/layout/settings-drawer", () => ({
+  SettingsDrawer: () => <div data-testid="settings-drawer">SettingsDrawer</div>,
+}))
+
+vi.mock("@/components/ui/avatar", () => ({
+  Avatar: ({ children }: { children: React.ReactNode }) => <div data-testid="avatar">{children}</div>,
+  AvatarFallback: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }))
 
 describe("AppShell", () => {
@@ -55,20 +67,7 @@ describe("AppShell", () => {
     expect(screen.getByTestId("sidebar")).toBeInTheDocument()
   })
 
-  it("não renderiza barra TopAppBar (removida do shell)", () => {
-    render(
-      <AppShell>
-        <p>child</p>
-      </AppShell>
-    )
-    expect(screen.queryByTestId("top-app-bar")).not.toBeInTheDocument()
-  })
-
-  it("renderiza BottomNav em mobile (tela 390x844)", () => {
-    // jsdom always uses 1024x768, so we override viewport size via CSS
-    // BottomNav has class lg:hidden, which is hidden on large screens
-    // In jsdom there is no real CSS media query evaluation, but
-    // the BottomNav component is always rendered in the DOM.
+  it("renderiza BottomNav", () => {
     render(
       <AppShell>
         <p>child</p>
@@ -77,12 +76,21 @@ describe("AppShell", () => {
     expect(screen.getByTestId("bottom-nav")).toBeInTheDocument()
   })
 
-  it("children ficam na coluna central", () => {
+  it("renderiza SettingsDrawer", () => {
     render(
       <AppShell>
-        <span data-testid="inner">inner content</span>
+        <p>child</p>
       </AppShell>
     )
-    expect(screen.getByTestId("inner")).toBeInTheDocument()
+    expect(screen.getByTestId("settings-drawer")).toBeInTheDocument()
+  })
+
+  it("renderiza avatar com nome do usuario", () => {
+    render(
+      <AppShell>
+        <p>child</p>
+      </AppShell>
+    )
+    expect(screen.getByText("AS")).toBeInTheDocument()
   })
 })

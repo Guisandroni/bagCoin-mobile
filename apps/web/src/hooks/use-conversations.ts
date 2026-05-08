@@ -3,10 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
-import { USE_MOCK_DATA } from "@/lib/feature-flags"
-import { getMockConversationsList, getMockConversationDetail } from "@/lib/mock-api"
-
-// ---- TYPES ----
 
 export interface Conversation {
   id: string
@@ -22,7 +18,7 @@ export interface Message {
   conversation_id: string
   role: "user" | "assistant" | "system"
   content: string
-  model_name?: string
+  model_name?: number
   tokens_used?: number
   created_at: string
   updated_at: string
@@ -37,13 +33,10 @@ export interface ConversationDetailResponse extends Conversation {
   messages: Message[]
 }
 
-// ---- HOOKS ----
-
 export function useConversations() {
   return useQuery({
     queryKey: ["conversations"],
     queryFn: async () => {
-      if (USE_MOCK_DATA) return getMockConversationsList()
       const data = await api.get<Conversation[]>("/bagcoin/conversations")
       if (Array.isArray(data)) return { items: data, total: data.length } as ConversationListResponse
       return (data as unknown as ConversationListResponse)
@@ -54,14 +47,7 @@ export function useConversations() {
 export function useConversation(id: string | null) {
   return useQuery({
     queryKey: ["conversations", id],
-    queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        const d = getMockConversationDetail(id!)
-        if (!d) throw new Error("Conversa não encontrada")
-        return d
-      }
-      return api.get<ConversationDetailResponse>(`/bagcoin/conversations/${id}`)
-    },
+    queryFn: () => api.get<ConversationDetailResponse>(`/bagcoin/conversations/${id}`),
     enabled: !!id,
   })
 }
@@ -70,7 +56,7 @@ export function useCreateConversation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => api.post<Conversation>("/bagcoin/conversations"),
-    onSuccess: (data) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["conversations"] })
       toast.success("Conversa criada com sucesso!")
     },

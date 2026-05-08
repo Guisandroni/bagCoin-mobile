@@ -3,10 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
-import { USE_MOCK_DATA } from "@/lib/feature-flags"
-import { getMockGoalsList, getMockGoalById } from "@/lib/mock-api"
-
-// ---- TYPES ----
 
 export interface Goal {
   id: number
@@ -40,16 +36,10 @@ export interface GoalListResponse {
   total: number
 }
 
-// ---- HOOKS ----
-
 export function useGoals() {
   return useQuery({
     queryKey: ["goals"],
     queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        const items = getMockGoalsList()
-        return { items, total: items.length } as GoalListResponse
-      }
       const data = await api.get<Goal[]>("/bagcoin/goals")
       if (Array.isArray(data)) return { items: data, total: data.length } as GoalListResponse
       return (data as unknown as GoalListResponse)
@@ -60,14 +50,7 @@ export function useGoals() {
 export function useGoal(id: number) {
   return useQuery({
     queryKey: ["goals", id],
-    queryFn: async () => {
-      if (USE_MOCK_DATA) {
-        const g = getMockGoalById(id)
-        if (!g) throw new Error("Meta não encontrada")
-        return g
-      }
-      return api.get<Goal>(`/bagcoin/goals/${id}`)
-    },
+    queryFn: () => api.get<Goal>(`/bagcoin/goals/${id}`),
     enabled: !!id,
   })
 }

@@ -1,10 +1,8 @@
 "use client"
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import apiClient from "@/lib/api-client"
+import { api } from "@/lib/api-client"
 import { toast } from "sonner"
-import { USE_MOCK_DATA } from "@/lib/feature-flags"
-import { getMockTransactionSummaryClient, getMockTransactionsClient } from "@/lib/mock-api"
 
 export interface TransactionResponse {
   id: string
@@ -59,14 +57,12 @@ export function useTransactions(filters?: {
   return useQuery<TransactionListResponse>({
     queryKey: ["transactions", filters],
     queryFn: async () => {
-      if (USE_MOCK_DATA) return getMockTransactionsClient(filters)
       const params = new URLSearchParams()
       if (filters?.type) params.append("type", filters.type)
       if (filters?.search) params.append("search", filters.search)
       if (filters?.skip !== undefined) params.append("skip", String(filters.skip))
       if (filters?.limit !== undefined) params.append("limit", String(filters.limit))
-      const { data } = await apiClient.get(`/bagcoin/transactions?${params.toString()}`)
-      return data
+      return api.get<TransactionListResponse>(`/bagcoin/transactions?${params.toString()}`)
     },
   })
 }
@@ -74,21 +70,15 @@ export function useTransactions(filters?: {
 export function useTransactionSummary() {
   return useQuery<TransactionSummary>({
     queryKey: ["transactions", "summary"],
-    queryFn: async () => {
-      if (USE_MOCK_DATA) return getMockTransactionSummaryClient() as TransactionSummary
-      const { data } = await apiClient.get("/bagcoin/transactions/summary")
-      return data
-    },
+    queryFn: () => api.get<TransactionSummary>("/bagcoin/transactions/summary"),
   })
 }
 
 export function useCreateTransaction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (data: CreateTransactionData) => {
-      const { data: result } = await apiClient.post("/bagcoin/transactions", data)
-      return result as TransactionResponse
-    },
+    mutationFn: (data: CreateTransactionData) =>
+      api.post<TransactionResponse>("/bagcoin/transactions", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
       toast.success("Transação criada com sucesso!")
@@ -102,10 +92,8 @@ export function useCreateTransaction() {
 export function useUpdateTransaction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, ...data }: UpdateTransactionData) => {
-      const { data: result } = await apiClient.patch(`/bagcoin/transactions/${id}`, data)
-      return result as TransactionResponse
-    },
+    mutationFn: ({ id, ...data }: UpdateTransactionData) =>
+      api.patch<TransactionResponse>(`/bagcoin/transactions/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
       toast.success("Transação atualizada com sucesso!")
@@ -119,9 +107,7 @@ export function useUpdateTransaction() {
 export function useDeleteTransaction() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.delete(`/bagcoin/transactions/${id}`)
-    },
+    mutationFn: (id: string) => api.delete(`/bagcoin/transactions/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
       toast.success("Transação excluída com sucesso!")

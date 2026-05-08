@@ -31,15 +31,36 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
 }))
 
-vi.mock("@/components/layout/sidebar", () => ({
+vi.mock("@/components/layout/desktop/sidebar", () => ({
   Sidebar: () => <aside data-testid="sidebar">Sidebar</aside>,
 }))
 
-vi.mock("@/components/layout/bottom-nav", () => ({
+vi.mock("@/components/layout/tablet/sidebar", () => ({
+  TabletSidebar: () => null,
+}))
+
+vi.mock("@/components/layout/desktop/top-bar", () => ({
+  TopBar: () => null,
+}))
+
+vi.mock("@/components/layout/tablet/top-bar", () => ({
+  TabletTopBar: () => null,
+}))
+
+vi.mock("@/components/layout/mobile/header", () => ({
+  MobileHeader: ({ initials, userName }: { initials: string; userName: string }) => (
+    <header data-testid="mobile-header">
+      <span>{initials}</span>
+      <span>{userName}</span>
+    </header>
+  ),
+}))
+
+vi.mock("@/components/layout/mobile/bottom-nav", () => ({
   BottomNav: () => <nav data-testid="bottom-nav">BottomNav</nav>,
 }))
 
-vi.mock("@/components/layout/settings-drawer", () => ({
+vi.mock("@/components/layout/shared/settings-drawer", () => ({
   SettingsDrawer: () => <div data-testid="settings-drawer">SettingsDrawer</div>,
 }))
 

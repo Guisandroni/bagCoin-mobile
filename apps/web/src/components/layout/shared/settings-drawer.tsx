@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useAuthStore } from "@/lib/auth-store"
 import { useAppStore } from "@/lib/store"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -11,21 +11,10 @@ import { ChangePasswordModal } from "@/components/release/change-password-modal"
 import { ToastBanner } from "@/components/release/toast-banner"
 import { ReportsView } from "@/components/release/reports-view"
 import { getReleaseProfile, getReleaseNavItems } from "@/lib/adapters"
-import { usePathname } from "next/navigation"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import type { ReleaseReport } from "@/components/release/types"
 
 type DrawerSection = "settings" | "profile" | "reports" | "password"
-
-function useIsMobile(breakpoint = 1024) {
-  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < breakpoint)
-    check()
-    window.addEventListener("resize", check)
-    return () => window.removeEventListener("resize", check)
-  }, [breakpoint])
-  return isMobile
-}
 
 export function SettingsDrawer() {
   const { drawerOpen, closeDrawer } = useAppStore()
@@ -36,7 +25,7 @@ export function SettingsDrawer() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [toastOpen, setToastOpen] = useState(false)
 
-  const isMobile = useIsMobile()
+  const { isMobile } = useMediaQuery()
 
   const profile = getReleaseProfile()
   const navItems = getReleaseNavItems(pathname)

@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 
-export default function AppError({
+export default function ConfirmacoesError({
   error,
   reset,
 }: {
@@ -11,15 +11,15 @@ export default function AppError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error("Dashboard error:", error)
+    console.error("Confirmacoes error:", error)
   }, [error])
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="text-center space-y-4 p-8">
-        <h2 className="text-2xl font-bold text-foreground">Erro no painel</h2>
-        <p className="text-muted-foreground max-w-md">
-          Ocorreu um erro ao carregar o painel. Tente novamente.
+    <div className="p-4 lg:p-7">
+      <div className="text-center py-16 space-y-4">
+        <h1 className="text-2xl font-bold text-foreground">Erro ao carregar</h1>
+        <p className="text-muted-foreground max-w-md mx-auto">
+          Não foi possível carregar as confirmações. Tente novamente.
         </p>
         {error.digest && (
           <p className="text-xs text-muted-foreground/60">Digest: {error.digest}</p>

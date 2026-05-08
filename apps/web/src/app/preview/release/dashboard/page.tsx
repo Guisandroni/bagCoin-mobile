@@ -8,9 +8,9 @@ export default function DashboardPreview() {
     <DashboardView
       summary={mockDashboardSummary}
       navItems={mockNavItems}
-      onNavigate={(href) => console.log("Navigate:", href)}
-      onViewAllTransactions={() => console.log("View all transactions")}
-      onAddGoal={() => console.log("Add goal")}
+      onNavigate={() => {}}
+      onViewAllTransactions={() => {}}
+      onAddGoal={() => {}}
     />
   )
 }

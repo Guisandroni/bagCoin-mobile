@@ -28,6 +28,7 @@ vi.mock("@/lib/store", () => ({
 const mockPathname = vi.hoisted(() => "/app")
 vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
+  useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
 }))
 
 vi.mock("@/components/layout/sidebar", () => ({

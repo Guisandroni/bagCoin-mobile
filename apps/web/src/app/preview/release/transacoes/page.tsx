@@ -10,7 +10,7 @@ export default function TransacoesPreview() {
       totalSpent={1432.5}
       totalReceived={3200}
       navItems={mockNavItems}
-      onNavigate={(href) => console.log("Navigate:", href)}
+      onNavigate={() => {}}
     />
   )
 }

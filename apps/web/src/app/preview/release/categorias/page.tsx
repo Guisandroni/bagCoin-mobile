@@ -9,7 +9,7 @@ export default function CategoriasPreview() {
       categories={mockCategories}
       totalAllocated={4500}
       navItems={mockNavItems}
-      onNavigate={(href) => console.log("Navigate:", href)}
+      onNavigate={() => {}}
     />
   )
 }

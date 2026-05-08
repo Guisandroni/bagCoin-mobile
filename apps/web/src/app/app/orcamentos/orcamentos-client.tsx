@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { MonthlyBudgetsView } from "@/components/release/monthly-budgets-view"
 import type { ReleaseBudget } from "@/components/release/types"
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function OrcamentosClient({ budgets, totalSpent, totalBudget }: Props) {
+  const router = useRouter()
   const now = new Date()
   const month = now.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
 
@@ -20,10 +22,8 @@ export function OrcamentosClient({ budgets, totalSpent, totalBudget }: Props) {
         totalSpent={totalSpent}
         totalBudget={totalBudget}
         month={month}
-        onBack={() => window.history.back()}
-        onAddBudget={() => {
-          window.location.href = "/app/orcamentos"
-        }}
+        onBack={() => router.back()}
+        onAddBudget={() => router.push("/app/orcamentos")}
       />
     </div>
   )

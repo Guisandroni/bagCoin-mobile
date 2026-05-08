@@ -1,6 +1,6 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,7 @@ const TITLES: Record<string, string> = {
 
 export function TopBar() {
   const pathname = usePathname()
+  const router = useRouter()
   const title = TITLES[pathname] || "Bagcoin"
 
   return (
@@ -39,7 +40,7 @@ export function TopBar() {
         <Button
           size="sm"
           className="gap-1.5 text-[13px]"
-          onClick={() => { window.location.href = "/app/transacoes" }}
+          onClick={() => router.push("/app/transacoes")}
         >
           <Plus className="h-4 w-4" />
           <span className="hidden sm:inline">Novo lançamento</span>

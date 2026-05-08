@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 
-export default function AppError({
+export default function LoginError({
   error,
   reset,
 }: {
@@ -11,15 +11,15 @@ export default function AppError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error("Dashboard error:", error)
+    console.error("Login error:", error)
   }, [error])
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="text-center space-y-4 p-8">
-        <h2 className="text-2xl font-bold text-foreground">Erro no painel</h2>
-        <p className="text-muted-foreground max-w-md">
-          Ocorreu um erro ao carregar o painel. Tente novamente.
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="text-center space-y-4 p-8 max-w-sm">
+        <h1 className="text-2xl font-bold text-foreground">Erro ao carregar</h1>
+        <p className="text-muted-foreground">
+          Não foi possível carregar a página de login. Tente novamente.
         </p>
         {error.digest && (
           <p className="text-xs text-muted-foreground/60">Digest: {error.digest}</p>

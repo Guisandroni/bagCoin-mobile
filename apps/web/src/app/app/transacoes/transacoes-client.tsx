@@ -1,7 +1,7 @@
 "use client"
 
 import { TransactionsView } from "@/components/release/transactions-view"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { getReleaseNavItems } from "@/lib/adapters"
 import type { ReleaseTransaction } from "@/components/release/types"
 
@@ -11,6 +11,7 @@ interface Props {
 
 export function TransacoesClient({ transactions }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
   const navItems = getReleaseNavItems(pathname)
 
   const totalSpent = transactions
@@ -29,7 +30,7 @@ export function TransacoesClient({ transactions }: Props) {
       navItems={navItems}
       onNavigate={(href) => {
         if (href === "#settings") return
-        window.location.href = href
+        router.push(href)
       }}
     />
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { DashboardView } from "@/components/release/dashboard-view"
 import { getReleaseNavItems, summaryToDashboardSummary } from "@/lib/adapters"
 import type { TransactionSummary, ServerBudget, ServerGoal } from "@/lib/api-server"
@@ -13,6 +13,7 @@ interface Props {
 
 export function DashboardClient({ summary, budgets, goals }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
   const dashboardData = summaryToDashboardSummary(summary, budgets, goals)
   const navItems = getReleaseNavItems(pathname)
 
@@ -22,14 +23,10 @@ export function DashboardClient({ summary, budgets, goals }: Props) {
       navItems={navItems}
       onNavigate={(href) => {
         if (href === "#settings") return
-        window.location.href = href
+        router.push(href)
       }}
-      onViewAllTransactions={() => {
-        window.location.href = "/app/transacoes"
-      }}
-      onAddGoal={() => {
-        window.location.href = "/app/metas"
-      }}
+      onViewAllTransactions={() => router.push("/app/transacoes")}
+      onAddGoal={() => router.push("/app/metas")}
     />
   )
 }

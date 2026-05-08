@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { SavingsGoalsView } from "@/components/release/savings-goals-view"
 import type { ReleaseGoal } from "@/components/release/types"
 
@@ -16,6 +17,8 @@ export function MetasClient({
   totalTarget,
   globalPercentage,
 }: Props) {
+  const router = useRouter()
+
   return (
     <div className="rls">
       <SavingsGoalsView
@@ -23,10 +26,8 @@ export function MetasClient({
         totalCurrent={totalCurrent}
         totalTarget={totalTarget}
         globalPercentage={globalPercentage}
-        onBack={() => window.history.back()}
-        onAddGoal={() => {
-          window.location.href = "/app/metas"
-        }}
+        onBack={() => router.back()}
+        onAddGoal={() => router.push("/app/metas")}
       />
     </div>
   )

@@ -6,20 +6,20 @@ export const BRAND = {
 export const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: "LayoutGrid" },
   { id: "transacoes", label: "Transações", icon: "List" },
-  { id: "orcamentos", label: "Orçamentos", icon: "BarChart3" },
+  { id: "orcamentos", label: "Orçamentos", icon: "Wallet" },
   { id: "metas", label: "Metas", icon: "Target" },
+  { id: "categorias", label: "Categorias", icon: "LayoutGrid" },
   { id: "confirmacoes", label: "Confirmações", icon: "MessageSquare" },
   { id: "relatorios", label: "Relatórios", icon: "FileText" },
 ]
 
-/** Bottom bar: Início, Histórico, FAB central, Chat, Planejar (Compass), Resumo — Coinbase-style */
+/** Bottom bar: Início, Transações, Orçamentos, Metas, Categorias */
 export const MOBILE_NAV_ITEMS = [
   { id: "dashboard", label: "Início", icon: "Home" },
-  { id: "transacoes", label: "Histórico", icon: "List" },
-  { id: "new", label: "Novo", icon: "Plus" },
-  { id: "confirmacoes", label: "Chat", icon: "MessageSquare" },
-  { id: "orcamentos", label: "Planejar", icon: "Compass" },
-  { id: "relatorios", label: "Resumo", icon: "BarChart3" },
+  { id: "transacoes", label: "Transações", icon: "List" },
+  { id: "orcamentos", label: "Orçamentos", icon: "Wallet" },
+  { id: "metas", label: "Metas", icon: "Target" },
+  { id: "categorias", label: "Categorias", icon: "LayoutGrid" },
 ]
 
 /** DialogContent: anchor to bottom on small screens (sheet-like) */

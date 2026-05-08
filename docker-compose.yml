@@ -230,6 +230,7 @@ services:
       - API_URL=http://app:8000/api/v1
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - NEXT_TELEMETRY_DISABLED=1
+    mem_limit: 1g
     networks:
       - backend
     depends_on:

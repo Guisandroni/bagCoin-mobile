@@ -72,7 +72,7 @@ test.describe("Budgets Page (Authenticated)", () => {
   })
 
   test("shows progress bars", async ({ page }) => {
-    // SEED budgets (USE_MOCK_DATA): Alimentação ~67.4%, Transporte ~39.6%
+    // Seed budgets: Alimentação ~67.4%, Transporte ~39.6%
     await expect(page.locator("text=67.4% utilizado").first()).toBeVisible({ timeout: 10000 })
     await expect(page.locator("text=39.6% utilizado").first()).toBeVisible()
   })

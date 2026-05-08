@@ -12,3 +12,4 @@ public/reference
 src/__tests__
 vitest.config.ts
 playwright.config.ts
+.turbo

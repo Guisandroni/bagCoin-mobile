@@ -21,9 +21,11 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - API_URL=http://app:8000/api/v1
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - NEXT_TELEMETRY_DISABLED=1
       - NODE_ENV=production
+    mem_limit: 512m
     depends_on:
       app:
         condition: service_healthy

@@ -3,7 +3,7 @@ WORKDIR /app
 
 # --- Dependencies ---
 FROM base AS deps
-COPY package.json package-lock.json ./
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 # --- Development (hot reload) ---
@@ -37,4 +37,4 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-CMD ["bun", "server.js"]
+CMD ["bun", "--smol", "server.js"]

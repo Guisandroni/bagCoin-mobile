@@ -63,6 +63,12 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  if (typeof window !== "undefined" && config.method !== "get") {
+    const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/)
+    if (match && config.headers) {
+      config.headers["X-CSRF-Token"] = decodeURIComponent(match[1])
+    }
+  }
   return config
 })
 
@@ -114,14 +120,14 @@ apiClient.interceptors.response.use(
       const match = document.cookie.match(/(?:^|; )refresh_token=([^;]*)/)
       const refreshToken = match ? decodeURIComponent(match[1]) : null
 
-      if (!refreshToken) {
+if (!refreshToken) {
         clearAuthCookies()
         isRefreshing = false
         processQueue(new Error("No refresh token"))
         if (typeof window !== "undefined") {
           window.location.href = "/login"
         }
-        return Promise.reject(error)
+        return Promise.reject(extractErrorMessage(error))
       }
 
       try {
@@ -143,15 +149,21 @@ apiClient.interceptors.response.use(
         if (typeof window !== "undefined") {
           window.location.href = "/login"
         }
-        return Promise.reject(refreshError)
+        return Promise.reject(refreshError instanceof Error ? refreshError : new Error(String(refreshError)))
       } finally {
         isRefreshing = false
       }
     }
 
-    return Promise.reject(error)
+    return Promise.reject(extractErrorMessage(error))
   },
 )
+
+function extractErrorMessage(error: AxiosError): Error {
+  const data = error.response?.data as { error?: { message?: string }; detail?: string } | undefined
+  const message = data?.error?.message || (typeof data?.detail === "string" ? data.detail : null) || error.message || "Erro desconhecido"
+  return new Error(message)
+}
 
 // ---- typed convenience wrapper ----
 

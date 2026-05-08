@@ -60,80 +60,156 @@
 }
 
 :root {
-  /* Coinbase-inspired tokens (OKLCH) — flat cards, minimal shadow */
-  --bg: oklch(99% 0.002 250);
-  --surface: oklch(100% 0 0);
-  --surface-alt: oklch(97% 0.005 250);
-  --fg: oklch(18% 0.012 250);
-  --accent-hover: oklch(48% 0.22 263);
-  --accent-light: oklch(95% 0.04 263);
-  --primary-tint: oklch(95% 0.04 263);
+  /* ── MD3 Design System (Manrope, #1652F0 primary) ── */
+  --background: #fbf9fb;
+  --foreground: #1b1c1e;
+  --card: #ffffff;
+  --card-foreground: #1b1c1e;
+  --popover: #ffffff;
+  --popover-foreground: #1b1c1e;
 
-  --background: oklch(99% 0.002 250);
-  --foreground: oklch(18% 0.012 250);
-  --card: oklch(100% 0 0);
-  --card-foreground: oklch(18% 0.012 250);
-  --popover: oklch(100% 0 0);
-  --popover-foreground: oklch(18% 0.012 250);
+  --primary: #1652f0;
+  --primary-foreground: #ffffff;
+  --secondary: #006c4d;
+  --secondary-foreground: #ffffff;
+  --muted: #efedf0;
+  --muted-foreground: #434656;
+  --accent: #1652f0;
+  --accent-foreground: #ffffff;
+  --destructive: #ba1a1a;
+  --destructive-foreground: #ffffff;
+  --border: #c3c5d8;
+  --input: #eceff3;
+  --ring: #1652f0;
 
-  --primary: oklch(56% 0.22 263);
-  --primary-foreground: oklch(99% 0 0);
-  --secondary: oklch(96% 0.012 250);
-  --secondary-foreground: oklch(28% 0.03 250);
-  --muted: oklch(96% 0.008 250);
-  --muted-foreground: oklch(48% 0.02 250);
-  --accent: oklch(56% 0.22 263);
-  --accent-foreground: oklch(99% 0 0);
-  --destructive: oklch(58% 0.21 25);
-  --destructive-foreground: oklch(99% 0 0);
-  --border: oklch(91% 0.005 250);
-  --input: oklch(94% 0.008 250);
-  --ring: oklch(56% 0.22 263);
+  /* ── MD3 Surface tokens ── */
+  --surface: #fbf9fb;
+  --surface-dim: #dbd9dc;
+  --surface-bright: #fbf9fb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f5f3f6;
+  --surface-container: #efedf0;
+  --surface-container-high: #e9e7ea;
+  --surface-container-highest: #e3e2e5;
+  --surface-variant: #e3e2e5;
+  --on-surface: #1b1c1e;
+  --on-surface-variant: #434656;
+  --inverse-surface: #303033;
+  --inverse-on-surface: #f2f0f3;
+  --outline: #747687;
+  --outline-variant: #c3c5d8;
 
-  --chart-1: oklch(56% 0.22 263);
-  --chart-2: oklch(72% 0.16 55);
-  --chart-3: oklch(58% 0.16 145);
-  --chart-4: oklch(58% 0.21 25);
-  --chart-5: oklch(65% 0.16 80);
+  /* ── MD3 Color tokens ── */
+  --primary-container: #1652f0;
+  --on-primary-container: #dadfff;
+  --primary-fixed: #dde1ff;
+  --primary-fixed-dim: #b7c4ff;
+  --on-primary-fixed: #001452;
+  --on-primary-fixed-variant: #0038b6;
+  --secondary-container: #64fcc2;
+  --on-secondary-container: #007352;
+  --secondary-fixed: #64fcc2;
+  --secondary-fixed-dim: #40dfa8;
+  --tertiary: #9b0010;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #c60f1c;
+  --on-tertiary-container: #ffd7d2;
+  --tertiary-fixed: #ffdad6;
+  --tertiary-fixed-dim: #ffb3ac;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+  --inverse-primary: #b7c4ff;
 
-  --sidebar: oklch(99% 0.004 250);
-  --sidebar-foreground: oklch(18% 0.012 250);
-  --sidebar-primary: oklch(56% 0.22 263);
-  --sidebar-primary-foreground: oklch(99% 0 0);
-  --sidebar-accent: oklch(95% 0.04 263);
-  --sidebar-accent-foreground: oklch(22% 0.05 263);
-  --sidebar-border: oklch(91% 0.005 250);
-  --sidebar-ring: oklch(56% 0.22 263);
+  /* ── Semantic colors (kept for shadcn compatibility) ── */
+  --brand: #1652f0;
+  --brand-foreground: #ffffff;
+  --market-orange: #e67e22;
+  --success: #006c4d;
+  --success-foreground: #ffffff;
+  --success-bg: #e6f9f0;
+  --warning: #e67e22;
+  --warning-foreground: #ffffff;
+  --warning-bg: #fef3e6;
+  --danger: #ba1a1a;
+  --danger-foreground: #ffffff;
+  --danger-bg: #ffdad6;
+  --info: #1652f0;
+  --info-foreground: #ffffff;
+  --info-bg: #dde1ff;
 
-  --radius: 1rem;
+  /* ── Charts ── */
+  --chart-1: #1652f0;
+  --chart-2: #64fcc2;
+  --chart-3: #c60f1c;
+  --chart-4: #e67e22;
+  --chart-5: #9b0010;
+
+  /* ── Sidebar ── */
+  --sidebar: #f5f3f6;
+  --sidebar-foreground: #1b1c1e;
+  --sidebar-primary: #1652f0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #dde1ff;
+  --sidebar-accent-foreground: #001452;
+  --sidebar-border: #c3c5d8;
+  --sidebar-ring: #1652f0;
+
+  /* ── Radii (MD3 — extra rounded, pill shapes) ── */
+  --radius: 1.5rem;
   --radius-pill: 9999px;
-  --radius-card: 16px;
-  --radius-sheet: 20px;
+  --radius-card: 24px;
+  --radius-sheet: 24px;
   --radius-chip: 12px;
-  --sidebar-w: 240px;
-  --sidebar-collapsed-w: 64px;
+  --sidebar-w: 260px;
+  --sidebar-collapsed-w: 68px;
 
-  --brand: oklch(56% 0.22 263);
-  --brand-foreground: oklch(99% 0 0);
-  --market-orange: oklch(72% 0.16 55);
-  --success: oklch(58% 0.16 145);
-  --success-foreground: oklch(22% 0.06 145);
-  --success-bg: oklch(94% 0.03 145);
-  --warning: oklch(65% 0.16 80);
-  --warning-foreground: oklch(25% 0.06 80);
-  --warning-bg: oklch(95% 0.04 80);
-  --danger: oklch(58% 0.21 25);
-  --danger-foreground: oklch(99% 0 0);
-  --danger-bg: oklch(94% 0.03 25);
-  --info: oklch(52% 0.12 250);
-  --info-foreground: oklch(99% 0 0);
-  --info-bg: oklch(94% 0.03 250);
-
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", ui-sans-serif, system-ui, sans-serif;
+  /* ── Typography (Manrope) ── */
+  --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
+  --font-heading: "Manrope", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
 
-  --shadow-sheet: 0 -8px 32px oklch(0% 0 0 / 0.12);
+  /* ── Shadows ── */
+  --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.12);
+
+  /* ── Release component aliases (--rls-* → unprefixed tokens) ── */
+  --rls-background: var(--background);
+  --rls-on-background: var(--foreground);
+  --rls-surface: var(--surface);
+  --rls-on-surface: var(--on-surface);
+  --rls-on-surface-variant: var(--on-surface-variant);
+  --rls-surface-variant: var(--surface-variant);
+  --rls-surface-container: var(--surface-container);
+  --rls-surface-container-low: var(--surface-container-low);
+  --rls-surface-container-lowest: var(--surface-container-lowest);
+  --rls-surface-container-high: var(--surface-container-high);
+  --rls-primary: var(--primary);
+  --rls-on-primary: var(--primary-foreground);
+  --rls-primary-container: var(--primary-container);
+  --rls-on-primary-container: var(--on-primary-container);
+  --rls-secondary: var(--secondary);
+  --rls-secondary-container: var(--secondary-container);
+  --rls-on-secondary-container: var(--on-secondary-container);
+  --rls-tertiary: var(--tertiary);
+  --rls-tertiary-container: var(--tertiary-container);
+  --rls-error: var(--destructive);
+  --rls-on-error: var(--destructive-foreground);
+  --rls-error-container: var(--error-container);
+  --rls-on-error-container: var(--on-error-container);
+  --rls-outline: var(--outline);
+  --rls-outline-variant: var(--outline-variant);
+
+  /* ── Release spacing tokens ── */
+  --rls-container-margin: 20px;
+  --rls-stack-gap-lg: 24px;
+  --rls-stack-gap-md: 16px;
+  --rls-stack-gap-sm: 8px;
+  --rls-inline-padding-lg: 32px;
+  --rls-inline-padding-md: 16px;
+
+  /* ── Release radius tokens ── */
+  --rls-radius: 1.5rem;
+  --rls-radius-lg: 2rem;
+  --rls-radius-pill: 9999px;
 }
 
 @layer base {
@@ -220,7 +296,7 @@
   .bg-primary-gradient {
     background-image: linear-gradient(
       180deg,
-      color-mix(in oklch, var(--primary) 85%, white) 0%,
+      color-mix(in srgb, var(--primary) 85%, white) 0%,
       var(--primary) 100%
     );
   }
@@ -229,7 +305,7 @@
     background-image: linear-gradient(
       180deg,
       var(--primary) 0%,
-      var(--accent-hover) 100%
+      color-mix(in srgb, var(--primary) 85%, white) 100%
     );
   }
 }
@@ -248,7 +324,7 @@
 }
 
 .glass {
-  background: color-mix(in oklch, var(--card) 88%, transparent);
+  background: color-mix(in srgb, var(--card) 88%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }

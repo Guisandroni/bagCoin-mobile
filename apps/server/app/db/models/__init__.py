@@ -12,6 +12,7 @@ from app.db.models.enums import TransactionType, UserStatus, GoalStatus
 from app.db.models.phone_user import PhoneUser
 from app.db.models.category import Category
 from app.db.models.transaction import Transaction
+from app.db.models.recurring_transaction import RecurringTransaction
 from app.db.models.budget import Budget, BudgetItem
 from app.db.models.goal import Goal
 from app.db.models.report import Report
@@ -36,6 +37,7 @@ __all__ = [
     "PhoneUser",
     "Category",
     "Transaction",
+    "RecurringTransaction",
     "Budget",
     "BudgetItem",
     "Goal",

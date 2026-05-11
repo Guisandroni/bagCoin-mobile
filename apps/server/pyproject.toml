@@ -148,6 +148,9 @@ invalid-type-form = "warn"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: tests that require real PostgreSQL and Redis (slow)",
+]
 
 [tool.coverage.run]
 source = ["app"]

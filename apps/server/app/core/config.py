@@ -153,6 +153,13 @@ class Settings(BaseSettings):
     ]
     AI_FRAMEWORK: str = "langgraph"
     LLM_PROVIDER: str = "openai"
+    HUMANIZE_RESPONSES: bool = False
+    HUMANIZE_MAX_CHARS: int = 500
+    HUMANIZE_ALLOWED_INTENTS_EXTRA: list[str] = []
+    LLM_EXTRACT_TIMEOUT: float = 4.0
+    IMAGE_STRUCTURED_EXTRACT: bool = True
+    ECHO_AUDIO_TRANSCRIPTION: bool = False
+    EXTRA_WHISPER_HALLUCINATIONS: list[str] = []
 
     # === BagCoin / LLM APIs ===
     GROQ_API_KEY: str = ""
@@ -170,6 +177,11 @@ class Settings(BaseSettings):
     # === WhatsApp Bridge ===
     WHATSAPP_BRIDGE_URL: str = "http://whatsapp-bridge:3001"
     WHATSAPP_API_KEY: str = "bagcoin_webhook_secret_123"
+
+    # === Internal base URL used by bridges to fetch reports ===
+    # Points to the backend service as seen from the bridges' network.
+    # In Docker Compose this is typically http://app:8000.
+    INTERNAL_API_BASE_URL: str = "http://app:8000"
 
     # === Bot deep links (web ↔ WhatsApp/Telegram pairing) ===
     BOT_WHATSAPP_NUMBER: str = ""  # E.164 digits only, e.g. 5511999999999

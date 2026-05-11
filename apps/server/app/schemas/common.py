@@ -24,6 +24,7 @@ class WhatsAppResponse(BaseSchema):
 
     reply: str
     document: dict | None = None
+    media: dict | None = None
     actions: list[dict] | None = None
 
 
@@ -41,6 +42,7 @@ class TelegramResponse(BaseSchema):
     """Outgoing response to the Telegram caller."""
 
     reply: str
+    media: dict | None = None
     actions: list
 
 
@@ -83,6 +85,7 @@ class AgentState(BaseSchema):
     intent: IntentType | None = None
     extracted_data: dict | None = None
     query_result: QueryResult | None = None
+    report_id: int | None = None
     report_path: str | None = None
     report_summary: str | None = None
     import_summary: str | None = None

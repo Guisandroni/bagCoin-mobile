@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Image from "next/image"
-import { Badge, Eye, EyeOff, LogOut, Mail, Phone } from "lucide-react"
-import { AppBar } from "./app-bar"
-import { PillInput } from "./pill-input"
-import type { ReleaseProfile } from "./types"
+import { useState } from "react";
+import Image from "next/image";
+import { Badge, Eye, EyeOff, LogOut, Mail, Phone } from "lucide-react";
+import { AppBar } from "./app-bar";
+import { PillInput } from "./pill-input";
+import type { ReleaseProfile } from "./types";
 
 interface ProfileViewProps {
-  profile: ReleaseProfile & { phone?: string; tier?: string }
-  onBack?: () => void
-  onOpenDrawer?: () => void
-  onLogout?: () => void
+  profile: ReleaseProfile & { phone?: string; tier?: string };
+  onBack?: () => void;
+  onOpenDrawer?: () => void;
+  onLogout?: () => void;
 }
 
 export function ProfileView({
@@ -20,9 +20,9 @@ export function ProfileView({
   onOpenDrawer,
   onLogout,
 }: ProfileViewProps) {
-  const [showPhone, setShowPhone] = useState(false)
-  const phoneValue = profile.phone || ""
-  const maskedPhone = maskPhone(phoneValue)
+  const [showPhone, setShowPhone] = useState(false);
+  const phoneValue = profile.phone || "";
+  const maskedPhone = maskPhone(phoneValue);
 
   return (
     <div className="rls mx-auto min-h-dvh w-full max-w-md bg-[var(--rls-background)] shadow-[0_0_48px_rgba(22,82,240,0.08)]">
@@ -58,9 +58,6 @@ export function ProfileView({
             <h2 className="rls-text-title-lg text-[var(--rls-on-surface)]">
               {profile.name}
             </h2>
-            <p className="rls-text-body-md text-[var(--rls-on-surface-variant)] mt-1">
-              {profile.tier || "Investidor Pro"}
-            </p>
           </div>
 
           <div className="flex items-center gap-2 border-b border-[var(--rls-outline-variant)] pb-2">
@@ -102,12 +99,18 @@ export function ProfileView({
                   />
                   <button
                     type="button"
-                    aria-label={showPhone ? "Esconder telefone" : "Mostrar telefone"}
+                    aria-label={
+                      showPhone ? "Esconder telefone" : "Mostrar telefone"
+                    }
                     aria-pressed={!showPhone}
                     onClick={() => setShowPhone((value) => !value)}
                     className="absolute right-4 text-[var(--rls-outline)] transition-colors hover:text-[var(--rls-on-surface)]"
                   >
-                    {showPhone ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPhone ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -125,15 +128,15 @@ export function ProfileView({
         </button>
       </main>
     </div>
-  )
+  );
 }
 
 function maskPhone(value: string): string {
-  let seenDigits = 0
-  const totalDigits = value.replace(/\D/g, "").length
+  let seenDigits = 0;
+  const totalDigits = value.replace(/\D/g, "").length;
 
   return value.replace(/\d/g, (digit) => {
-    seenDigits += 1
-    return seenDigits <= Math.max(0, totalDigits - 4) ? "•" : digit
-  })
+    seenDigits += 1;
+    return seenDigits <= Math.max(0, totalDigits - 4) ? "•" : digit;
+  });
 }

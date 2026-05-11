@@ -86,6 +86,38 @@ def send_message(chat_id: int, text: str) -> bool:
         return False
 
 
+def send_document_from_url(
+    chat_id: int,
+    url: str,
+    filename: str,
+    caption: str = "",
+) -> bool:
+    """Download a document from the backend and forward it to Telegram.
+
+    Uses API_KEY on the GET to the backend, then POSTs multipart to Telegram.
+    """
+    if not API_BASE:
+        return False
+    try:
+        with httpx.Client(timeout=60) as backend:
+            resp = backend.get(url, headers={"X-API-Key": API_KEY})
+            resp.raise_for_status()
+            content = resp.content
+
+        with httpx.Client(timeout=60) as tg:
+            files = {"document": (filename, content, "application/pdf")}
+            data = {"chat_id": str(chat_id)}
+            if caption:
+                data["caption"] = caption
+            send_url = f"{API_BASE}/sendDocument"
+            tg_resp = tg.post(send_url, data=data, files=files)
+            tg_resp.raise_for_status()
+            return tg_resp.json().get("ok", False)
+    except Exception as exc:
+        logger.error("Failed to send document from %s: %s", url, exc)
+        return False
+
+
 def download_file(file_id: str) -> bytes | None:
     """Download a file from Telegram servers by file_id."""
     if not API_BASE:
@@ -223,6 +255,15 @@ def process_update(update: dict) -> None:
             if reply_text:
                 send_message(chat_id, reply_text)
                 logger.info("Replied to chat %s", chat_id)
+            media = response.get("media")
+            if isinstance(media, dict) and media.get("url"):
+                filename = media.get("filename", "relatorio.pdf")
+                if send_document_from_url(
+                    chat_id, media["url"], filename, caption="Seu relatório 📊"
+                ):
+                    logger.info("Document sent to chat %s: %s", chat_id, filename)
+                else:
+                    logger.warning("Failed to send document %s to chat %s", filename, chat_id)
         else:
             send_message(chat_id, "Sorry, I couldn't process your message right now.")
         save_offset(update_id)

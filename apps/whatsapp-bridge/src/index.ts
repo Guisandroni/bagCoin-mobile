@@ -31,16 +31,18 @@ app.use(express.json({ limit: '50mb' }));
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: './whatsapp-session' }),
   puppeteer: {
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
     headless: true,
+    protocolTimeout: 120_000,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-features=IsolateOrigins,site-per-process',
       '--disable-gpu',
+      '--disable-extensions',
       '--no-first-run',
       '--no-zygote',
-      '--single-process',
       '--disable-background-networking',
       '--disable-background-timer-throttling',
       '--disable-renderer-backgrounding',
@@ -76,6 +78,14 @@ client.on('qr', (qr: string) => {
 client.on('ready', () => {
   console.log('\n✅ WhatsApp client conectado e pronto!');
   console.log(`📱 Bridge rodando na porta ${config.port}`);
+});
+
+client.on('auth_failure', (message) => {
+  console.error('❌ Falha de autenticação do WhatsApp:', message);
+});
+
+client.on('disconnected', (reason) => {
+  console.error('❌ WhatsApp desconectado:', reason);
 });
 
 // Usa 'message' em vez de 'message_create' para evitar duplicatas

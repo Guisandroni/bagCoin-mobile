@@ -97,6 +97,7 @@ logs/
 
 # Docker
 .docker/
+deploy/traefik/usersfile
 
 # OS
 .DS_Store
@@ -135,3 +136,4 @@ __pycache__/stitch_markdown_design_system*.zip
 fix.md
 plano-design-fix.md
 plano-melhorias.md
+scripts/

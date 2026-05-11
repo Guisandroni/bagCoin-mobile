@@ -5,7 +5,7 @@ These are used by agents that run in sync context via sync_session_maker.
 """
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func
@@ -27,17 +27,21 @@ logger = logging.getLogger(__name__)
 
 
 def _period_start(period: str) -> datetime | None:
-    """Return the start date of the period."""
-    today = date.today()
+    """Return the start of the current period as a tz-aware UTC datetime.
+
+    Always tz-aware to match Transaction.transaction_date (TIMESTAMPTZ).
+    Avoids naive vs aware comparison bugs under non-UTC session timezones.
+    """
+    now = datetime.now(UTC)
     if period == "daily":
-        return datetime.combine(today, datetime.min.time())
-    elif period == "weekly":
-        week_ago = today - timedelta(days=today.weekday())
-        return datetime.combine(week_ago, datetime.min.time())
-    elif period == "monthly":
-        return datetime.combine(today.replace(day=1), datetime.min.time())
-    elif period == "yearly":
-        return datetime.combine(today.replace(month=1, day=1), datetime.min.time())
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)
+    if period == "weekly":
+        monday = now - timedelta(days=now.weekday())
+        return monday.replace(hour=0, minute=0, second=0, microsecond=0)
+    if period == "monthly":
+        return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if period == "yearly":
+        return now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     return None
 
 
@@ -164,6 +168,7 @@ def get_budget_spent(db, budget_id: int, user_id: int, period: str) -> float:
     """Calculate how much has been spent in the budget period."""
     date_from = _period_start(period)
     if not date_from:
+        logger.warning(f"[budget_spent] unknown period={period!r} — returning 0")
         return 0.0
 
     budget = (
@@ -177,6 +182,11 @@ def get_budget_spent(db, budget_id: int, user_id: int, period: str) -> float:
     if not budget:
         return 0.0
 
+    if budget.category_id is None and getattr(budget, "budget_type", "category") == "category":
+        logger.warning(
+            f"[budget_spent] budget_id={budget_id} has budget_type=category but category_id is NULL"
+        )
+
     result = (
         db.query(func.coalesce(func.sum(func.abs(Transaction.amount)), 0))
         .filter(
@@ -187,7 +197,12 @@ def get_budget_spent(db, budget_id: int, user_id: int, period: str) -> float:
         )
         .scalar()
     )
-    return float(result or 0)
+    spent = float(result or 0)
+    logger.info(
+        f"[budget_spent] budget_id={budget_id} category_id={budget.category_id} "
+        f"period={period} from={date_from.isoformat()} spent={spent}"
+    )
+    return spent
 
 
 def delete_budget_by_name(phone_number: str, name: str) -> int:

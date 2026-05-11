@@ -16,7 +16,9 @@ Se um campo não estiver na mensagem, omita do JSON.""",
 Retorne APENAS JSON: {"title": "viagem", "target_amount": 10000.0, "deadline": "12/2026"}
 - title: o objetivo da meta
 - target_amount: valor numérico
-- deadline: prazo opcional no formato "MM/YYYY" ou "DD/MM/YYYY"
+- deadline: prazo opcional no formato "MM/YYYY". Hoje é {today_iso}.
+  Se o usuário disser só o mês (ex: "outubro"), use o ANO ATUAL se esse mês ainda não passou,
+  senão use ANO ATUAL + 1. NUNCA retorne uma data no passado.
 Se um campo não estiver na mensagem, omita do JSON.""",
 
     "contribute": """Extraia dados de contribuição para meta.
@@ -40,6 +42,8 @@ Retorne APENAS JSON: {"goal_identifier": "viagem", "new_target": 12000.0, "new_t
 - goal_identifier: nome da meta
 - new_target: novo valor total (opcional)
 - new_title: novo nome (opcional)
-- deadline: novo prazo (opcional, formato "MM/YYYY")
+- deadline: novo prazo (opcional, formato "MM/YYYY"). Hoje é {today_iso}.
+  Se o usuário disser só o mês, use o ANO ATUAL se esse mês ainda não passou,
+  senão use ANO ATUAL + 1. NUNCA retorne uma data no passado.
 Se um campo não estiver na mensagem ou não houver alteração, omita do JSON.""",
 }

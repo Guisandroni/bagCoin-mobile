@@ -30,6 +30,7 @@ from app.agents.budget_goal import (
 from app.agents.deep_research import deep_research
 from app.agents.import_statement import import_transactions
 from app.agents.ingestion import classify_intent
+from app.agents.humanize import humanize_safely, should_humanize
 from app.agents.multimodal import process_multimodal
 from app.agents.normalization import extract_transaction
 from app.agents.persistence import save_message_to_history, save_transaction
@@ -39,6 +40,7 @@ from app.agents.statement_parser import detect_statement
 from app.agents.tenant_context import tenant_phone_error
 from app.agents.text_to_sql import process_query
 from app.agents.wizard import wizard_node
+from app.core.config import settings
 from app.db.session import sync_session_maker
 from app.schemas.enums import IntentType
 from app.services.integration_service import redact_message_for_log
@@ -56,6 +58,7 @@ class AgentState(TypedDict):
     intent: str | None
     extracted_data: dict[str, Any] | None
     query_result: dict[str, Any] | None
+    report_id: int | None
     report_path: str | None
     report_summary: str | None
     import_summary: str | None
@@ -1018,16 +1021,13 @@ def build_response_node(state: AgentState) -> AgentState:
 
     if message.startswith("[") and message.endswith("]"):
         state["response"] = message[1:-1]
-        _save_history(phone_number, message, state.get("response", ""))
         return state
 
     if state.get("response"):
-        _save_history(phone_number, message, state.get("response", ""))
         return state
 
     if error:
         state["response"] = resp.error_message(error)
-        _save_history(phone_number, message, state.get("response", ""))
         return state
 
     if intent == IntentType.REGISTER_EXPENSE.value or intent == IntentType.REGISTER_INCOME.value:
@@ -1166,8 +1166,26 @@ def build_response_node(state: AgentState) -> AgentState:
         else:
             state["response"] = resp.unknown_intent()
 
-    _save_history(phone_number, message, state.get("response", ""))
     return state
+
+
+def finalize_response_node(state: AgentState) -> AgentState:
+    """Final response step: optional humanize, then persist final history once."""
+    result = dict(state)
+    response = result.get("response") or ""
+    if should_humanize(result):
+        result["response"] = humanize_safely(response, result)
+
+    audio_text = (result.get("context") or {}).get("audio_transcription")
+    if audio_text and settings.ECHO_AUDIO_TRANSCRIPTION and not result.get("error"):
+        result["response"] = f'Ouvi: "{audio_text}". {result.get("response", "")}'
+
+    _save_history(
+        result.get("phone_number", ""),
+        result.get("message", ""),
+        result.get("response", ""),
+    )
+    return AgentState(**result)
 
 
 def _save_history(phone_number: str, user_msg: str, bot_msg: str):
@@ -1307,6 +1325,7 @@ def create_orchestrator():
     workflow.add_node("list_categories", list_categories_handler_node)
     workflow.add_node("update_category", update_category_handler_node)
     workflow.add_node("build_response", build_response_node)
+    workflow.add_node("finalize_response", finalize_response_node)
 
     # Define fluxo
     # 1. Sempre processa multimodal primeiro (se for texto, passa direto)
@@ -1386,7 +1405,8 @@ def create_orchestrator():
     workflow.add_edge("delete_category", "build_response")
     workflow.add_edge("list_categories", "build_response")
     workflow.add_edge("update_category", "build_response")
-    workflow.add_edge("build_response", END)
+    workflow.add_edge("build_response", "finalize_response")
+    workflow.add_edge("finalize_response", END)
 
     return workflow.compile()
 

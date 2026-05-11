@@ -241,6 +241,32 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
         state["transaction_id"] = transaction.id
         state["category_name"] = category_name
         state["category_id"] = category.id
+
+        # Create recurring rule if flagged (Bug 1 fix)
+        if extracted.get("is_recurring"):
+            web_uuid = _web_user_uuid_for_phone_user(db, user)
+            if web_uuid:
+                try:
+                    from app.services.recurring_transactions_sync import create_recurring_transaction_sync
+                    recurring = create_recurring_transaction_sync(
+                        db,
+                        user_uuid=web_uuid,
+                        type=tx_type.value,
+                        amount=extracted["amount"],
+                        category_id=category.id,
+                        description=extracted.get("description", ""),
+                        frequency=extracted.get("recurrence_frequency") or "monthly",
+                        start_date=tx_date,
+                    )
+                    transaction.recurring_transaction_id = recurring.id
+                    db.commit()
+                    logger.info(f"RecurringTransaction {recurring.id} created for tx {transaction.id}")
+                except Exception as e:
+                    logger.warning(f"Could not create recurring rule (non-blocking): {e}")
+            else:
+                state["needs_pairing_for_recurring"] = True
+                logger.info(f"Recurring flagged but no web UUID for {phone_number} — skipping rule")
+
         logger.info(f"Transaction {transaction.id} saved for user {user.id}")
 
         # Update financial profile asynchronously

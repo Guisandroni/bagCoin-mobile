@@ -215,6 +215,27 @@ def generate_report(state: dict[str, Any]) -> dict[str, Any]:
             f"PDF e CSV gerados com sucesso!"
         )
 
+        # Persist Report row so bridges can download via HTTP (Fase 7)
+        try:
+            from app.services.report_sync import create_report_sync
+
+            # user_uuid when paired with a web User
+            user_uuid = getattr(user, "merged_into_user_id", None)
+            report_row = create_report_sync(
+                db,
+                user_id=user.id,
+                user_uuid=user_uuid,
+                period_start=period_start,
+                period_end=period_end,
+                file_url=report_path,
+            )
+            db.commit()
+            state["report_id"] = report_row.id
+            logger.info(f"Report row {report_row.id} created for file {report_path}")
+        except Exception as exc:
+            db.rollback()
+            logger.warning(f"Could not persist Report row (non-blocking): {exc}")
+
         logger.info(f"Relatório gerado: {report_path}")
 
     except Exception as e:

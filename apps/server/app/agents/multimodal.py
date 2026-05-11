@@ -12,11 +12,14 @@ import logging
 import os
 import tempfile
 from typing import Any
+from collections.abc import Mapping
 
 import urllib.request
 
 from groq import Groq
 
+from app.agents.multimodal_types import MultimodalResult
+from app.agents.prompts.image_receipt import IMAGE_RECEIPT_PROMPT
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -33,6 +36,14 @@ MEDIA_FAILURE_PREFIXES = (
     "[Tipo de documento não suportado",
     "[Formato de mídia não reconhecido",
 )
+
+WHISPER_HALLUCINATIONS = frozenset({
+    "obrigado por assistir",
+    "obrigada por assistir",
+    "legendas pela comunidade",
+    "transcrição e legendas",
+    "inscreva-se no canal",
+})
 
 
 # ── Clients ────────────────────────────────────────────────
@@ -56,14 +67,19 @@ def _get_groq_client() -> Groq | None:
 
 # ── Audio ──────────────────────────────────────────────────
 
-def process_audio(media: dict[str, Any]) -> str:
+def process_audio(media: dict[str, Any]) -> MultimodalResult:
     """Transcreve audio usando Groq Whisper.
 
     Suporta: ogg, mp3, m4a, wav, webm.
     """
     client = _get_groq_client()
     if not client:
-        return "[Transcrição de áudio indisponível — configure GROQ_API_KEY]"
+        return MultimodalResult(
+            text="",
+            provider="groq_whisper",
+            failure=True,
+            reason="missing_groq_api_key",
+        )
 
     try:
         audio_data = base64.b64decode(media["data"])
@@ -85,17 +101,57 @@ def process_audio(media: dict[str, Any]) -> str:
                     file=audio_file,
                     model="whisper-large-v3-turbo",
                     language="pt",
-                    response_format="text",
+                    response_format="verbose_json",
+                    prompt="Transcrição em pt-BR. Vocabulário financeiro: reais, pix, mercado, orçamento, meta, gasto, receita.",
                 )
-            text = transcription.strip() if isinstance(transcription, str) else str(transcription).strip()
+            if isinstance(transcription, str):
+                text = transcription.strip()
+                duration = None
+            else:
+                text = str(getattr(transcription, "text", "") or "").strip()
+                duration = getattr(transcription, "duration", None)
+                if not text and isinstance(transcription, Mapping):
+                    text = str(transcription.get("text", "") or "").strip()
+                    duration = transcription.get("duration")
+            confidence, reason = _audio_confidence(text, duration)
             logger.info(f"Áudio transcrito: {text[:80]}...")
-            return text
+            return MultimodalResult(
+                text=text,
+                confidence=confidence,
+                reason=reason,
+                provider="groq_whisper",
+            )
         finally:
             os.unlink(tmp_path)
 
     except Exception as e:
         logger.error(f"Erro na transcrição: {e}")
-        return "[Não consegui entender o áudio. Tente de novo ou envie como texto.]"
+        return MultimodalResult(
+            text="",
+            provider="groq_whisper",
+            failure=True,
+            reason="transcription_error",
+        )
+
+
+def _audio_confidence(text: str, duration: float | None) -> tuple[str, str | None]:
+    """Classify transcription confidence using simple deterministic guards."""
+    text_clean = (text or "").strip()
+    if len(text_clean) < 3:
+        return "low", "too_short"
+    text_norm = text_clean.lower()
+    hallucinations = WHISPER_HALLUCINATIONS | {
+        phrase.lower() for phrase in settings.EXTRA_WHISPER_HALLUCINATIONS
+    }
+    if any(phrase in text_norm for phrase in hallucinations):
+        return "low", "whisper_hallucination"
+    if duration is not None:
+        try:
+            if float(duration) < 0.5:
+                return "low", "audio_too_short"
+        except (TypeError, ValueError):
+            pass
+    return "normal", None
 
 
 # ── Image ──────────────────────────────────────────────────
@@ -112,12 +168,7 @@ def _image_groq(mimetype: str, b64_data: str) -> str | None:
             messages=[{
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": (
-                        "Extraia TODO o texto visível nesta imagem. "
-                        "Se for nota fiscal, comprovante ou recibo, liste: "
-                        "estabelecimento, data, valor total, itens. "
-                        "Responda em português."
-                    )},
+                    {"type": "text", "text": _image_prompt()},
                     {"type": "image_url", "image_url": {"url": data_uri}},
                 ],
             }],
@@ -144,12 +195,7 @@ def _image_gemini(mimetype: str, b64_data: str) -> str | None:
         body = json.dumps({
             "contents": [{
                 "parts": [
-                    {"text": (
-                        "Extraia TODO o texto visivel nesta imagem. "
-                        "Se for nota fiscal, comprovante ou recibo, liste: "
-                        "estabelecimento, data, valor total, itens. "
-                        "Responda em portugues."
-                    )},
+                    {"text": _image_prompt()},
                     {"inline_data": {"mime_type": mimetype, "data": b64_data}},
                 ]
             }]
@@ -166,30 +212,104 @@ def _image_gemini(mimetype: str, b64_data: str) -> str | None:
     return None
 
 
-def process_image(media: dict[str, Any]) -> str:
+def _image_prompt() -> str:
+    if settings.IMAGE_STRUCTURED_EXTRACT:
+        return IMAGE_RECEIPT_PROMPT
+    return (
+        "Extraia TODO o texto visível nesta imagem. "
+        "Se for nota fiscal, comprovante ou recibo, liste: "
+        "estabelecimento, data, valor total, itens. "
+        "Responda em português."
+    )
+
+
+def _parse_json_object(text: str) -> dict[str, Any] | None:
+    """Parse a JSON object from model output, including fenced JSON."""
+    content = (text or "").strip()
+    if not content:
+        return None
+    if "```json" in content:
+        content = content.split("```json", 1)[1].split("```", 1)[0].strip()
+    elif "```" in content:
+        content = content.split("```", 1)[1].split("```", 1)[0].strip()
+    if not content.startswith("{"):
+        start = content.find("{")
+        end = content.rfind("}")
+        if start >= 0 and end > start:
+            content = content[start : end + 1]
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _image_result_from_text(text: str, provider: str) -> MultimodalResult:
+    structured = _parse_json_object(text) if settings.IMAGE_STRUCTURED_EXTRACT else None
+    if structured:
+        raw_text = str(structured.get("raw_text") or "").strip()
+        establishment = str(structured.get("establishment") or "").strip()
+        total = structured.get("total_amount")
+        text_parts = [part for part in [establishment, f"R$ {total}" if total else "", raw_text] if part]
+        result_text = "\n".join(text_parts) or raw_text or text
+        logger.info(
+            "[image_receipt] structured=True establishment=%s raw_text_len=%s",
+            establishment or None,
+            len(raw_text),
+        )
+        return MultimodalResult(text=result_text, structured=structured, provider=provider)
+    return MultimodalResult(text=text, provider=provider)
+
+
+def _failure_message(source_format: str, reason: str | None) -> str:
+    if source_format == "audio":
+        return "Não consegui entender o áudio. Pode enviar novamente, repetir ou escrever em texto?"
+    if source_format == "image":
+        return "Não consegui analisar a imagem. Pode descrever o conteúdo em texto?"
+    if source_format == "document":
+        return "Não consegui ler esse documento. Pode enviar novamente ou descrever em texto?"
+    return "Não consegui processar essa mídia. Pode enviar novamente ou escrever em texto?"
+
+
+def _low_confidence_message(source_format: str, reason: str | None) -> str:
+    if source_format == "audio":
+        return "Não consegui entender o áudio com segurança. Pode enviar novamente, repetir ou escrever em texto?"
+    return _failure_message(source_format, reason)
+
+
+def process_image(media: dict[str, Any]) -> MultimodalResult:
     """Extrai texto de imagem — Llama-4-Scout → Gemini.
 
     Útil para notas fiscais, comprovantes, prints de banco.
+    Resizes large images to avoid Groq/Gemini payload limits.
     """
     mimetype = media.get("mimetype", "image/jpeg")
-    b64_data = media["data"]
+    try:
+        raw_bytes = base64.b64decode(media["data"])
+    except Exception as exc:
+        logger.error(f"Failed to decode image data: {exc}")
+        return MultimodalResult(text="", provider="image", failure=True, reason="decode_error")
+
+    # Downscale before sending to model (Bug 8.1 fix)
+    resized, new_mimetype = _maybe_resize_image(raw_bytes, mimetype)
+    b64_data = base64.b64encode(resized).decode("ascii")
 
     # 1. Groq Llama-4-Scout (multimodal nativo)
-    result = _image_groq(mimetype, b64_data)
+    result = _image_groq(new_mimetype, b64_data)
     if result:
-        return result
+        return _image_result_from_text(result, "groq_llama4")
 
     # 2. Gemini 2.0 Flash (fallback)
-    result = _image_gemini(mimetype, b64_data)
+    result = _image_gemini(new_mimetype, b64_data)
     if result:
-        return result
+        return _image_result_from_text(result, "gemini")
 
-    return "[Não consegui analisar a imagem. Pode descrever o conteúdo em texto?]"
+    return MultimodalResult(text="", provider="image", failure=True, reason="vision_unavailable")
 
 
 # ── Document ───────────────────────────────────────────────
 
-def process_document(media: dict[str, Any]) -> str:
+def process_document(media: dict[str, Any]) -> MultimodalResult:
     """Extrai texto de documento (PDF, CSV, OFX)."""
     mimetype = media.get("mimetype", "application/pdf")
 
@@ -197,24 +317,24 @@ def process_document(media: dict[str, Any]) -> str:
         doc_data = base64.b64decode(media["data"])
     except Exception as e:
         logger.error(f"Erro ao decodificar documento: {e}")
-        return "[Erro ao decodificar documento.]"
+        return MultimodalResult(text="", provider="document", failure=True, reason="decode_error")
 
     # CSV / OFX / TXT
     if mimetype in ("text/csv", "application/csv", "text/plain", "application/ofx", "text/ofx"):
         try:
             text = doc_data.decode("utf-8", errors="replace").strip()
             logger.info(f"Documento texto ({mimetype}): {len(text)} chars")
-            return text
+            return MultimodalResult(text=text, provider="document_text")
         except Exception as e:
             logger.error(f"Erro ao decodificar texto: {e}")
-            return "[Não consegui ler o arquivo de texto.]"
+            return MultimodalResult(text="", provider="document_text", failure=True, reason="text_decode_error")
 
     # PDF
     if mimetype == "application/pdf":
         try:
             import PyPDF2
         except ImportError:
-            return "[Processamento de PDF indisponível. Biblioteca não instalada.]"
+            return MultimodalResult(text="", provider="pdf", failure=True, reason="pdf_library_missing")
 
         try:
             pdf_file = io.BytesIO(doc_data)
@@ -226,16 +346,16 @@ def process_document(media: dict[str, Any]) -> str:
                     text_parts.append(page_text)
             full_text = "\n".join(text_parts).strip()
             if not full_text:
-                return "[O PDF parece estar vazio ou conter apenas imagens.]"
+                return MultimodalResult(text="", provider="pdf", failure=True, reason="pdf_empty")
             if len(full_text) > 4000:
                 full_text = full_text[:4000] + "\n...[texto truncado]"
             logger.info(f"PDF extraído: {len(full_text)} chars")
-            return full_text
+            return MultimodalResult(text=full_text, provider="pdf")
         except Exception as e:
             logger.error(f"Erro no PDF: {e}")
-            return "[Não consegui processar o PDF. Envie como imagem ou descreva o conteúdo.]"
+            return MultimodalResult(text="", provider="pdf", failure=True, reason="pdf_error")
 
-    return f"[Tipo de documento não suportado: {mimetype}. Envie PDF, CSV ou OFX.]"
+    return MultimodalResult(text="", provider="document", failure=True, reason="unsupported_document")
 
 
 # ── Entry Point ────────────────────────────────────────────
@@ -253,38 +373,118 @@ def process_multimodal(state: dict[str, Any]) -> dict[str, Any]:
     logger.info(f"Processando mídia: {source_format}")
 
     if source_format == "audio":
-        extracted = process_audio(media)
+        result = process_audio(media)
     elif source_format == "image":
-        extracted = process_image(media)
+        result = process_image(media)
     elif source_format == "document":
-        extracted = process_document(media)
+        result = process_document(media)
     else:
-        extracted = "[Formato de mídia não reconhecido]"
+        result = MultimodalResult(text="", failure=True, reason="unknown_format")
+    result = _coerce_result(result, source_format)
 
-    if extracted.startswith(MEDIA_FAILURE_PREFIXES):
-        state["error"] = extracted.strip("[]")
-        state["response"] = (
-            f"{extracted}\n\n"
-            "Pode enviar novamente ou escrever a despesa/receita em texto?"
-        )
+    if result.is_failure:
+        state["error"] = f"media_failure:{result.reason or 'unknown'}"
+        state["response"] = _failure_message(source_format, result.reason)
         return state
 
-    state["message"] = extracted
-    state["context"] = state.get("context", {})
-    state["context"]["extracted_media_text"] = extracted
-    state["context"]["original_format"] = source_format
+    if result.confidence == "low":
+        state["error"] = f"media_low_confidence:{result.reason or 'unknown'}"
+        state["response"] = _low_confidence_message(source_format, result.reason)
+        return state
 
-    logger.info(f"Texto extraído: {extracted[:80]}...")
+    if source_format == "image" and result.structured is not None:
+        if not result.structured.get("is_receipt", True):
+            state["response"] = (
+                "Essa imagem não parece um comprovante. "
+                "Pode mandar uma nota fiscal ou descrever em texto?"
+            )
+            return state
+
+    state["message"] = result.text
+    state["context"] = state.get("context", {})
+    state["context"]["extracted_media_text"] = result.text
+    state["context"]["original_format"] = source_format
+    state["context"]["media_provider"] = result.provider
+    if source_format == "audio":
+        state["context"]["audio_transcription"] = result.text
+    if result.structured:
+        state["context"]["image_structured"] = result.structured
+
+    logger.info(f"Texto extraído ({result.provider}): {result.text[:80]}...")
     return state
 
 
+def _coerce_result(result: MultimodalResult | str, source_format: str) -> MultimodalResult:
+    """Support legacy string-returning test doubles while processors migrate."""
+    if isinstance(result, MultimodalResult):
+        return result
+    text = str(result)
+    if text.startswith(MEDIA_FAILURE_PREFIXES):
+        return MultimodalResult(text="", provider=source_format, failure=True, reason=text.strip("[]"))
+    return MultimodalResult(text=text, provider=source_format)
+
+
 def _source_format_from_media(source_format: str, media: dict[str, Any]) -> str:
-    """Normalize bridge-specific message types using the media mimetype."""
+    """Normalize bridge-specific message types using the media mimetype.
+
+    Fallbacks (Bug 8.1 fix):
+    - octet-stream / missing mimetype → infer from filename extension
+    - unknown → keep source_format
+    """
     mimetype = str(media.get("mimetype") or "").lower()
+    filename = str(media.get("filename") or "").lower()
+
     if mimetype.startswith("audio/"):
         return "audio"
     if mimetype.startswith("image/"):
         return "image"
     if mimetype in {"application/pdf", "text/csv", "application/csv", "text/plain"}:
         return "document"
+
+    # Fallback by filename extension
+    if filename:
+        ext = filename.rsplit(".", 1)[-1] if "." in filename else ""
+        ext_map = {
+            "ogg": "audio", "mp3": "audio", "m4a": "audio", "wav": "audio", "webm": "audio",
+            "jpg": "image", "jpeg": "image", "png": "image", "webp": "image", "gif": "image",
+            "pdf": "document", "csv": "document", "txt": "document", "ofx": "document",
+        }
+        if ext in ext_map:
+            return ext_map[ext]
+
     return source_format
+
+
+def _maybe_resize_image(data: bytes, mimetype: str) -> tuple[bytes, str]:
+    """Downscale large images to avoid hitting Groq/Gemini payload limits.
+
+    Only runs if the image exceeds ~4MB. Returns (data, mimetype) unchanged
+    if Pillow is unavailable or the image is already small.
+    """
+    MAX_BYTES = 4_000_000
+    if len(data) <= MAX_BYTES:
+        return data, mimetype
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+    except ImportError:
+        logger.warning("Pillow not installed — skipping large-image resize")
+        return data, mimetype
+
+    try:
+        img = Image.open(BytesIO(data))
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        # Scale so longest side is at most 2048px
+        img.thumbnail((2048, 2048), Image.Resampling.LANCZOS)
+        buf = BytesIO()
+        img.save(buf, format="JPEG", quality=85, optimize=True)
+        new_data = buf.getvalue()
+        logger.info(
+            f"Image resized: {len(data)} → {len(new_data)} bytes ({mimetype} → image/jpeg)"
+        )
+        return new_data, "image/jpeg"
+    except Exception as exc:
+        logger.warning(f"Image resize failed, using original: {exc}")
+        return data, mimetype

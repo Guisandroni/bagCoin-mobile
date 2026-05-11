@@ -45,6 +45,9 @@ def _extract_with_llm(message: str, extraction_type: str) -> dict[str, Any]:
     from app.agents.prompts.extract_budget_goal import EXTRACT_PROMPTS
 
     system_prompt = EXTRACT_PROMPTS.get(extraction_type, EXTRACT_PROMPTS["budget"])
+    # Replace date placeholder (use replace, not format — prompt has literal {} in JSON examples)
+    system_prompt = system_prompt.replace("{today_iso}", date.today().isoformat())
+
     llm = get_llm(temperature=0.1)
 
     if not llm:
@@ -116,6 +119,43 @@ def _parse_goal_result(result: dict) -> dict:
     return data
 
 
+def _future_deadline(deadline_raw: str | None) -> date | None:
+    """Parse a deadline string and guarantee it is in the future (Bug 5 fix).
+
+    Accepts "MM/YYYY" or "DD/MM/YYYY". If the resulting date is in the past,
+    bumps the year by 1.
+    """
+    if not deadline_raw:
+        return None
+    parsed: date | None = None
+    # "DD/MM/YYYY"
+    m = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", str(deadline_raw))
+    if m:
+        try:
+            parsed = date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+        except ValueError:
+            parsed = None
+    # "MM/YYYY"
+    if not parsed:
+        m = re.search(r"(\d{1,2})/(\d{4})", str(deadline_raw))
+        if m:
+            try:
+                parsed = date(int(m.group(2)), int(m.group(1)), 1)
+            except ValueError:
+                parsed = None
+    if not parsed:
+        return None
+    # Guard: keep bumping year until the date is in the future
+    today = date.today()
+    while parsed <= today:
+        try:
+            parsed = parsed.replace(year=parsed.year + 1)
+        except ValueError:
+            # Feb 29 edge case
+            parsed = parsed.replace(year=parsed.year + 1, day=28)
+    return parsed
+
+
 # =====================================================================
 # Orchestrator Nodes
 # =====================================================================
@@ -152,7 +192,7 @@ def create_budget_node(state: dict[str, Any]) -> dict[str, Any]:
             f"{budget_label} criado! 📊\n\n"
             f"{'Nome' if budget_label == 'Conta' else 'Categoria'}: {budget['name']}\n"
             f"{'Saldo' if budget_label == 'Conta' else 'Limite'}: R$ {budget['total_limit']:,.2f}\n"
-            f"Período: {budget['period']}"
+            f"Período: {resp.period_label(budget.get('period'))}"
         )
         logger.info(f"Budget created: {budget['id']} — {budget['name']}")
 
@@ -179,16 +219,7 @@ def create_goal_node(state: dict[str, Any]) -> dict[str, Any]:
 
         title = extracted.get("title", "Reserva")
         deadline = extracted.get("deadline")
-        deadline_date = None
-        if deadline:
-            try:
-                m = re.search(r"(\d{1,2})/(\d{4})", str(deadline))
-                if m:
-                    from datetime import date
-
-                    deadline_date = date(int(m.group(2)), int(m.group(1)), 1)
-            except Exception:
-                pass
+        deadline_date = _future_deadline(deadline)
 
         goal = create_goal(
             phone_number=phone_number,
@@ -497,14 +528,7 @@ def update_goal_node(state: dict[str, Any]) -> dict[str, Any]:
         amount = extracted.get("new_target") or _extract_number(message)
         title = extracted.get("new_title")
         deadline = extracted.get("deadline")
-        deadline_date = None
-        if deadline:
-            try:
-                m = re.search(r"(\d{1,2})/(\d{4})", str(deadline))
-                if m:
-                    deadline_date = date(int(m.group(2)), int(m.group(1)), 1)
-            except Exception:
-                pass
+        deadline_date = _future_deadline(deadline)
         result = update_goal(
             phone_number,
             identifier,

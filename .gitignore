@@ -137,3 +137,6 @@ fix.md
 plano-design-fix.md
 plano-melhorias.md
 scripts/
+.agents
+.claude
+.opencode

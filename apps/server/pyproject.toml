@@ -5,7 +5,7 @@ description = "A FastAPI project"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
-    { name = "guisandroni", email = "gui.sandroni@email.com" },
+    { name = "guisandroni", email = "gui.sandroni@gmail.com" },
 ]
 
 dependencies = [

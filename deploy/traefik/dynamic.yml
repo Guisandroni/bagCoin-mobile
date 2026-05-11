@@ -1,14 +1,14 @@
 http:
   routers:
-    bagcoin-web:
-      rule: "Host(`bagcoin.app`)"
-      entryPoints:
-        - websecure
-      service: bagcoin-web
-      middlewares:
-        - security-headers
-      tls:
-        certResolver: letsencrypt
+    # bagcoin-web:
+    #   rule: "Host(`bagcoin.app`)"
+    #   entryPoints:
+    #     - websecure
+    #   service: bagcoin-web
+    #   middlewares:
+    #     - security-headers
+    #   tls:
+    #     certResolver: letsencrypt
 
     bagcoin-api:
       rule: "Host(`api.bagcoin.app`)"
@@ -43,10 +43,10 @@ http:
         certResolver: letsencrypt
 
   services:
-    bagcoin-web:
-      loadBalancer:
-        servers:
-          - url: "http://web:3000"
+    # bagcoin-web:
+    #   loadBalancer:
+    #     servers:
+    #       - url: "http://web:3000"
 
     bagcoin-api:
       loadBalancer:

@@ -49,7 +49,7 @@ export function ChangePasswordModal({
     <div className="rls">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-[rgba(27,28,30,0.4)] backdrop-blur-sm z-50"
         onClick={onClose}
       />
 
@@ -62,7 +62,7 @@ export function ChangePasswordModal({
           </div>
 
           {/* Header */}
-          <div className="flex justify-between items-center px-[var(--rls-inline-padding-md)] pb-4">
+          <div className="flex justify-between items-center px-[var(--rls-inline-padding-md)] pb-4 border-b border-[var(--rls-outline-variant)]">
             <h2 className="rls-text-headline-sm text-[var(--rls-on-surface)]">
               Alterar Senha
             </h2>

@@ -8,6 +8,7 @@ import { InfoCard } from "./info-card"
 import { BottomNavBar } from "./bottom-nav-bar"
 import type { ReleaseCategory, ReleaseNavItem } from "./types"
 import { cn } from "@/lib/utils"
+import { CategoryIcon } from "@/lib/category"
 
 interface CategoriesViewProps {
   categories: ReleaseCategory[]
@@ -33,20 +34,12 @@ export function CategoriesView({
     { label: "Investimentos", value: "investimento" as const },
   ]
 
-  const categoryIcons: Record<string, React.ReactNode> = {
-    alimentacao: "🍽️",
-    moradia: "🏠",
-    transporte: "🚗",
-    lazer: "🎬",
-    saude: "❤️",
-  }
-
   const categoryBgColors: Record<string, string> = {
-    alimentacao: "bg-red-100",
-    moradia: "bg-blue-100",
-    transporte: "bg-green-100",
-    lazer: "bg-orange-100",
-    saude: "bg-purple-100",
+    alimentacao: "bg-[var(--rls-tertiary-container)]/20",
+    moradia: "bg-[var(--rls-primary-container)]/10",
+    transporte: "bg-[var(--rls-secondary-container)]/20",
+    lazer: "bg-[var(--rls-tertiary-container)]/10",
+    saude: "bg-[var(--rls-primary-container)]/10",
   }
 
   return (
@@ -90,7 +83,7 @@ export function CategoriesView({
                 )}
                 style={{ backgroundColor: cat.color ? `${cat.color}20` : undefined }}
               >
-                {categoryIcons[cat.name.toLowerCase()] || cat.icon}
+                <CategoryIcon name={cat.name} size={20} />
               </div>
               <div className="flex-1 min-w-0">
                 <span className="rls-text-body-lg text-[var(--rls-on-surface)] block">
@@ -108,6 +101,7 @@ export function CategoriesView({
         </div>
       </main>
 
+      <BottomNavBar items={navItems} onNavigate={onNavigate} />
     </div>
   )
 }

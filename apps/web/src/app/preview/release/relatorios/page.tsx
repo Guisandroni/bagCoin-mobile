@@ -8,9 +8,9 @@ export default function RelatoriosPreview() {
     <ReportsView
       reports={mockReports}
       navItems={mockNavItems}
-      onBack={() => console.log("Back")}
-      onNavigate={(href) => console.log("Navigate:", href)}
-      onDownload={(id) => console.log("Download:", id)}
+      onBack={() => {}}
+      onNavigate={() => {}}
+      onDownload={() => {}}
     />
   )
 }

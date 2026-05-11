@@ -56,7 +56,7 @@ vi.mock("@/lib/api-client", () => ({
 }))
 
 vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn(), dismiss: vi.fn() },
 }))
 
 

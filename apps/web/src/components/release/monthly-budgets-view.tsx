@@ -4,12 +4,7 @@ import { ArrowLeft, Plus } from "lucide-react"
 import { AppBar } from "./app-bar"
 import { ProgressCard } from "./progress-card"
 import type { ReleaseBudget } from "./types"
-import {
-  Utensils,
-  Car,
-  Gamepad2,
-  Heart,
-} from "lucide-react"
+import { getCategoryLucideIcon } from "@/lib/category"
 
 interface MonthlyBudgetsViewProps {
   budgets: ReleaseBudget[]
@@ -18,13 +13,6 @@ interface MonthlyBudgetsViewProps {
   month: string
   onBack?: () => void
   onAddBudget?: () => void
-}
-
-const budgetIconMap: Record<string, React.ReactNode> = {
-  alimentacao: <Utensils className="w-5 h-5" />,
-  transporte: <Car className="w-5 h-5" />,
-  lazer: <Gamepad2 className="w-5 h-5" />,
-  saude: <Heart className="w-5 h-5" />,
 }
 
 const budgetColorMap: Record<string, string> = {
@@ -91,7 +79,9 @@ export function MonthlyBudgetsView({
 
         {/* Budget Category Cards */}
         <div className="flex flex-col gap-[var(--rls-stack-gap-md)]">
-          {budgets.map((budget) => (
+          {budgets.map((budget) => {
+            const Icon = getCategoryLucideIcon(budget.category)
+            return (
             <ProgressCard
               key={budget.id}
               title={budget.category}
@@ -101,18 +91,19 @@ export function MonthlyBudgetsView({
               percentage={budget.percentage}
               color={budget.categoryColor as keyof typeof budgetColorMap || "blue"}
               remainingText={`R$ ${budget.remaining.toLocaleString("pt-BR")} restantes`}
-              icon={budgetIconMap[budget.category] || budgetIconMap.alimentacao}
+              icon={<Icon className="w-5 h-5" />}
               iconBg={
                 budget.categoryColor === "red"
                   ? "bg-[var(--rls-error-container)]"
                   : budget.categoryColor === "green"
-                    ? "bg-[var(--rls-secondary-container)]/20"
+                    ? "bg-[var(--rls-secondary-container)]"
                     : budget.categoryColor === "pink"
-                      ? "bg-[var(--rls-tertiary-container)]/20"
-                      : "bg-[var(--rls-primary-container)]/10"
+                      ? "bg-[var(--rls-tertiary-container)]"
+                      : "bg-[var(--rls-primary-container)]"
               }
             />
-          ))}
+            )
+          })}
         </div>
       </main>
 

@@ -152,6 +152,12 @@
   --sidebar-accent: #dde1ff;
   --sidebar-accent-foreground: #001452;
   --sidebar-border: #c3c5d8;
+
+  /* ── Layout dimensions ── */
+  --sidebar-w: 260px;
+  --sidebar-collapsed-w: 72px;
+  --bottom-nav-h: 64px;
+  --topbar-h: 60px;
   --sidebar-ring: #1652f0;
 
   /* ── Radii (MD3 — extra rounded, pill shapes) ── */

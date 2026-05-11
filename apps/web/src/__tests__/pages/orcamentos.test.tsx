@@ -29,6 +29,10 @@ const mockBudgets: ReleaseBudget[] = [
   },
 ]
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+}))
+
 vi.mock("@/hooks/use-budgets", () => ({
   useCreateBudget: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useUpdateBudget: () => ({ mutateAsync: vi.fn(), isPending: false }),

@@ -55,20 +55,27 @@ export function useGoal(id: number) {
   })
 }
 
+const TOAST_ID_CREATE_GOAL = "goals-create"
+
 export function useCreateGoal() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: GoalCreate) =>
       api.post<Goal>("/bagcoin/goals", data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta criada com sucesso!")
+      toast.success("Meta criada com sucesso!", { id: TOAST_ID_CREATE_GOAL })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar meta")
+      toast.dismiss(TOAST_ID_CREATE_GOAL)
+      console.error('[hook:goals]', err)
+      toast.error(err.message || "Erro ao criar meta", { id: TOAST_ID_CREATE_GOAL })
     },
   })
 }
+
+const TOAST_ID_UPDATE_GOAL = "goals-update"
 
 export function useUpdateGoal() {
   const qc = useQueryClient()
@@ -76,14 +83,19 @@ export function useUpdateGoal() {
     mutationFn: ({ id, data }: { id: number; data: GoalUpdate }) =>
       api.patch<Goal>(`/bagcoin/goals/${id}`, data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_UPDATE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta atualizada com sucesso!")
+      toast.success("Meta atualizada com sucesso!", { id: TOAST_ID_UPDATE_GOAL })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao atualizar meta")
+      toast.dismiss(TOAST_ID_UPDATE_GOAL)
+      console.error('[hook:goals]', err)
+      toast.error(err.message || "Erro ao atualizar meta", { id: TOAST_ID_UPDATE_GOAL })
     },
   })
 }
+
+const TOAST_ID_DELETE_GOAL = "goals-delete"
 
 export function useDeleteGoal() {
   const qc = useQueryClient()
@@ -91,11 +103,14 @@ export function useDeleteGoal() {
     mutationFn: (id: number) =>
       api.delete(`/bagcoin/goals/${id}`),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_DELETE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta excluída com sucesso!")
+      toast.success("Meta excluída com sucesso!", { id: TOAST_ID_DELETE_GOAL })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao excluir meta")
+      toast.dismiss(TOAST_ID_DELETE_GOAL)
+      console.error('[hook:goals]', err)
+      toast.error(err.message || "Erro ao excluir meta", { id: TOAST_ID_DELETE_GOAL })
     },
   })
 }

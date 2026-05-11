@@ -1,7 +1,7 @@
 "use client"
 
 import { CategoriesView } from "@/components/release/categories-view"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { getReleaseNavItems } from "@/lib/adapters"
 import type { ReleaseCategory } from "@/components/release/types"
 
@@ -12,6 +12,7 @@ interface Props {
 
 export function CategoriasClient({ categories, totalAllocated }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
   const navItems = getReleaseNavItems(pathname)
 
   return (
@@ -21,7 +22,7 @@ export function CategoriasClient({ categories, totalAllocated }: Props) {
       navItems={navItems}
       onNavigate={(href) => {
         if (href === "#settings") return
-        window.location.href = href
+        router.push(href)
       }}
     />
   )

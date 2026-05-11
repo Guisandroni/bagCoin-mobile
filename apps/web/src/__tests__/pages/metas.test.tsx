@@ -24,6 +24,10 @@ const mockGoals: ReleaseGoal[] = [
   },
 ]
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
+}))
+
 vi.mock("@/hooks/use-goals", () => ({
   useCreateGoal: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useUpdateGoal: () => ({ mutateAsync: vi.fn(), isPending: false }),

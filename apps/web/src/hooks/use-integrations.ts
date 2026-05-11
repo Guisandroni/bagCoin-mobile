@@ -131,10 +131,7 @@ export function useOpenIntegrationChat() {
       try {
         await openIntegrationChat(channel, queryClient)
       } catch (e) {
-        // Silent for end users; devtools hint for developers only.
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("[integrations] open chat failed", getIntegrationLinkErrorMessage(e))
-        }
+        console.error("[integrations] open chat failed", e)
       } finally {
         setOpeningChannel(null)
       }

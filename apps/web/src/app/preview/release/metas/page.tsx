@@ -10,8 +10,8 @@ export default function MetasPreview() {
       totalCurrent={15400}
       totalTarget={25000}
       globalPercentage={62}
-      onBack={() => console.log("Back")}
-      onAddGoal={() => console.log("Add goal")}
+      onBack={() => {}}
+      onAddGoal={() => {}}
     />
   )
 }

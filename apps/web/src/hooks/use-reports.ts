@@ -53,20 +53,27 @@ export function useReport(id: number) {
   })
 }
 
+const TOAST_ID_CREATE_REPORT = "reports-create"
+
 export function useCreateReport() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (body: ReportGenerateRequest) =>
       api.post<ReportGenerateResponse>("/bagcoin/reports", body),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE_REPORT)
       qc.invalidateQueries({ queryKey: ["reports"] })
-      toast.success("Relatório gerado com sucesso!")
+      toast.success("Relatório gerado com sucesso!", { id: TOAST_ID_CREATE_REPORT })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao gerar relatório")
+      toast.dismiss(TOAST_ID_CREATE_REPORT)
+      console.error('[hook:reports]', err)
+      toast.error(err.message || "Erro ao gerar relatório", { id: TOAST_ID_CREATE_REPORT })
     },
   })
 }
+
+const TOAST_ID_DELETE_REPORT = "reports-delete"
 
 export function useDeleteReport() {
   const qc = useQueryClient()
@@ -74,14 +81,19 @@ export function useDeleteReport() {
     mutationFn: (id: number) =>
       api.delete(`/bagcoin/reports/${id}`),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_DELETE_REPORT)
       qc.invalidateQueries({ queryKey: ["reports"] })
-      toast.success("Relatório excluído com sucesso!")
+      toast.success("Relatório excluído com sucesso!", { id: TOAST_ID_DELETE_REPORT })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao excluir relatório")
+      toast.dismiss(TOAST_ID_DELETE_REPORT)
+      console.error('[hook:reports]', err)
+      toast.error(err.message || "Erro ao excluir relatório", { id: TOAST_ID_DELETE_REPORT })
     },
   })
 }
+
+const TOAST_ID_DOWNLOAD_REPORT = "reports-download"
 
 export function useDownloadReport() {
   return useMutation({
@@ -93,12 +105,15 @@ export function useDownloadReport() {
       return res.blob()
     },
     onSuccess: (blob, reportId) => {
+      toast.dismiss(TOAST_ID_DOWNLOAD_REPORT)
       const u = URL.createObjectURL(blob)
       window.open(u, "_blank")
       URL.revokeObjectURL(u)
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao baixar relatório")
+      toast.dismiss(TOAST_ID_DOWNLOAD_REPORT)
+      console.error('[hook:reports]', err)
+      toast.error(err.message || "Erro ao baixar relatório", { id: TOAST_ID_DOWNLOAD_REPORT })
     },
   })
 }

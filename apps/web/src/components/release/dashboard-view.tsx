@@ -6,6 +6,7 @@ import { InfoCard } from "./info-card"
 import { DonutChart } from "./donut-chart"
 import { BottomNavBar } from "./bottom-nav-bar"
 import { cn } from "@/lib/utils"
+import { CategoryIcon } from "@/lib/category"
 import type { ReleaseDashboardSummary, ReleaseNavItem } from "./types"
 
 interface DashboardViewProps {
@@ -26,6 +27,7 @@ export function DashboardView({
   return (
     <div className="rls min-h-screen bg-[var(--rls-background)] pb-24">
       <AppBar
+        title="Centro Financeiro"
         avatar={
           <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--rls-surface-variant)] flex items-center justify-center">
             <User className="w-6 h-6 text-[var(--rls-outline)]" />
@@ -38,12 +40,12 @@ export function DashboardView({
         {/* Balance Section */}
         <section className="flex flex-col items-center">
 
+          <span className="rls-text-body-md text-[var(--rls-on-surface-variant)] mb-1">
+            Saldo Total
+          </span>
           <h2 className="rls-text-display-lg text-[var(--rls-on-surface)]">
             R$ {summary.totalBalance.toLocaleString("pt-BR")}
           </h2>
-          <span className="rls-text-body-md text-[var(--rls-on-surface-variant)] mb-2">
-            Saldo Total
-          </span>
 
           <div className="flex gap-[var(--rls-stack-gap-md)] mt-[var(--rls-stack-gap-md)] w-full">
             <InfoCard
@@ -87,11 +89,15 @@ export function DashboardView({
                     className={cn(
                       "w-12 h-12 rounded-xl flex items-center justify-center",
                       tx.type === "receita"
-                        ? "bg-green-100"
+                        ? "bg-[var(--rls-secondary-container)]/20"
                         : "bg-[var(--rls-surface-container)]"
                     )}
                   >
-                    {tx.type === "receita" ? "💰" : "🛒"}
+                    <CategoryIcon
+                      name={tx.category}
+                      size={24}
+                      className={tx.type === "receita" ? "text-[var(--rls-secondary)]" : "text-[var(--rls-on-surface-variant)]"}
+                    />
                   </div>
                   <div className="flex flex-col">
                     <span className="rls-text-body-lg text-[var(--rls-on-surface)] text-sm">
@@ -106,7 +112,7 @@ export function DashboardView({
                   className={cn(
                     "rls-text-title-lg text-sm font-semibold",
                     tx.type === "receita"
-                      ? "text-green-600"
+                      ? "text-[var(--rls-secondary)]"
                       : "text-[var(--rls-on-surface)]"
                   )}
                 >

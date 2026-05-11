@@ -1,6 +1,6 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { ReportsView } from "@/components/release/reports-view"
 import { getReleaseNavItems } from "@/lib/adapters"
 import { useDownloadReport } from "@/hooks/use-reports"
@@ -12,6 +12,7 @@ interface Props {
 
 export function RelatoriosClient({ reports }: Props) {
   const pathname = usePathname()
+  const router = useRouter()
   const navItems = getReleaseNavItems(pathname)
   const downloadMutation = useDownloadReport()
 
@@ -20,10 +21,10 @@ export function RelatoriosClient({ reports }: Props) {
       <ReportsView
         reports={reports}
         navItems={navItems}
-        onBack={() => window.history.back()}
+        onBack={() => router.back()}
         onNavigate={(href) => {
           if (href === "#settings") return
-          window.location.href = href
+          router.push(href)
         }}
         onDownload={(reportId) => {
           downloadMutation.mutate(reportId)

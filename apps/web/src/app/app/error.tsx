@@ -21,6 +21,9 @@ export default function AppError({
         <p className="text-muted-foreground max-w-md">
           Ocorreu um erro ao carregar o painel. Tente novamente.
         </p>
+        {error.digest && (
+          <p className="text-xs text-muted-foreground/60">Digest: {error.digest}</p>
+        )}
         <Button onClick={reset} variant="default">
           Tentar novamente
         </Button>

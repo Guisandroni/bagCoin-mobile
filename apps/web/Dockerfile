@@ -37,4 +37,6 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD bun -e "fetch('http://localhost:3000').then(r => { if (!r.ok) throw new Error('status '+r.status) })" || exit 1
 CMD ["bun", "--smol", "server.js"]

@@ -1,5 +1,6 @@
 """Authentication routes."""
 
+import secrets
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -15,20 +16,21 @@ from app.schemas.user import GoogleLoginRequest, UserCreate, UserRead
 router = APIRouter()
 
 
+def _make_token(user_id: str) -> Token:
+    return Token(
+        access_token=create_access_token(subject=user_id),
+        refresh_token=create_refresh_token(subject=user_id),
+        csrf_token=secrets.token_urlsafe(32),
+    )
+
+
 @router.post("/login", response_model=Token)
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     user_service: UserSvc,
 ) -> Any:
-    """OAuth2 compatible token login.
-
-    Returns access token and refresh token.
-    Raises domain exceptions handled by exception handlers.
-    """
     user = await user_service.authenticate(form_data.username, form_data.password)
-    access_token = create_access_token(subject=str(user.id))
-    refresh_token = create_refresh_token(subject=str(user.id))
-    return Token(access_token=access_token, refresh_token=refresh_token)
+    return _make_token(str(user.id))
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -36,10 +38,6 @@ async def register(
     user_in: UserCreate,
     user_service: UserSvc,
 ) -> Any:
-    """Register a new user.
-
-    Raises AlreadyExistsError if email is already registered.
-    """
     user = await user_service.register(user_in)
     return user
 
@@ -49,30 +47,18 @@ async def refresh_token(
     body: RefreshTokenRequest,
     user_service: UserSvc,
 ) -> Any:
-    """Get new access token using refresh token.
-
-    Raises AuthenticationError if refresh token is invalid or expired.
-    """
-
     payload = verify_token(body.refresh_token)
     if payload is None:
         raise AuthenticationError(message="Invalid or expired refresh token")
-
     if payload.get("type") != "refresh":
         raise AuthenticationError(message="Invalid token type")
-
     user_id = payload.get("sub")
     if user_id is None:
         raise AuthenticationError(message="Invalid token payload")
-
-    # Verify user still exists and is active
     user = await user_service.get_by_id(UUID(user_id))
     if not user.is_active:
         raise AuthenticationError(message="User account is disabled")
-
-    access_token = create_access_token(subject=str(user.id))
-    new_refresh_token = create_refresh_token(subject=str(user.id))
-    return Token(access_token=access_token, refresh_token=new_refresh_token)
+    return _make_token(str(user.id))
 
 
 @router.post("/google", response_model=Token)
@@ -80,17 +66,10 @@ async def google_login(
     body: GoogleLoginRequest,
     user_service: UserSvc,
 ) -> Any:
-    """Login or register via Google OAuth.
-
-    Receives a Google ID token from the client, verifies it,
-    and returns JWT access + refresh tokens.
-    """
     user = await user_service.google_auth(body)
     if not user.is_active:
         raise AuthenticationError(message="User account is disabled")
-    access_token = create_access_token(subject=str(user.id))
-    refresh_token = create_refresh_token(subject=str(user.id))
-    return Token(access_token=access_token, refresh_token=refresh_token)
+    return _make_token(str(user.id))
 
 
 @router.get("/me", response_model=UserRead)

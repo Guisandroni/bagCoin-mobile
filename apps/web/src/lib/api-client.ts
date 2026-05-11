@@ -4,7 +4,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/a
 
 interface TokenStore {
   accessToken: string | null
-  setTokens: (access: string, refresh: string) => void
+  csrfToken: string | null
+  setTokens: (access: string, refresh: string, csrf?: string) => void
   clearTokens: () => void
   getAccessToken: () => string | null
 }
@@ -13,14 +14,17 @@ let memoryToken: string | null = null
 
 const tokenStore: TokenStore = {
   accessToken: null,
-  setTokens(access: string, _refresh: string) {
+  csrfToken: null,
+  setTokens(access: string, _refresh: string, csrf?: string) {
     void _refresh
     memoryToken = access
     this.accessToken = access
+    if (csrf) this.csrfToken = csrf
   },
   clearTokens() {
     memoryToken = null
     this.accessToken = null
+    this.csrfToken = null
   },
   getAccessToken() {
     if (typeof window === "undefined") return null
@@ -64,9 +68,13 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.headers.Authorization = `Bearer ${token}`
   }
   if (typeof window !== "undefined" && config.method !== "get") {
-    const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/)
-    if (match && config.headers) {
-      config.headers["X-CSRF-Token"] = decodeURIComponent(match[1])
+    // Prefer in-memory CSRF token (cross-domain safe), fallback to cookie
+    const csrfToken = tokenStore.csrfToken || (() => {
+      const match = document.cookie.match(/(?:^|; )csrf_token=([^;]*)/)
+      return match ? decodeURIComponent(match[1]) : null
+    })()
+    if (csrfToken && config.headers) {
+      config.headers["X-CSRF-Token"] = csrfToken
     }
   }
   return config
@@ -93,6 +101,9 @@ apiClient.interceptors.response.use(
   (response) => {
     if (response.data?.access_token && response.data?.refresh_token) {
       setAuthCookies(response.data.access_token, response.data.refresh_token)
+      if (response.data?.csrf_token) {
+        tokenStore.csrfToken = response.data.csrf_token
+      }
     }
     return response
   },

@@ -3,7 +3,7 @@
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, field_validator, model_validator
 
 from app.schemas.base import BaseSchema, TimestampSchema
 
@@ -78,4 +78,11 @@ class UserInDB(UserRead):
 class GoogleLoginRequest(BaseSchema):
     """Schema for Google OAuth login."""
 
-    id_token: str = Field(min_length=1, description="Google ID token from OAuth credential")
+    id_token: str | None = Field(default=None, min_length=1, description="Google ID token from OAuth credential")
+    access_token: str | None = Field(default=None, min_length=1, description="Google OAuth access token")
+
+    @model_validator(mode="after")
+    def require_google_token(self) -> "GoogleLoginRequest":
+        if not self.id_token and not self.access_token:
+            raise ValueError("id_token or access_token is required")
+        return self

@@ -24,6 +24,7 @@ def seed_financial(clear: bool) -> None:
 
     async def _seed() -> None:
         from app.core.security import get_password_hash
+        from app.core.financial_categories import DEFAULT_FINANCIAL_CATEGORIES
         from app.db.models.account import Account
         from app.db.models.budget import Budget
         from app.db.models.category import Category
@@ -132,15 +133,7 @@ def seed_financial(clear: bool) -> None:
             await db.flush()
 
             # ── Helper: create categories for a phone_user ───────────
-            category_names = [
-                ("Alimentação", "#4CAF50"),
-                ("Transporte", "#FF9800"),
-                ("Moradia", "#607D8B"),
-                ("Lazer", "#E91E63"),
-                ("Saúde", "#00BCD4"),
-                ("Investimentos", "#3F51B5"),
-                ("Compras", "#9C27B0"),
-            ]
+            category_names = [(category.name, category.color) for category in DEFAULT_FINANCIAL_CATEGORIES]
 
             def create_categories(phone_user_id: int) -> list:
                 cats = []
@@ -157,21 +150,22 @@ def seed_financial(clear: bool) -> None:
             # ── Seed Ana's data ──────────────────────────────────────
             ana_cats = create_categories(ana_phone.id)
             await db.flush()
+            ana_cat_by_name = {cat.name: cat for cat in ana_cats}
             info(f"Created {len(ana_cats)} categories for Ana")
 
             now = datetime.now(timezone.utc)
 
             ana_transactions = [
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="INCOME", amount=8500.00, description="Salário Maio", category_id=ana_cats[5].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=6)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="INCOME", amount=3000.00, description="Freelance Design", category_id=ana_cats[5].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=5)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=-245.80, description="Supermercado", category_id=ana_cats[0].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=5)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=-158.30, description="Restaurante Japonês", category_id=ana_cats[0].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=4)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=-112.80, description="Gasolina", category_id=ana_cats[1].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=3)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=-45.50, description="Uber", category_id=ana_cats[1].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=4)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=-1200.00, description="Aluguel", category_id=ana_cats[2].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=7)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=-45.90, description="Netflix", category_id=ana_cats[3].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=3)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=-32.50, description="Cinema", category_id=ana_cats[3].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=2)),
-                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=-89.90, description="Farmácia", category_id=ana_cats[4].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=1)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="INCOME", amount=8500.00, description="Salário Maio", category_id=ana_cat_by_name["Salário"].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=6)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="INCOME", amount=3000.00, description="Freelance Design", category_id=ana_cat_by_name["Freelance"].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=5)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=245.80, description="Supermercado", category_id=ana_cat_by_name["Supermercado"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=5)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=158.30, description="Restaurante Japonês", category_id=ana_cat_by_name["Restaurantes"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=4)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=112.80, description="Gasolina", category_id=ana_cat_by_name["Combustível"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=3)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=45.50, description="Uber", category_id=ana_cat_by_name["Transporte"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=4)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=1200.00, description="Aluguel", category_id=ana_cat_by_name["Aluguel"].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=7)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=45.90, description="Netflix", category_id=ana_cat_by_name["Assinaturas"].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=3)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=32.50, description="Cinema", category_id=ana_cat_by_name["Lazer"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=2)),
+                Transaction(user_uuid=ana_user.id, user_id=ana_phone.id, type="EXPENSE", amount=89.90, description="Farmácia", category_id=ana_cat_by_name["Farmácia"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=1)),
             ]
             for tx in ana_transactions:
                 db.add(tx)
@@ -189,10 +183,10 @@ def seed_financial(clear: bool) -> None:
             info(f"Created {len(ana_goals)} goals for Ana")
 
             ana_budgets = [
-                Budget(user_uuid=ana_user.id, user_id=ana_phone.id, name="Alimentação", category_id=ana_cats[0].id, period="monthly", total_limit=600.00, budget_type="category"),
-                Budget(user_uuid=ana_user.id, user_id=ana_phone.id, name="Transporte", category_id=ana_cats[1].id, period="monthly", total_limit=400.00, budget_type="category"),
-                Budget(user_uuid=ana_user.id, user_id=ana_phone.id, name="Lazer", category_id=ana_cats[3].id, period="monthly", total_limit=300.00, budget_type="category"),
-                Budget(user_uuid=ana_user.id, user_id=ana_phone.id, name="Moradia", category_id=ana_cats[2].id, period="monthly", total_limit=1500.00, budget_type="category"),
+                Budget(user_uuid=ana_user.id, user_id=ana_phone.id, name="Supermercado", category_id=ana_cat_by_name["Supermercado"].id, period="monthly", total_limit=600.00, budget_type="category"),
+                Budget(user_uuid=ana_user.id, user_id=ana_phone.id, name="Transporte", category_id=ana_cat_by_name["Transporte"].id, period="monthly", total_limit=400.00, budget_type="category"),
+                Budget(user_uuid=ana_user.id, user_id=ana_phone.id, name="Lazer", category_id=ana_cat_by_name["Lazer"].id, period="monthly", total_limit=300.00, budget_type="category"),
+                Budget(user_uuid=ana_user.id, user_id=ana_phone.id, name="Aluguel", category_id=ana_cat_by_name["Aluguel"].id, period="monthly", total_limit=1500.00, budget_type="category"),
             ]
             for b in ana_budgets:
                 db.add(b)
@@ -219,17 +213,18 @@ def seed_financial(clear: bool) -> None:
             # ── Seed Carlos's data ────────────────────────────────────
             carlos_cats = create_categories(carlos_phone.id)
             await db.flush()
+            carlos_cat_by_name = {cat.name: cat for cat in carlos_cats}
             info(f"Created {len(carlos_cats)} categories for Carlos")
 
             carlos_transactions = [
-                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="INCOME", amount=6200.00, description="Salário", category_id=carlos_cats[5].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=5)),
-                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="INCOME", amount=1500.00, description="Consultoria", category_id=carlos_cats[5].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=3)),
-                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=-180.00, description="Restaurante", category_id=carlos_cats[0].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=4)),
-                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=-320.00, description="Mercado", category_id=carlos_cats[0].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=5)),
-                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=-67.00, description="Combustível", category_id=carlos_cats[1].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=3)),
-                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=-950.00, description="Aluguel", category_id=carlos_cats[2].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=6)),
-                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=-150.00, description="Academia", category_id=carlos_cats[4].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=2)),
-                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=-89.00, description="Livros", category_id=carlos_cats[3].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=1)),
+                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="INCOME", amount=6200.00, description="Salário", category_id=carlos_cat_by_name["Salário"].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=5)),
+                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="INCOME", amount=1500.00, description="Consultoria", category_id=carlos_cat_by_name["Freelance"].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=3)),
+                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=180.00, description="Restaurante", category_id=carlos_cat_by_name["Restaurantes"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=4)),
+                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=320.00, description="Mercado", category_id=carlos_cat_by_name["Supermercado"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=5)),
+                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=67.00, description="Combustível", category_id=carlos_cat_by_name["Combustível"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=3)),
+                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=950.00, description="Aluguel", category_id=carlos_cat_by_name["Aluguel"].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=6)),
+                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=150.00, description="Academia", category_id=carlos_cat_by_name["Saúde"].id, source_format="manual", confidence_score=1.0, transaction_date=now - timedelta(days=2)),
+                Transaction(user_uuid=carlos_user.id, user_id=carlos_phone.id, type="EXPENSE", amount=89.00, description="Livros", category_id=carlos_cat_by_name["Educação"].id, source_format="text", confidence_score=1.0, transaction_date=now - timedelta(days=1)),
             ]
             for tx in carlos_transactions:
                 db.add(tx)
@@ -246,9 +241,9 @@ def seed_financial(clear: bool) -> None:
             info(f"Created {len(carlos_goals)} goals for Carlos")
 
             carlos_budgets = [
-                Budget(user_uuid=carlos_user.id, user_id=carlos_phone.id, name="Alimentação", category_id=carlos_cats[0].id, period="monthly", total_limit=800.00, budget_type="category"),
-                Budget(user_uuid=carlos_user.id, user_id=carlos_phone.id, name="Transporte", category_id=carlos_cats[1].id, period="monthly", total_limit=300.00, budget_type="category"),
-                Budget(user_uuid=carlos_user.id, user_id=carlos_phone.id, name="Moradia", category_id=carlos_cats[2].id, period="monthly", total_limit=1200.00, budget_type="category"),
+                Budget(user_uuid=carlos_user.id, user_id=carlos_phone.id, name="Supermercado", category_id=carlos_cat_by_name["Supermercado"].id, period="monthly", total_limit=800.00, budget_type="category"),
+                Budget(user_uuid=carlos_user.id, user_id=carlos_phone.id, name="Transporte", category_id=carlos_cat_by_name["Transporte"].id, period="monthly", total_limit=300.00, budget_type="category"),
+                Budget(user_uuid=carlos_user.id, user_id=carlos_phone.id, name="Aluguel", category_id=carlos_cat_by_name["Aluguel"].id, period="monthly", total_limit=1200.00, budget_type="category"),
             ]
             for b in carlos_budgets:
                 db.add(b)

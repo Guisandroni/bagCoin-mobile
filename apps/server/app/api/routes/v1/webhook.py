@@ -69,6 +69,20 @@ def is_duplicate_message(message_id: str) -> bool:
     return False
 
 
+def _source_format_from_payload(message_type: str | None, media: dict | None = None) -> str:
+    """Normalize WhatsApp/bridge message types into BagCoin source formats."""
+    media_type = str((media or {}).get("mimetype") or "").lower()
+    raw_type = str(message_type or "").lower()
+
+    if media_type.startswith("audio/") or raw_type in {"ptt", "audio", "voice"}:
+        return "audio"
+    if media_type.startswith("image/") or raw_type in {"image", "sticker"}:
+        return "image"
+    if media_type or raw_type in {"document", "file"}:
+        return "document"
+    return "text"
+
+
 async def verify_api_key(x_api_key: str = Header(...)):
     """Verifica a API key do WhatsApp Bridge."""
     if x_api_key != settings.WHATSAPP_API_KEY:
@@ -110,15 +124,7 @@ async def receive_whatsapp_message(
 
     try:
         # 3. Determina formato da fonte
-        source_format = (
-            "audio"
-            if payload.type in ["ptt", "audio"]
-            else "image"
-            if payload.type in ["image"]
-            else "document"
-            if payload.type in ["document"]
-            else "text"
-        )
+        source_format = _source_format_from_payload(payload.type, payload.media)
 
         # 4. Prepara estado inicial
         context = {"channel": "whatsapp"}

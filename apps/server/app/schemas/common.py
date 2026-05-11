@@ -11,9 +11,9 @@ class WebhookPayload(BaseSchema):
     """Incoming webhook payload from WhatsApp bridge."""
 
     phone_number: str
-    message: str
+    message: str = ""
     type: str = "chat"
-    timestamp: int
+    timestamp: int = 0
     hasMedia: bool = False
     media: dict | None = None
     raw_data: dict | None = None
@@ -31,7 +31,7 @@ class TelegramWebhookPayload(BaseSchema):
     """Incoming webhook payload from Telegram bridge."""
 
     chat_id: str
-    message: str
+    message: str = ""
     username: str | None = None
     source_format: str = "text"
     media: dict | None = None

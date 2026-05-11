@@ -14,7 +14,7 @@ from app.core.exceptions import (
     BadRequestError,
     NotFoundError,
 )
-from app.core.security import get_password_hash, verify_google_token, verify_password
+from app.core.security import get_password_hash, verify_google_access_token, verify_google_token, verify_password
 from app.db.models.user import User
 from app.repositories import user_repo
 from app.schemas.user import GoogleLoginRequest, UserCreate, UserUpdate
@@ -133,7 +133,9 @@ class UserService:
         Raises:
             AuthenticationError: If the Google token is invalid.
         """
-        google_payload = verify_google_token(request.id_token)
+        google_payload = verify_google_token(request.id_token) if request.id_token else None
+        if not google_payload and request.access_token:
+            google_payload = await verify_google_access_token(request.access_token)
         if not google_payload:
             raise AuthenticationError(message="Invalid Google token")
 

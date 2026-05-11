@@ -9,9 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
 from app.db.models.budget import Budget
+from app.db.models.category import Category
 from app.db.models.transaction import Transaction
+from app.db.models.user import User
 from app.repositories import budget as budget_repo
 from app.schemas.budget import BudgetCreate, BudgetUpdate
+from app.services.category_rest import get_or_create_category_for_user, get_or_create_phone_profile
 
 
 def _period_start(period: str) -> datetime | None:
@@ -36,7 +39,7 @@ async def _calculate_spent(db: AsyncSession, budget: Budget) -> float:
         return 0.0
 
     result = await db.execute(
-        select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+        select(func.coalesce(func.sum(func.abs(Transaction.amount)), 0)).where(
             Transaction.type == "EXPENSE",
             Transaction.user_uuid == budget.user_uuid,
             Transaction.category_id == budget.category_id,
@@ -44,6 +47,20 @@ async def _calculate_spent(db: AsyncSession, budget: Budget) -> float:
         )
     )
     return float(result.scalar() or 0)
+
+
+def _budget_progress_payload(budget: Budget, spent: float) -> dict[str, float]:
+    """Normalize budget progress values for current and legacy transaction rows."""
+    total_limit = abs(float(budget.total_limit or 0))
+    total_spent = abs(float(spent or 0))
+    total_remaining = total_limit - total_spent
+    percentage = round((total_spent / total_limit) * 100, 1) if total_limit > 0 else 0
+    return {
+        "total_limit": total_limit,
+        "total_spent": total_spent,
+        "total_remaining": total_remaining,
+        "percentage": percentage,
+    }
 
 
 async def list_budgets(
@@ -55,6 +72,7 @@ async def list_budgets(
     result = []
     for budget in budgets:
         spent = await _calculate_spent(db, budget)
+        progress = _budget_progress_payload(budget, spent)
         cat_name = budget.category.name if budget.category else budget.name
         result.append(
             {
@@ -62,12 +80,7 @@ async def list_budgets(
                 "name": budget.name,
                 "category_id": budget.category_id,
                 "category_name": cat_name,
-                "total_limit": budget.total_limit,
-                "total_spent": spent,
-                "total_remaining": budget.total_limit - spent,
-                "percentage": round((spent / budget.total_limit) * 100, 1)
-                if budget.total_limit > 0
-                else 0,
+                **progress,
                 "period": budget.period,
                 "budget_type": budget.budget_type,
                 "created_at": budget.created_at,
@@ -83,16 +96,68 @@ async def create_budget(
     data: BudgetCreate,
 ) -> dict[str, Any]:
     """Create a new budget for the authenticated user."""
+    category = await _resolve_budget_category(db, user_uuid, data)
+    budget_type = data.budget_type or ("category" if category else "general")
+    name = category.name if category else data.name
     budget = await budget_repo.create_budget(
         db,
         user_uuid=user_uuid,
-        name=data.name,
+        name=name,
         period=data.period,
         total_limit=data.total_limit,
-        category_id=data.category_id,
-        budget_type="general",
+        category_id=category.id if category else None,
+        budget_type=budget_type,
     )
     return await get_budget(db, budget.id, user_uuid)
+
+
+async def _resolve_budget_category(
+    db: AsyncSession,
+    user_uuid: UUID,
+    data: BudgetCreate,
+) -> Category | None:
+    if data.category_id:
+        result = await db.execute(select(User).where(User.id == user_uuid))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise NotFoundError(message="Category not found", details={"id": data.category_id})
+        phone_user = await get_or_create_phone_profile(db, user)
+        result = await db.execute(
+            select(Category).where(
+                Category.id == data.category_id,
+                Category.user_id == phone_user.id,
+            )
+        )
+        category = result.scalar_one_or_none()
+        if not category:
+            raise NotFoundError(message="Category not found", details={"id": data.category_id})
+        return category
+
+    return await get_or_create_category_for_user(db, user_uuid, data.category_name or data.name)
+
+
+async def _resolve_budget_category_update(
+    db: AsyncSession,
+    user_uuid: UUID,
+    category_id: int | None,
+    category_name: str | None,
+) -> Category | None:
+    if category_id:
+        result = await db.execute(select(User).where(User.id == user_uuid))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise NotFoundError(message="Category not found", details={"id": category_id})
+        phone_user = await get_or_create_phone_profile(db, user)
+        result = await db.execute(
+            select(Category).where(Category.id == category_id, Category.user_id == phone_user.id)
+        )
+        category = result.scalar_one_or_none()
+        if not category:
+            raise NotFoundError(message="Category not found", details={"id": category_id})
+        return category
+    if category_name:
+        return await get_or_create_category_for_user(db, user_uuid, category_name)
+    return None
 
 
 async def get_budget(db: AsyncSession, budget_id: int, user_uuid: UUID) -> dict[str, Any]:
@@ -101,18 +166,14 @@ async def get_budget(db: AsyncSession, budget_id: int, user_uuid: UUID) -> dict[
     if not budget or str(budget.user_uuid) != str(user_uuid):
         raise NotFoundError(message="Budget not found", details={"id": budget_id})
     spent = await _calculate_spent(db, budget)
+    progress = _budget_progress_payload(budget, spent)
     cat_name = budget.category.name if budget.category else budget.name
     return {
         "id": budget.id,
         "name": budget.name,
         "category_id": budget.category_id,
         "category_name": cat_name,
-        "total_limit": budget.total_limit,
-        "total_spent": spent,
-        "total_remaining": budget.total_limit - spent,
-        "percentage": round((spent / budget.total_limit) * 100, 1)
-        if budget.total_limit > 0
-        else 0,
+        **progress,
         "period": budget.period,
         "budget_type": budget.budget_type,
         "created_at": budget.created_at,
@@ -131,6 +192,16 @@ async def update_budget(
     if not budget or str(budget.user_uuid) != str(user_uuid):
         raise NotFoundError(message="Budget not found", details={"id": budget_id})
     update_data = data.model_dump(exclude_unset=True)
+    category = await _resolve_budget_category_update(
+        db,
+        user_uuid,
+        update_data.pop("category_id", None),
+        update_data.pop("category_name", None),
+    )
+    if category:
+        update_data["category_id"] = category.id
+        update_data["name"] = category.name
+        update_data.setdefault("budget_type", "category")
     await budget_repo.update_budget(db, db_budget=budget, update_data=update_data)
     return await get_budget(db, budget_id, user_uuid)
 

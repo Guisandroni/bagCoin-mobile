@@ -177,8 +177,9 @@ A FastAPI project
     # Security hardening: protect against XSS, clickjacking, MIME sniffing
     app.add_middleware(SecurityHeadersMiddleware)
 
-    # CSRF protection for state-changing endpoints
-    app.add_middleware(CSRFMiddleware)
+    # CSRF protection disabled — JWT in Authorization header provides equivalent
+    # protection for cross-domain architecture (Vercel frontend + VPS backend).
+    # app.add_middleware(CSRFMiddleware)
 
     # Exception handlers
     register_exception_handlers(app)

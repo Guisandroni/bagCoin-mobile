@@ -6,6 +6,7 @@ interface DonutChartProps {
   segments: { value: number; color: string; label: string }[]
   centerLabel?: string
   centerValue?: string
+  listTitle?: string
   className?: string
 }
 
@@ -13,12 +14,18 @@ export function DonutChart({
   segments,
   centerLabel = "Gasto Total",
   centerValue = "R$ 0",
+  listTitle = "Gastos por Categoria",
   className,
 }: DonutChartProps) {
   const radius = 16
-  const circumference = 2 * Math.PI * radius
-
-  let cumulativeOffset = 0
+  const slices = segments.map((segment, index) => ({
+    ...segment,
+    offset: segments.slice(0, index).reduce((sum, item) => sum + item.value, 0),
+  }))
+  const dotColorClass = (color: string) => {
+    if (color.startsWith("text-")) return color.replace(/^text-/, "bg-")
+    return color
+  }
 
   return (
     <div className={cn("flex flex-col gap-[var(--rls-stack-gap-md)]", className)}>
@@ -34,9 +41,7 @@ export function DonutChart({
               stroke="currentColor"
               strokeWidth="4"
             />
-            {segments.map((segment, i) => {
-              const offset = cumulativeOffset
-              cumulativeOffset += segment.value
+            {slices.map((segment, i) => {
               return (
                 <circle
                   key={i}
@@ -47,7 +52,7 @@ export function DonutChart({
                   r={radius}
                   stroke="currentColor"
                   strokeDasharray={`${segment.value}, ${100 - segment.value}`}
-                  strokeDashoffset={-offset}
+                  strokeDashoffset={-segment.offset}
                   strokeLinecap="round"
                   strokeWidth="4"
                   transform="rotate(-90 18 18)"
@@ -67,12 +72,16 @@ export function DonutChart({
         </div>
       </div>
 
+      <h3 className="rls-text-title-lg text-[var(--rls-on-surface)] text-base">
+        {listTitle}
+      </h3>
+
       <div className="flex flex-col gap-3">
         {segments.map((segment, i) => (
           <div key={i} className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div
-                className={cn("w-3 h-3 rounded-full", segment.color)}
+                className={cn("w-3 h-3 rounded-full", dotColorClass(segment.color))}
               />
               <span className="rls-text-body-md text-[var(--rls-on-surface-variant)]">
                 {segment.label}

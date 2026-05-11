@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import type { ReactNode } from "react"
+import { formatCurrency, formatPercent } from "./format"
 
 interface ProgressCardProps {
   title: string
@@ -13,6 +14,9 @@ interface ProgressCardProps {
   remainingText?: string
   icon?: ReactNode
   iconBg?: string
+  iconColor?: string
+  percentageClassName?: string
+  remainingClassName?: string
   className?: string
 }
 
@@ -34,9 +38,13 @@ export function ProgressCard({
   remainingText,
   icon,
   iconBg,
+  iconColor,
+  percentageClassName,
+  remainingClassName,
   className,
 }: ProgressCardProps) {
   const barColor = defaultColors[color] || defaultColors.blue
+  const progressWidth = Math.min(Math.max(percentage, 0), 100)
 
   return (
     <div
@@ -54,6 +62,7 @@ export function ProgressCard({
                 "w-12 h-12 rounded-xl flex items-center justify-center",
                 iconBg || "bg-[var(--rls-surface-container)]"
               )}
+              style={iconColor ? { color: iconColor } : undefined}
             >
               {icon}
             </div>
@@ -71,27 +80,28 @@ export function ProgressCard({
 
       <div className="flex justify-between items-end">
         <span className="rls-text-body-lg text-[var(--rls-on-surface)]">
-          R$ {current.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}{" "}
+          {formatCurrency(current)}{" "}
           <span className="text-[var(--rls-on-surface-variant)]">
-            / R$ {target.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
+            / {formatCurrency(target)}
           </span>
         </span>
         <span
           className={cn(
             "rls-text-label-lg",
-            percentage >= 90
-              ? "text-[var(--rls-error)]"
-              : "text-[var(--rls-primary-container)]"
+            percentageClassName ||
+              (percentage >= 90
+                ? "text-[var(--rls-error)]"
+                : "text-[var(--rls-primary-container)]")
           )}
         >
-          {percentage}%
+          {formatPercent(percentage)}%
         </span>
       </div>
 
       <div className="w-full h-2 bg-[var(--rls-surface-container-high)] rounded-full overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all", barColor)}
-          style={{ width: `${Math.min(percentage, 100)}%` }}
+          style={{ width: `${progressWidth}%` }}
         />
       </div>
 
@@ -99,9 +109,10 @@ export function ProgressCard({
         <span
           className={cn(
             "rls-text-label-md",
-            percentage >= 90
-              ? "text-[var(--rls-error)]"
-              : "text-[var(--rls-on-surface-variant)]"
+            remainingClassName ||
+              (percentage >= 90
+                ? "text-[var(--rls-error)]"
+                : "text-[var(--rls-on-surface-variant)]")
           )}
         >
           {remainingText}

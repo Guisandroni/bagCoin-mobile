@@ -20,7 +20,7 @@ export default function RegisterPage() {
     setErrorMessage(null)
     try {
       await register(data.email, data.password, data.name)
-      router.push("/login?registered=true")
+      router.push("/app")
     } catch (error) {
       setErrorMessage(resolveAuthError(error, "Não foi possível criar sua conta. Tente novamente."))
     }

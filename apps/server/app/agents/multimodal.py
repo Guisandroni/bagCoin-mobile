@@ -21,13 +21,37 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
+MEDIA_FAILURE_PREFIXES = (
+    "[Transcrição de áudio indisponível",
+    "[Não consegui entender o áudio",
+    "[Não consegui analisar a imagem",
+    "[Erro ao decodificar documento",
+    "[Não consegui ler o arquivo",
+    "[Processamento de PDF indisponível",
+    "[O PDF parece estar vazio",
+    "[Não consegui processar o PDF",
+    "[Tipo de documento não suportado",
+    "[Formato de mídia não reconhecido",
+)
+
 
 # ── Clients ────────────────────────────────────────────────
 
-def _get_groq_client() -> Groq | None:
-    if not settings.GROQ_API_KEY:
+def _configured_api_key(value: str | None) -> str | None:
+    key = (value or "").strip()
+    if not key:
         return None
-    return Groq(api_key=settings.GROQ_API_KEY)
+    placeholders = ("***", "coloque_sua_chave", "sua_chave", "change-me", "changeme")
+    if any(marker in key.lower() for marker in placeholders):
+        return None
+    return key
+
+
+def _get_groq_client() -> Groq | None:
+    api_key = _configured_api_key(settings.GROQ_API_KEY)
+    if not api_key:
+        return None
+    return Groq(api_key=api_key)
 
 
 # ── Audio ──────────────────────────────────────────────────
@@ -224,6 +248,8 @@ def process_multimodal(state: dict[str, Any]) -> dict[str, Any]:
     if source_format == "text" or not media:
         return state
 
+    source_format = _source_format_from_media(source_format, media)
+
     logger.info(f"Processando mídia: {source_format}")
 
     if source_format == "audio":
@@ -235,6 +261,14 @@ def process_multimodal(state: dict[str, Any]) -> dict[str, Any]:
     else:
         extracted = "[Formato de mídia não reconhecido]"
 
+    if extracted.startswith(MEDIA_FAILURE_PREFIXES):
+        state["error"] = extracted.strip("[]")
+        state["response"] = (
+            f"{extracted}\n\n"
+            "Pode enviar novamente ou escrever a despesa/receita em texto?"
+        )
+        return state
+
     state["message"] = extracted
     state["context"] = state.get("context", {})
     state["context"]["extracted_media_text"] = extracted
@@ -242,3 +276,15 @@ def process_multimodal(state: dict[str, Any]) -> dict[str, Any]:
 
     logger.info(f"Texto extraído: {extracted[:80]}...")
     return state
+
+
+def _source_format_from_media(source_format: str, media: dict[str, Any]) -> str:
+    """Normalize bridge-specific message types using the media mimetype."""
+    mimetype = str(media.get("mimetype") or "").lower()
+    if mimetype.startswith("audio/"):
+        return "audio"
+    if mimetype.startswith("image/"):
+        return "image"
+    if mimetype in {"application/pdf", "text/csv", "application/csv", "text/plain"}:
+        return "document"
+    return source_format

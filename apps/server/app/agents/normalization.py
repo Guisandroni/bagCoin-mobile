@@ -13,35 +13,16 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
 
+from app.core.financial_categories import (
+    DEFAULT_FINANCIAL_CATEGORIES,
+    resolve_default_category_name,
+)
 from app.services.llm_service import get_llm, timed_invoke
 
 logger = logging.getLogger(__name__)
 
 # Categories and descriptions
-CATEGORIES = [
-    "Alimentação",
-    "Restaurante",
-    "Delivery",
-    "Transporte",
-    "Moradia",
-    "Luz",
-    "Água",
-    "Internet",
-    "Telefone",
-    "Saúde",
-    "Educação",
-    "Lazer",
-    "Viagem",
-    "Vestuário",
-    "Beleza",
-    "Tecnologia",
-    "Assinaturas",
-    "Pet",
-    "Doação",
-    "Impostos",
-    "Receita",
-    "Outros",
-]
+CATEGORIES = [category.name for category in DEFAULT_FINANCIAL_CATEGORIES]
 
 CATEGORY_KEYWORDS = {
     "Alimentação": [
@@ -152,6 +133,10 @@ CATEGORY_KEYWORDS = {
     ],
 }
 
+for category in DEFAULT_FINANCIAL_CATEGORIES:
+    CATEGORY_KEYWORDS.setdefault(category.name, [])
+    CATEGORY_KEYWORDS[category.name].extend(category.aliases)
+
 
 def _parse_flexible_date(date_str: str) -> date | None:
     """Try to parse date in multiple formats."""
@@ -179,7 +164,7 @@ def _suggest_category(text: str) -> str:
         scores[cat] = sum(1 for word in words if word in text_norm)
 
     best = max(scores, key=scores.get)
-    return best if scores[best] > 0 else "Outros"
+    return resolve_default_category_name(best) if scores[best] > 0 else "Outros"
 
 
 def extract_transaction(state: dict[str, Any]) -> dict[str, Any]:
@@ -363,6 +348,9 @@ def extract_transaction(state: dict[str, Any]) -> dict[str, Any]:
                     extracted["confidence"] = result["confidence"]
         except Exception as e:
             logger.warning(f"LLM refinement failed: {e}")
+
+    if extracted["category"]:
+        extracted["category"] = resolve_default_category_name(extracted["category"])
 
     elapsed = (time.time() - start_time) * 1000
     logger.info(

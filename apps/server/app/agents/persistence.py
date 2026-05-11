@@ -4,12 +4,19 @@ Uses sync_session_maker for compatibility with non-async agent code.
 """
 
 import logging
-from datetime import datetime, UTC, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func
 
 from app.agents.tenant_context import assert_valid_tenant_phone
+from app.core.financial_categories import (
+    category_color,
+    category_emoji,
+    category_type,
+    default_category_names,
+    resolve_default_category_name,
+)
 from app.db.models.agent_log import AgentLog
 from app.db.models.category import Category
 from app.db.models.phone_conversation import PhoneConversation
@@ -20,15 +27,22 @@ from app.db.session import sync_session_maker
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CATEGORIES = [
-    "Alimentação",
-    "Transporte",
-    "Moradia",
-    "Lazer",
-    "Saúde",
-    "Educação",
-    "Outros",
-]
+DEFAULT_CATEGORIES = default_category_names()
+
+
+def ensure_default_categories_sync(db, user: PhoneUser) -> None:
+    """Ensure every phone user has the shared default taxonomy."""
+    existing = {
+        category.name.casefold(): category
+        for category in db.query(Category).filter(Category.user_id == user.id).all()
+    }
+    for name in DEFAULT_CATEGORIES:
+        key = name.casefold()
+        if key in existing:
+            existing[key].is_default = True
+            continue
+        db.add(Category(user_id=user.id, name=name, is_default=True))
+    db.flush()
 
 
 def get_or_create_user_sync(phone_number: str) -> PhoneUser:
@@ -44,9 +58,12 @@ def get_or_create_user_sync(phone_number: str) -> PhoneUser:
                 financial_profile={},
             )
             db.add(user)
-            db.commit()
+            db.flush()
             db.refresh(user)
             logger.info(f"New user created: {phone_number}")
+        ensure_default_categories_sync(db, user)
+        db.commit()
+        db.refresh(user)
         return user
     finally:
         db.close()
@@ -64,11 +81,27 @@ def get_or_create_user(phone_number: str, db=None) -> PhoneUser:
                 financial_profile={},
             )
             db.add(user)
-            db.commit()
+            db.flush()
             db.refresh(user)
             logger.info(f"New user created: {phone_number}")
+        ensure_default_categories_sync(db, user)
         return user
     return get_or_create_user_sync(phone_number)
+
+
+def _web_user_uuid_for_phone_user(db, phone_user: PhoneUser):
+    """Return the linked web user UUID for a phone profile, when one exists."""
+    if phone_user.merged_into_user_id:
+        return phone_user.merged_into_user_id
+
+    phone_number = phone_user.phone_number
+    candidates = {phone_number}
+    if phone_number.startswith("+"):
+        candidates.add(phone_number[1:])
+    elif phone_number and phone_number[0].isdigit():
+        candidates.add(f"+{phone_number}")
+
+    return db.query(User.id).filter(User.phone_number.in_(candidates)).scalar()
 
 
 def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
@@ -86,7 +119,7 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
         state["user_id"] = user.id
 
         # Get or create category (case-insensitive)
-        category_name = extracted.get("category", "Outros")
+        category_name = resolve_default_category_name(extracted.get("category", "Outros"))
         category = (
             db.query(Category)
             .filter(
@@ -97,15 +130,13 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
         )
 
         if not category:
-            # Normaliza o nome da categoria
-            category_name = category_name.strip().capitalize()
             category = Category(
                 user_id=user.id,
                 name=category_name,
                 is_default=(category_name in DEFAULT_CATEGORIES),
             )
             db.add(category)
-            db.commit()
+            db.flush()
             db.refresh(category)
 
         # Parse date
@@ -152,9 +183,7 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
 
         transaction = Transaction(
             user_id=user.id,
-            user_uuid=(
-                db.query(User.id).filter(User.phone_number == phone_number).scalar()
-            ),
+            user_uuid=_web_user_uuid_for_phone_user(db, user),
             type=tx_type.value,
             amount=extracted["amount"],
             currency=extracted.get("currency", "BRL"),
@@ -167,7 +196,7 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
         )
 
         db.add(transaction)
-        db.commit()
+        db.flush()
         db.refresh(transaction)
 
         # Update conversation
@@ -197,7 +226,6 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
         )
         conv.context_json = existing_context
         flag_modified(conv, "context_json")
-        db.commit()
 
         # Agent log
         agent_log = AgentLog(
@@ -315,6 +343,7 @@ def update_transaction(
         if description is not None:
             tx.description = description
         if category_name is not None:
+            category_name = resolve_default_category_name(category_name)
             category = (
                 db.query(Category)
                 .filter(
@@ -330,7 +359,7 @@ def update_transaction(
                     is_default=(category_name in DEFAULT_CATEGORIES),
                 )
                 db.add(category)
-                db.commit()
+                db.flush()
                 db.refresh(category)
             tx.category_id = category.id
         db.commit()
@@ -443,17 +472,20 @@ def create_category(phone_number: str, name: str) -> dict | None:
     db = sync_session_maker()
     try:
         user = get_or_create_user(phone_number, db)
+        clean_name = resolve_default_category_name(name)
         existing = (
             db.query(Category)
             .filter(
                 Category.user_id == user.id,
-                Category.name.ilike(name),
+                Category.name.ilike(clean_name),
             )
             .first()
         )
         if existing:
             return None
-        cat = Category(user_id=user.id, name=name, is_default=False)
+        if clean_name in DEFAULT_CATEGORIES:
+            return None
+        cat = Category(user_id=user.id, name=clean_name, is_default=clean_name in DEFAULT_CATEGORIES)
         db.add(cat)
         db.commit()
         db.refresh(cat)
@@ -505,9 +537,23 @@ def rename_category(phone_number: str, old_name: str, new_name: str) -> bool:
             )
             .first()
         )
-        if not cat:
+        if not cat or cat.is_default:
             return False
-        cat.name = new_name
+        clean_name = resolve_default_category_name(new_name)
+        if clean_name in DEFAULT_CATEGORIES:
+            return False
+        existing = (
+            db.query(Category)
+            .filter(
+                Category.user_id == user.id,
+                Category.name.ilike(clean_name),
+                Category.id != cat.id,
+            )
+            .first()
+        )
+        if existing:
+            return False
+        cat.name = clean_name
         db.commit()
         return True
     except Exception as e:
@@ -525,7 +571,16 @@ def list_categories(phone_number: str) -> list[dict]:
         user = get_or_create_user(phone_number, db)
         cats = db.query(Category).filter(Category.user_id == user.id).all()
         return [
-            {"id": c.id, "name": c.name, "is_default": c.is_default}
+            {
+                "id": c.id,
+                "name": c.name,
+                "is_default": c.is_default,
+                "emoji": category_emoji(c.name),
+                "color": category_color(c.name),
+                "type": category_type(c.name),
+                "is_user_created": not c.is_default,
+                "can_delete": not c.is_default,
+            }
             for c in sorted(cats, key=lambda x: (not x.is_default, x.name))
         ]
     finally:

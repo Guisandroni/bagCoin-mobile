@@ -70,12 +70,12 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
             logger.info("[classify_intent] Wizard cancelled by user")
         elif _is_wizard_intent(wizard_type) and wizard_status in ["collecting", "confirming"]:
             intent_map = {
-                "create_budget": IntentType.CREATE_BUDGET,
-                "create_goal": IntentType.CREATE_GOAL,
-                "update_goal": IntentType.CONTRIBUTE_GOAL,
-                "contribute_goal": IntentType.CONTRIBUTE_GOAL,
+                "create_budget": IntentType.CREATE_BUDGET.value,
+                "create_goal": IntentType.CREATE_GOAL.value,
+                "update_goal": IntentType.CONTRIBUTE_GOAL.value,
+                "contribute_goal": IntentType.CONTRIBUTE_GOAL.value,
             }
-            state["intent"] = intent_map.get(wizard_type, IntentType.UNKNOWN)
+            state["intent"] = intent_map.get(wizard_type, IntentType.UNKNOWN.value)
             state["confidence"] = 0.9
             state["wizard"] = wizard_state
             elapsed = (time.time() - start_time) * 1000
@@ -90,7 +90,7 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
         message,
     )
     if only_number:
-        state["intent"] = IntentType.CHAT
+        state["intent"] = IntentType.CHAT.value
         state["confidence"] = 1.0
         state["response"] = (
             "Só o valor não dá pra saber o que fazer! 😅\n"
@@ -110,7 +110,7 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
     if not llm:
         # Fallback sem LLM — pergunta pro usuario
         logger.warning("[classify_intent] No LLM — asking user to rephrase")
-        state["intent"] = IntentType.CHAT
+        state["intent"] = IntentType.CHAT.value
         state["confidence"] = 0.3
         state["response"] = (
             "Pode me explicar de outra forma? 😊\n"
@@ -150,7 +150,7 @@ def classify_intent(state: dict[str, Any]) -> dict[str, Any]:
     except Exception as e:
         total_elapsed = (time.time() - start_time) * 1000
         logger.error(f"[classify_intent] LLM error after {total_elapsed:.0f}ms: {e}")
-        state["intent"] = IntentType.CHAT
+        state["intent"] = IntentType.CHAT.value
         state["confidence"] = 0.0
         state["response"] = (
             "Pode repetir de outro jeito? Não entendi muito bem. 😊"

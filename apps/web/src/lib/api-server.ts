@@ -52,16 +52,19 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 export interface ServerTransaction {
   id: string
-  type?: "INCOME" | "EXPENSE"
+  type: "INCOME" | "EXPENSE"
   name: string
   description?: string
   category?: string
+  category_id?: number | null
   category_name?: string
   amount: number
   date?: string
   transaction_date?: string
   source: string
   status: string
+  is_recurring?: boolean
+  recurrence_frequency?: "weekly" | "monthly" | "yearly" | null
 }
 
 export interface TransactionSummary {
@@ -74,10 +77,24 @@ export interface TransactionSummary {
 }
 
 export async function getTransactionSummary(): Promise<TransactionSummary | null> {
-  "use cache: private"
-  cacheTag("transactions", "summary")
-  cacheLife("minutes")
   return serverFetch<TransactionSummary>("/bagcoin/transactions/summary")
+}
+
+export interface ServerCategory {
+  id: number
+  name: string
+  color: string
+  emoji?: string
+  type: "despesa" | "receita" | "investimento"
+  is_default: boolean
+  is_user_created?: boolean
+  can_delete?: boolean
+  created_at?: string
+  updated_at?: string | null
+}
+
+export async function getCategories(): Promise<ServerCategory[] | null> {
+  return serverFetch("/bagcoin/categories")
 }
 
 export async function getTransactions(params?: {
@@ -105,7 +122,7 @@ export async function getTransactions(params?: {
 export interface ServerBudget {
   id: number
   name: string
-  period: string
+  period: "monthly" | "weekly" | "yearly" | string
   total_limit: number
   total_spent: number
   total_remaining: number

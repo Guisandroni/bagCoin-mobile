@@ -57,7 +57,7 @@ export function useGoal(id: number) {
 
 const TOAST_ID_CREATE_GOAL = "goals-create"
 
-export function useCreateGoal() {
+export function useCreateGoal(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: GoalCreate) =>
@@ -65,19 +65,23 @@ export function useCreateGoal() {
     onSuccess: () => {
       toast.dismiss(TOAST_ID_CREATE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta criada com sucesso!", { id: TOAST_ID_CREATE_GOAL })
+      if (!options?.silent) {
+        toast.success("Meta criada com sucesso!", { id: TOAST_ID_CREATE_GOAL })
+      }
     },
     onError: (err: Error) => {
       toast.dismiss(TOAST_ID_CREATE_GOAL)
       console.error('[hook:goals]', err)
-      toast.error(err.message || "Erro ao criar meta", { id: TOAST_ID_CREATE_GOAL })
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao criar meta", { id: TOAST_ID_CREATE_GOAL })
+      }
     },
   })
 }
 
 const TOAST_ID_UPDATE_GOAL = "goals-update"
 
-export function useUpdateGoal() {
+export function useUpdateGoal(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: GoalUpdate }) =>
@@ -85,19 +89,23 @@ export function useUpdateGoal() {
     onSuccess: () => {
       toast.dismiss(TOAST_ID_UPDATE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta atualizada com sucesso!", { id: TOAST_ID_UPDATE_GOAL })
+      if (!options?.silent) {
+        toast.success("Meta atualizada com sucesso!", { id: TOAST_ID_UPDATE_GOAL })
+      }
     },
     onError: (err: Error) => {
       toast.dismiss(TOAST_ID_UPDATE_GOAL)
       console.error('[hook:goals]', err)
-      toast.error(err.message || "Erro ao atualizar meta", { id: TOAST_ID_UPDATE_GOAL })
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao atualizar meta", { id: TOAST_ID_UPDATE_GOAL })
+      }
     },
   })
 }
 
 const TOAST_ID_DELETE_GOAL = "goals-delete"
 
-export function useDeleteGoal() {
+export function useDeleteGoal(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) =>
@@ -105,12 +113,16 @@ export function useDeleteGoal() {
     onSuccess: () => {
       toast.dismiss(TOAST_ID_DELETE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta excluída com sucesso!", { id: TOAST_ID_DELETE_GOAL })
+      if (!options?.silent) {
+        toast.success("Meta excluída com sucesso!", { id: TOAST_ID_DELETE_GOAL })
+      }
     },
     onError: (err: Error) => {
       toast.dismiss(TOAST_ID_DELETE_GOAL)
       console.error('[hook:goals]', err)
-      toast.error(err.message || "Erro ao excluir meta", { id: TOAST_ID_DELETE_GOAL })
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao excluir meta", { id: TOAST_ID_DELETE_GOAL })
+      }
     },
   })
 }

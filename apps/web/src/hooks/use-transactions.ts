@@ -6,12 +6,18 @@ import { toast } from "sonner"
 
 export interface TransactionResponse {
   id: string
+  type: "EXPENSE" | "INCOME"
   name: string
   category: string
+  category_id?: number | null
+  category_name?: string | null
   amount: number
   date: string
+  transaction_date?: string | null
   source: string
   status: string
+  is_recurring?: boolean
+  recurrence_frequency?: "weekly" | "monthly" | "yearly" | null
 }
 
 interface TransactionListResponse {
@@ -28,24 +34,30 @@ export interface TransactionSummary {
   recent_transactions: TransactionResponse[]
 }
 
-interface CreateTransactionData {
+export interface CreateTransactionData {
   type: "EXPENSE" | "INCOME"
   amount: number
   description: string
+  category_id?: number
   category_name?: string
   transaction_date?: string
   source?: "manual" | "auto"
   status?: "confirmed" | "pending"
+  is_recurring?: boolean
+  recurrence_frequency?: "weekly" | "monthly" | "yearly"
 }
 
-interface UpdateTransactionData {
+export interface UpdateTransactionData {
   id: string
   type?: "EXPENSE" | "INCOME"
   amount?: number
   description?: string
+  category_id?: number
   category_name?: string
   transaction_date?: string
   status?: "confirmed" | "pending"
+  is_recurring?: boolean
+  recurrence_frequency?: "weekly" | "monthly" | "yearly"
 }
 
 export function useTransactions(filters?: {
@@ -76,7 +88,7 @@ export function useTransactionSummary() {
 
 const TOAST_ID_CREATE_TRANSACTION = "transactions-create"
 
-export function useCreateTransaction() {
+export function useCreateTransaction(options?: { silent?: boolean }) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (data: CreateTransactionData) =>
@@ -84,19 +96,23 @@ export function useCreateTransaction() {
     onSuccess: () => {
       toast.dismiss(TOAST_ID_CREATE_TRANSACTION)
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
-      toast.success("Transação criada com sucesso!", { id: TOAST_ID_CREATE_TRANSACTION })
+      if (!options?.silent) {
+        toast.success("Transação criada com sucesso!", { id: TOAST_ID_CREATE_TRANSACTION })
+      }
     },
     onError: (err: Error) => {
       toast.dismiss(TOAST_ID_CREATE_TRANSACTION)
       console.error('[hook:transactions]', err)
-      toast.error(err.message || "Erro ao criar transação", { id: TOAST_ID_CREATE_TRANSACTION })
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao criar transação", { id: TOAST_ID_CREATE_TRANSACTION })
+      }
     },
   })
 }
 
 const TOAST_ID_UPDATE_TRANSACTION = "transactions-update"
 
-export function useUpdateTransaction() {
+export function useUpdateTransaction(options?: { silent?: boolean }) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, ...data }: UpdateTransactionData) =>
@@ -104,31 +120,39 @@ export function useUpdateTransaction() {
     onSuccess: () => {
       toast.dismiss(TOAST_ID_UPDATE_TRANSACTION)
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
-      toast.success("Transação atualizada com sucesso!", { id: TOAST_ID_UPDATE_TRANSACTION })
+      if (!options?.silent) {
+        toast.success("Transação atualizada com sucesso!", { id: TOAST_ID_UPDATE_TRANSACTION })
+      }
     },
     onError: (err: Error) => {
       toast.dismiss(TOAST_ID_UPDATE_TRANSACTION)
       console.error('[hook:transactions]', err)
-      toast.error(err.message || "Erro ao atualizar transação", { id: TOAST_ID_UPDATE_TRANSACTION })
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao atualizar transação", { id: TOAST_ID_UPDATE_TRANSACTION })
+      }
     },
   })
 }
 
 const TOAST_ID_DELETE_TRANSACTION = "transactions-delete"
 
-export function useDeleteTransaction() {
+export function useDeleteTransaction(options?: { silent?: boolean }) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.delete(`/bagcoin/transactions/${id}`),
     onSuccess: () => {
-      toast.dismiss(TOAST_ID_DELETE_TRANSACTION)
       queryClient.invalidateQueries({ queryKey: ["transactions"] })
-      toast.success("Transação excluída com sucesso!", { id: TOAST_ID_DELETE_TRANSACTION })
+      if (!options?.silent) {
+        toast.dismiss(TOAST_ID_DELETE_TRANSACTION)
+        toast.success("Transação excluída com sucesso!", { id: TOAST_ID_DELETE_TRANSACTION })
+      }
     },
     onError: (err: Error) => {
-      toast.dismiss(TOAST_ID_DELETE_TRANSACTION)
       console.error('[hook:transactions]', err)
-      toast.error(err.message || "Erro ao excluir transação", { id: TOAST_ID_DELETE_TRANSACTION })
+      if (!options?.silent) {
+        toast.dismiss(TOAST_ID_DELETE_TRANSACTION)
+        toast.error(err.message || "Erro ao excluir transação", { id: TOAST_ID_DELETE_TRANSACTION })
+      }
     },
   })
 }

@@ -192,9 +192,11 @@ def _mock_tx_rest_response(**kwargs) -> dict:
 
     return {
         "id": kwargs.get("id", "1"),
+        "type": kwargs.get("type", "EXPENSE"),
         "name": kwargs.get("name", "Test transaction"),
         "category": kwargs.get("category", "Test transaction"),
-        "amount": kwargs.get("amount", -100.0),
+        "category_name": kwargs.get("category_name", kwargs.get("category", "Test transaction")),
+        "amount": abs(kwargs.get("amount", 100.0)),
         "date": kwargs.get("date", "01 Mai"),
         "source": kwargs.get("source", "manual"),
         "status": kwargs.get("status", "confirmed"),
@@ -229,7 +231,7 @@ async def test_list_transactions_with_data(client_with_auth):
     assert data["total"] == 2
     assert len(data["items"]) == 2
     assert data["items"][0]["name"] == "Supermercado"
-    assert data["items"][0]["amount"] == -287.5
+    assert data["items"][0]["amount"] == 287.5
     assert data["items"][1]["name"] == "Salário"
     assert data["items"][1]["amount"] == 8500.0
 
@@ -341,7 +343,7 @@ async def test_create_transaction_expense(client_with_auth):
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "Supermercado"
-    assert data["amount"] == -150.0
+    assert data["amount"] == 150.0
 
 
 @pytest.mark.anyio
@@ -454,7 +456,7 @@ async def test_get_transaction(client_with_auth, mock_user):
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Supermercado Pão de Açúcar"
-    assert data["amount"] == -287.5  # expense → negative
+    assert data["amount"] == 287.5
     assert data["status"] == "confirmed"
 
 
@@ -623,8 +625,8 @@ async def test_get_summary(client_with_auth):
             {"name": "Transporte", "amount": 380.0, "color": "#0052ff"},
         ],
         "recent_transactions": [
-            _mock_tx_rest_response(id="1", name="Supermercado", amount=-287.5),
-            _mock_tx_rest_response(id="2", name="Salário", amount=8500.0),
+            _mock_tx_rest_response(id="1", name="Supermercado", amount=287.5, type="EXPENSE"),
+            _mock_tx_rest_response(id="2", name="Salário", amount=8500.0, type="INCOME"),
         ],
     }
 

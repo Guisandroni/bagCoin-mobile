@@ -398,4 +398,4 @@ async def test_sync_full_flow_webhook_to_summary(
     rt = summary_data["recent_transactions"][0]
     assert rt["name"] == "Supermercado"
     assert rt["status"] == "confirmed"
-    assert rt["amount"] < 0  # expense is negative in frontend format
+    assert rt["amount"] == 199.90

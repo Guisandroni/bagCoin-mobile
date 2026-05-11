@@ -26,6 +26,7 @@ export function DashboardClient({ summary, budgets, goals }: Props) {
         router.push(href)
       }}
       onViewAllTransactions={() => router.push("/app/transacoes")}
+      onViewAllCategories={() => router.push("/app/categorias")}
       onAddGoal={() => router.push("/app/metas")}
     />
   )

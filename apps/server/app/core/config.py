@@ -174,6 +174,20 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
 
+    # === SMTP / Email Verification ===
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_USE_TLS: bool = True
+    EMAIL_VERIFICATION_TTL_SECONDS: int = 600
+    EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS: int = 60
+    EMAIL_VERIFICATION_MAX_ATTEMPTS: int = 5
+    EMAIL_VERIFICATION_SEND_LIMIT_PER_HOUR: int = 5
+    EMAIL_VERIFICATION_SEND_LIMIT_PER_IP_PER_HOUR: int = 20
+    EMAIL_VERIFICATION_VERIFY_LIMIT_PER_10_MIN: int = 10
+
     # === WhatsApp Bridge ===
     WHATSAPP_BRIDGE_URL: str = "http://whatsapp-bridge:3001"
     WHATSAPP_API_KEY: str = "bagcoin_webhook_secret_123"

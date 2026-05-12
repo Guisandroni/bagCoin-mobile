@@ -1,17 +1,26 @@
 """Authentication routes."""
 
 import secrets
+from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.api.deps import CurrentUser, UserSvc
+from app.api.deps import CurrentUser, Redis, UserSvc
 from app.core.exceptions import AuthenticationError
 from app.core.security import create_access_token, create_refresh_token, verify_token
+from app.schemas.auth import (
+    AuthPendingResponse,
+    EmailVerificationRequest,
+    EmailVerificationResponse,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
+)
 from app.schemas.token import RefreshTokenRequest, Token
 from app.schemas.user import GoogleLoginRequest, UserCreate, UserRead
+from app.services.email_verification import EmailVerificationService
 
 router = APIRouter()
 
@@ -24,6 +33,10 @@ def _make_token(user_id: str) -> Token:
     )
 
 
+def _client_ip(request: Request) -> str:
+    return request.client.host if request.client else "unknown"
+
+
 @router.post("/login", response_model=Token)
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
@@ -33,13 +46,26 @@ async def login(
     return _make_token(str(user.id))
 
 
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthPendingResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     user_in: UserCreate,
+    request: Request,
     user_service: UserSvc,
+    redis: Redis,
 ) -> Any:
     user = await user_service.register(user_in)
-    return user
+    verification_service = EmailVerificationService(user_service.db, redis)
+    dispatch = await verification_service.issue_code_for_user(
+        user,
+        ip_address=_client_ip(request),
+        enforce_cooldown=False,
+    )
+    return AuthPendingResponse(
+        email=user.email,
+        auth_provider="email",
+        expires_in_seconds=dispatch.expires_in_seconds,
+        resend_available_in_seconds=dispatch.resend_available_in_seconds,
+    )
 
 
 @router.post("/refresh", response_model=Token)
@@ -49,27 +75,80 @@ async def refresh_token(
 ) -> Any:
     payload = verify_token(body.refresh_token)
     if payload is None:
-        raise AuthenticationError(message="Invalid or expired refresh token")
+        raise AuthenticationError(message="Token de atualização inválido ou expirado")
     if payload.get("type") != "refresh":
-        raise AuthenticationError(message="Invalid token type")
+        raise AuthenticationError(message="Tipo de token inválido")
     user_id = payload.get("sub")
     if user_id is None:
-        raise AuthenticationError(message="Invalid token payload")
+        raise AuthenticationError(message="Conteúdo do token inválido")
     user = await user_service.get_by_id(UUID(user_id))
     if not user.is_active:
-        raise AuthenticationError(message="User account is disabled")
+        raise AuthenticationError(message="Sua conta está desativada")
     return _make_token(str(user.id))
 
 
-@router.post("/google", response_model=Token)
+@router.post("/google", response_model=Token | AuthPendingResponse)
 async def google_login(
     body: GoogleLoginRequest,
+    request: Request,
     user_service: UserSvc,
+    redis: Redis,
 ) -> Any:
     user = await user_service.google_auth(body)
     if not user.is_active:
-        raise AuthenticationError(message="User account is disabled")
-    return _make_token(str(user.id))
+        raise AuthenticationError(message="Sua conta está desativada")
+    if user.email_verified:
+        return _make_token(str(user.id))
+
+    verification_service = EmailVerificationService(user_service.db, redis)
+    if (
+        user.email_verification_code_hash
+        and user.email_verification_expires_at
+        and user.email_verification_expires_at > datetime.now(UTC)
+    ):
+        return await verification_service.build_pending_response(user)
+
+    dispatch = await verification_service.issue_code_for_user(
+        user,
+        ip_address=_client_ip(request),
+        enforce_cooldown=False,
+    )
+    return AuthPendingResponse(
+        email=user.email,
+        auth_provider="google",
+        expires_in_seconds=dispatch.expires_in_seconds,
+        resend_available_in_seconds=dispatch.resend_available_in_seconds,
+    )
+
+
+@router.post("/verify-email", response_model=EmailVerificationResponse)
+async def verify_email(
+    body: EmailVerificationRequest,
+    request: Request,
+    user_service: UserSvc,
+    redis: Redis,
+) -> Any:
+    verification_service = EmailVerificationService(user_service.db, redis)
+    await verification_service.verify_code(
+        body.email,
+        body.code,
+        ip_address=_client_ip(request),
+    )
+    return EmailVerificationResponse()
+
+
+@router.post("/resend-verification", response_model=ResendVerificationResponse)
+async def resend_verification(
+    body: ResendVerificationRequest,
+    request: Request,
+    user_service: UserSvc,
+    redis: Redis,
+) -> Any:
+    verification_service = EmailVerificationService(user_service.db, redis)
+    return await verification_service.resend_code(
+        body.email,
+        ip_address=_client_ip(request),
+    )
 
 
 @router.get("/me", response_model=UserRead)

@@ -1,5 +1,10 @@
 import { create } from "zustand"
-import apiClient, { getTokenStore, setAuthCookies, clearAuthCookies } from "@/lib/api-client"
+import apiClient, {
+  type ApiClientError,
+  clearAuthCookies,
+  getTokenStore,
+  setAuthCookies,
+} from "@/lib/api-client"
 
 interface User {
   id: string
@@ -7,10 +12,34 @@ interface User {
   full_name: string | null
   phone_number: string | null
   is_active: boolean
+  email_verified: boolean
   role: string
   avatar_url: string | null
   auth_provider: string
 }
+
+export interface PendingAuthResponse {
+  email: string
+  requires_email_verification: true
+  auth_provider: "email" | "google"
+  expires_in_seconds: number
+  resend_available_in_seconds: number
+}
+
+interface VerificationSuccessResponse {
+  verified: true
+  message: string
+}
+
+interface ResendVerificationResponse {
+  sent: true
+  resend_available_in_seconds: number
+  expires_in_seconds: number
+}
+
+type GoogleLoginResult =
+  | { status: "authenticated" }
+  | { status: "pending"; pending: PendingAuthResponse }
 
 interface AuthState {
   user: User | null
@@ -19,8 +48,10 @@ interface AuthState {
   error: string | null
 
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, fullName?: string, phoneNumber?: string) => Promise<void>
-  loginWithGoogle: (idToken: string) => Promise<void>
+  register: (email: string, password: string, fullName?: string, phoneNumber?: string) => Promise<PendingAuthResponse>
+  loginWithGoogle: (idToken: string) => Promise<GoogleLoginResult>
+  verifyEmail: (email: string, code: string) => Promise<VerificationSuccessResponse>
+  resendVerification: (email: string) => Promise<ResendVerificationResponse>
   logout: () => void
   fetchUser: () => Promise<void>
   clearError: () => void
@@ -49,8 +80,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       await get().fetchUser()
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: { message?: string }; detail?: string } } }
-      const message = err.response?.data?.error?.message || err.response?.data?.detail || "Falha ao fazer login"
+      const err = error as ApiClientError
+      const message = err.message || "Falha ao fazer login"
       set({
         isLoading: false,
         error: message,
@@ -62,17 +93,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (email: string, password: string, fullName?: string, phoneNumber?: string) => {
     set({ isLoading: true, error: null })
     try {
-      await apiClient.post("/auth/register", {
+      const response = await apiClient.post<PendingAuthResponse>("/auth/register", {
         email,
         password,
         full_name: fullName || null,
         phone_number: phoneNumber || null,
       })
       set({ isLoading: false })
+      return response.data
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: { message?: string }; detail?: string } } }
-      const errorData = err.response?.data?.error?.message || err.response?.data?.detail
-      const message = typeof errorData === "object" ? "Email já cadastrado" : (errorData || "Falha ao registrar")
+      const err = error as ApiClientError
+      const message = err.message || "Não foi possível criar sua conta"
       set({
         isLoading: false,
         error: message,
@@ -84,19 +115,54 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loginWithGoogle: async (idToken: string) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await apiClient.post("/auth/google", { id_token: idToken })
+      const response = await apiClient.post<TokenLike | PendingAuthResponse>("/auth/google", { id_token: idToken })
+
+      if ("requires_email_verification" in response.data) {
+        set({ isLoading: false, error: null })
+        return { status: "pending", pending: response.data }
+      }
 
       const { access_token, refresh_token } = response.data
       setAuthCookies(access_token, refresh_token)
       getTokenStore().setTokens(access_token, refresh_token)
 
       await get().fetchUser()
+      return { status: "authenticated" }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: { message?: string }; detail?: string } } }
+      const err = error as ApiClientError
       set({
         isLoading: false,
-        error: err.response?.data?.error?.message || err.response?.data?.detail || "Falha ao fazer login com Google",
+        error: err.message || "Falha ao fazer login com Google",
       })
+      throw error
+    }
+  },
+
+  verifyEmail: async (email: string, code: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await apiClient.post<VerificationSuccessResponse>("/auth/verify-email", {
+        email,
+        code,
+      })
+      set({ isLoading: false, error: null })
+      return response.data
+    } catch (error: unknown) {
+      const err = error as ApiClientError
+      set({ isLoading: false, error: err.message || "Falha ao verificar email" })
+      throw error
+    }
+  },
+
+  resendVerification: async (email: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      const response = await apiClient.post<ResendVerificationResponse>("/auth/resend-verification", { email })
+      set({ isLoading: false, error: null })
+      return response.data
+    } catch (error: unknown) {
+      const err = error as ApiClientError
+      set({ isLoading: false, error: err.message || "Não foi possível reenviar o código" })
       throw error
     }
   },
@@ -128,3 +194,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearError: () => set({ error: null }),
 }))
+
+interface TokenLike {
+  access_token: string
+  refresh_token: string
+}

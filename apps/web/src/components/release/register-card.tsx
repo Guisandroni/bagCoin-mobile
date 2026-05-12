@@ -18,6 +18,8 @@ interface RegisterCardProps {
   onLoginClick?: () => void
   isLoading?: boolean
   errorMessage?: string | null
+  fieldErrors?: Partial<Record<"name" | "email" | "password" | "confirmPassword", string>>
+  onFieldErrorClear?: (field: "name" | "email" | "password" | "confirmPassword") => void
   onDismissError?: () => void
 }
 
@@ -27,6 +29,8 @@ export function RegisterCard({
   onLoginClick,
   isLoading,
   errorMessage,
+  fieldErrors,
+  onFieldErrorClear,
   onDismissError,
 }: RegisterCardProps) {
   const [name, setName] = useState("")
@@ -34,8 +38,23 @@ export function RegisterCard({
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [validationToast, setValidationToast] = useState<string | null>(null)
   const [googleError, setGoogleError] = useState<string | null>(null)
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ""
+  const mergedErrors = { ...fieldErrors, ...errors }
+
+  const resolvePasswordToast = (message: string) => {
+    if (message === "Senhas não coincidem") {
+      return "Senhas não coincidem. Confira os dois campos e tente novamente."
+    }
+    if (
+      message === "Senha tem que ter no mínimo 6 dígitos" ||
+      message === "Senha deve conter letra maiúscula, letra minúscula e número"
+    ) {
+      return "Senha incorreta. Use no mínimo 6 caracteres, com letra maiúscula, letra minúscula e número."
+    }
+    return message
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,6 +67,7 @@ export function RegisterCard({
         fieldErrors[path] = err.message
       })
       setErrors(fieldErrors)
+      setValidationToast(resolvePasswordToast(result.error.issues[0]?.message || "Revise os campos informados."))
       return
     }
     onRegister?.({ name, email, password })
@@ -56,11 +76,12 @@ export function RegisterCard({
   return (
     <div className="rls min-h-dvh bg-[var(--rls-background)] flex flex-col items-center justify-center p-[var(--rls-container-margin)]">
       <ToastBanner
-        isOpen={!!(errorMessage || googleError)}
-        message={errorMessage || googleError || ""}
+        isOpen={!!(errorMessage || googleError || validationToast)}
+        message={errorMessage || googleError || validationToast || ""}
         variant="error"
         onClose={() => {
           setGoogleError(null)
+          setValidationToast(null)
           onDismissError?.()
         }}
       />
@@ -76,10 +97,12 @@ export function RegisterCard({
             icon={<User className="w-5 h-5" />}
             placeholder="Ex: João Silva"
             value={name}
-            error={errors.name}
+            error={mergedErrors.name}
             onChange={(e) => {
               setName(e.target.value)
               if (errors.name) setErrors((prev) => ({ ...prev, name: "" }))
+              if (validationToast) setValidationToast(null)
+              onFieldErrorClear?.("name")
             }}
           />
 
@@ -89,24 +112,28 @@ export function RegisterCard({
             placeholder="seu@email.com"
             type="email"
             value={email}
-            error={errors.email}
+            error={mergedErrors.email}
             onChange={(e) => {
               setEmail(e.target.value)
               if (errors.email) setErrors((prev) => ({ ...prev, email: "" }))
+              if (validationToast) setValidationToast(null)
+              onFieldErrorClear?.("email")
             }}
           />
 
           <PillInput
             label="Senha"
             icon={<Lock className="w-5 h-5" />}
-            placeholder="Mínimo 8 caracteres"
+            placeholder="Mínimo 6 caracteres"
             type="password"
             showPasswordToggle
             value={password}
-            error={errors.password}
+            error={mergedErrors.password}
             onChange={(e) => {
               setPassword(e.target.value)
               if (errors.password) setErrors((prev) => ({ ...prev, password: "" }))
+              if (validationToast) setValidationToast(null)
+              onFieldErrorClear?.("password")
             }}
           />
 
@@ -117,10 +144,12 @@ export function RegisterCard({
             type="password"
             showPasswordToggle
             value={confirmPassword}
-            error={errors.confirmPassword}
+            error={mergedErrors.confirmPassword}
             onChange={(e) => {
               setConfirmPassword(e.target.value)
               if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: "" }))
+              if (validationToast) setValidationToast(null)
+              onFieldErrorClear?.("confirmPassword")
             }}
           />
 

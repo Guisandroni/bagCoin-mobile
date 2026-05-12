@@ -82,6 +82,7 @@ export const handlers = [
       email: "ana@email.com",
       full_name: "Ana Silva",
       is_active: true,
+      email_verified: true,
       role: "user",
     })
   }),

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { LoginCard } from "@/components/release/login-card"
 import { RegisterCard } from "@/components/release/register-card"
@@ -31,5 +31,37 @@ describe("release auth password toggle", () => {
 
     expect(password).toHaveAttribute("type", "text")
     expect(confirmPassword).toHaveAttribute("type", "text")
+  })
+
+  it("mostra erro inline para senha sem complexidade", () => {
+    const onRegister = vi.fn()
+    render(<RegisterCard onRegister={onRegister} />)
+
+    fireEvent.change(screen.getByLabelText("Nome Completo"), { target: { value: "Ana Silva" } })
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ana@bagcoin.com" } })
+    fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "abcdef" } })
+    fireEvent.change(screen.getByLabelText("Confirmar Senha"), { target: { value: "abcdef" } })
+    fireEvent.click(screen.getByRole("button", { name: /criar conta/i }))
+
+    expect(onRegister).not.toHaveBeenCalled()
+    expect(screen.getByText("Senha deve conter letra maiúscula, letra minúscula e número")).toBeInTheDocument()
+    expect(
+      screen.getByText("Senha incorreta. Use no mínimo 6 caracteres, com letra maiúscula, letra minúscula e número."),
+    ).toBeInTheDocument()
+  })
+
+  it("mostra erro inline quando as senhas não coincidem", () => {
+    const onRegister = vi.fn()
+    render(<RegisterCard onRegister={onRegister} />)
+
+    fireEvent.change(screen.getByLabelText("Nome Completo"), { target: { value: "Ana Silva" } })
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ana@bagcoin.com" } })
+    fireEvent.change(screen.getByLabelText("Senha"), { target: { value: "Abcdef1" } })
+    fireEvent.change(screen.getByLabelText("Confirmar Senha"), { target: { value: "Abcdef2" } })
+    fireEvent.click(screen.getByRole("button", { name: /criar conta/i }))
+
+    expect(onRegister).not.toHaveBeenCalled()
+    expect(screen.getByText("Senhas não coincidem")).toBeInTheDocument()
+    expect(screen.getByText("Senhas não coincidem. Confira os dois campos e tente novamente.")).toBeInTheDocument()
   })
 })

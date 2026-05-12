@@ -129,12 +129,18 @@ async def verify_email(
     redis: Redis,
 ) -> Any:
     verification_service = EmailVerificationService(user_service.db, redis)
-    await verification_service.verify_code(
+    user = await verification_service.verify_code(
         body.email,
         body.code,
         ip_address=_client_ip(request),
     )
-    return EmailVerificationResponse()
+    token = _make_token(str(user.id))
+    return EmailVerificationResponse(
+        access_token=token.access_token,
+        refresh_token=token.refresh_token,
+        token_type=token.token_type,
+        csrf_token=token.csrf_token,
+    )
 
 
 @router.post("/resend-verification", response_model=ResendVerificationResponse)

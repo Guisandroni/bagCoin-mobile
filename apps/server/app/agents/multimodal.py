@@ -21,6 +21,7 @@ from groq import Groq
 from app.agents.multimodal_types import MultimodalResult
 from app.agents.prompts.image_receipt import IMAGE_RECEIPT_PROMPT
 from app.core.config import settings
+from app.services.docx_text import extract_docx_text
 
 logger = logging.getLogger(__name__)
 
@@ -309,9 +310,18 @@ def process_image(media: dict[str, Any]) -> MultimodalResult:
 
 # ── Document ───────────────────────────────────────────────
 
+def _is_docx_media(mimetype: str, filename: str) -> bool:
+    return (
+        "wordprocessingml.document" in mimetype
+        or mimetype == "application/msword"
+        or filename.lower().endswith(".docx")
+    )
+
+
 def process_document(media: dict[str, Any]) -> MultimodalResult:
     """Extrai texto de documento (PDF, CSV, OFX)."""
     mimetype = media.get("mimetype", "application/pdf")
+    filename = media.get("filename", "")
 
     try:
         doc_data = base64.b64decode(media["data"])
@@ -355,6 +365,16 @@ def process_document(media: dict[str, Any]) -> MultimodalResult:
             logger.error(f"Erro no PDF: {e}")
             return MultimodalResult(text="", provider="pdf", failure=True, reason="pdf_error")
 
+    # DOCX
+    if _is_docx_media(mimetype, filename):
+        text = extract_docx_text(doc_data)
+        if not text:
+            return MultimodalResult(text="", provider="docx", failure=True, reason="docx_empty")
+        if len(text) > 4000:
+            text = text[:4000] + "\n...[texto truncado]"
+        logger.info(f"DOCX extraído: {len(text)} chars")
+        return MultimodalResult(text=text, provider="docx")
+
     return MultimodalResult(text="", provider="document", failure=True, reason="unsupported_document")
 
 
@@ -382,6 +402,18 @@ def process_multimodal(state: dict[str, Any]) -> dict[str, Any]:
         result = MultimodalResult(text="", failure=True, reason="unknown_format")
     result = _coerce_result(result, source_format)
 
+    if (
+        result.is_failure
+        and source_format == "document"
+        and result.reason == "pdf_empty"
+        and settings.USE_TOOL_AGENTS
+    ):
+        state["context"] = state.get("context", {})
+        state["context"]["extracted_media_text"] = ""
+        state["context"]["original_format"] = source_format
+        state["context"]["media_provider"] = result.provider
+        return state
+
     if result.is_failure:
         state["error"] = f"media_failure:{result.reason or 'unknown'}"
         state["response"] = _failure_message(source_format, result.reason)
@@ -393,7 +425,7 @@ def process_multimodal(state: dict[str, Any]) -> dict[str, Any]:
         return state
 
     if source_format == "image" and result.structured is not None:
-        if not result.structured.get("is_receipt", True):
+        if not result.structured.get("is_receipt", True) and not settings.USE_TOOL_AGENTS:
             state["response"] = (
                 "Essa imagem não parece um comprovante. "
                 "Pode mandar uma nota fiscal ou descrever em texto?"
@@ -438,7 +470,14 @@ def _source_format_from_media(source_format: str, media: dict[str, Any]) -> str:
         return "audio"
     if mimetype.startswith("image/"):
         return "image"
-    if mimetype in {"application/pdf", "text/csv", "application/csv", "text/plain"}:
+    if mimetype in {
+        "application/pdf",
+        "text/csv",
+        "application/csv",
+        "text/plain",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+    }:
         return "document"
 
     # Fallback by filename extension
@@ -448,6 +487,7 @@ def _source_format_from_media(source_format: str, media: dict[str, Any]) -> str:
             "ogg": "audio", "mp3": "audio", "m4a": "audio", "wav": "audio", "webm": "audio",
             "jpg": "image", "jpeg": "image", "png": "image", "webp": "image", "gif": "image",
             "pdf": "document", "csv": "document", "txt": "document", "ofx": "document",
+            "docx": "document", "doc": "document",
         }
         if ext in ext_map:
             return ext_map[ext]

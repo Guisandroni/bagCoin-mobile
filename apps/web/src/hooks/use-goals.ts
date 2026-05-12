@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
+import { financialPollingOptions } from "./use-financial-polling"
 
 export interface Goal {
   id: number
@@ -44,6 +45,7 @@ export function useGoals() {
       if (Array.isArray(data)) return { items: data, total: data.length } as GoalListResponse
       return (data as unknown as GoalListResponse)
     },
+    ...financialPollingOptions,
   })
 }
 

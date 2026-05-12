@@ -15,6 +15,7 @@ from app.services.file_storage import (
     MAX_UPLOAD_SIZE,
     classify_file,
 )
+from app.services.docx_text import extract_docx_text
 
 logger = logging.getLogger(__name__)
 
@@ -105,16 +106,11 @@ class FileUploadService:
     @staticmethod
     def _parse_docx_content(data: bytes) -> str | None:
         """Extract text from DOCX."""
-        try:
-            import io
-
-            from docx import Document as DOCXDocument
-
-            doc: Any = DOCXDocument(io.BytesIO(data))
-            return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
-        except Exception as e:
-            logger.warning(f"DOCX parsing failed: {e}")
+        text = extract_docx_text(data)
+        if not text:
+            logger.warning("DOCX parsing failed or returned no text")
             return None
+        return text
 
     async def get_user_file(self, file_id: Any, user_id: Any) -> ChatFile:
         """Get a file by ID, verifying ownership.

@@ -29,6 +29,10 @@ export interface PendingAuthResponse {
 interface VerificationSuccessResponse {
   verified: true
   message: string
+  access_token?: string | null
+  refresh_token?: string | null
+  token_type?: string
+  csrf_token?: string | null
 }
 
 interface ResendVerificationResponse {
@@ -145,6 +149,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         email,
         code,
       })
+      const { access_token, refresh_token, csrf_token } = response.data
+      if (access_token && refresh_token) {
+        setAuthCookies(access_token, refresh_token)
+        getTokenStore().setTokens(access_token, refresh_token, csrf_token || undefined)
+        await get().fetchUser()
+      }
       set({ isLoading: false, error: null })
       return response.data
     } catch (error: unknown) {

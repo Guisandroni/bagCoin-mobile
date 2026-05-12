@@ -216,6 +216,7 @@ class EmailVerificationService:
                 "email_verification_attempts": 0,
             },
         )
+        await self.db.commit()
         logger.info("[email_verification] email verified", extra={"email": user.email})
         return user
 

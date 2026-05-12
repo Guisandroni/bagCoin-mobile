@@ -36,6 +36,10 @@ class EmailVerificationResponse(BaseSchema):
 
     verified: bool = True
     message: str = "Email verified successfully"
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str = "bearer"
+    csrf_token: str | None = None
 
 
 class ResendVerificationRequest(BaseSchema):

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
+import { financialPollingOptions } from "./use-financial-polling"
 
 export interface TransactionResponse {
   id: string
@@ -76,6 +77,7 @@ export function useTransactions(filters?: {
       if (filters?.limit !== undefined) params.append("limit", String(filters.limit))
       return api.get<TransactionListResponse>(`/bagcoin/transactions?${params.toString()}`)
     },
+    ...financialPollingOptions,
   })
 }
 
@@ -83,6 +85,7 @@ export function useTransactionSummary() {
   return useQuery<TransactionSummary>({
     queryKey: ["transactions", "summary"],
     queryFn: () => api.get<TransactionSummary>("/bagcoin/transactions/summary"),
+    ...financialPollingOptions,
   })
 }
 

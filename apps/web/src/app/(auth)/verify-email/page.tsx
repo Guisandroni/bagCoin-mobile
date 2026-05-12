@@ -76,6 +76,10 @@ export default function VerifyEmailPage() {
     try {
       const response = await verifyEmail(email, code)
       setSuccessMessage(response.message)
+      if (response.access_token && response.refresh_token) {
+        router.push("/app")
+        return
+      }
       router.push("/login?verified=true")
     } catch (error) {
       const authError = error as ApiClientError
@@ -83,6 +87,7 @@ export default function VerifyEmailPage() {
         attempts_remaining?: number
         attempts_used?: number
         max_attempts?: number
+        retry_after_seconds?: number
       } | undefined
 
       if (authError.code === "EMAIL_VERIFICATION_INVALID") {

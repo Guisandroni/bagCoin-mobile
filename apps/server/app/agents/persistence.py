@@ -260,6 +260,7 @@ def save_transaction(state: dict[str, Any]) -> dict[str, Any]:
                     )
                     transaction.recurring_transaction_id = recurring.id
                     db.commit()
+                    state["recurring_transaction_id"] = recurring.id
                     logger.info(f"RecurringTransaction {recurring.id} created for tx {transaction.id}")
                 except Exception as e:
                     logger.warning(f"Could not create recurring rule (non-blocking): {e}")

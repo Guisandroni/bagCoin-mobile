@@ -209,16 +209,19 @@ export function categoriesFromDefaultsAndServer(
 ): ReleaseCategory[] {
   const byName = new Map<string, ReleaseCategory>()
 
-  for (const category of CATEGORIES) {
-    byName.set(normalizeName(category.name), {
-      name: category.name,
-      icon: category.icon,
-      color: category.color,
-      allocated: 0,
-      percentage: 0,
-      type: releaseCategoryType(category.name),
-      isFixed: true,
-    })
+  const hasServerDefaults = (categories ?? []).some((category) => category.is_default)
+  if (!categories?.length || !hasServerDefaults) {
+    for (const category of CATEGORIES) {
+      byName.set(normalizeName(category.name), {
+        name: category.name,
+        icon: category.icon,
+        color: category.color,
+        allocated: 0,
+        percentage: 0,
+        type: releaseCategoryType(category.name),
+        isFixed: true,
+      })
+    }
   }
 
   for (const category of categories ?? []) {

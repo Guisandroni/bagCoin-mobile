@@ -105,9 +105,6 @@ export async function getTransactions(params?: {
   skip?: number
   limit?: number
 }): Promise<{ items: ServerTransaction[]; total: number } | null> {
-  "use cache: private"
-  cacheTag("transactions")
-  cacheLife("minutes")
   const qs = new URLSearchParams()
   if (params?.search) qs.set("search", params.search)
   if (params?.type) qs.set("type", params.type)
@@ -135,9 +132,6 @@ export interface ServerBudget {
 }
 
 export async function getBudgets(): Promise<ServerBudget[] | null> {
-  "use cache: private"
-  cacheTag("budgets")
-  cacheLife("hours")
   return serverFetch("/bagcoin/budgets")
 }
 
@@ -155,9 +149,6 @@ export interface ServerGoal {
 }
 
 export async function getGoals(): Promise<ServerGoal[] | null> {
-  "use cache: private"
-  cacheTag("goals")
-  cacheLife("hours")
   return serverFetch("/bagcoin/goals")
 }
 

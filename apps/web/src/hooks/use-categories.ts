@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { api } from "@/lib/api-client"
+import { financialPollingOptions } from "./use-financial-polling"
 
 export interface CategoryResponse {
   id: number
@@ -31,6 +32,7 @@ export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
     queryFn: () => api.get<CategoryResponse[]>("/bagcoin/categories"),
+    ...financialPollingOptions,
   })
 }
 

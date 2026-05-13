@@ -106,6 +106,8 @@ Thumbs.db
 # Project specific
 docs/
 .hermes/
+.claude/
+.opencode/
 
 
 # Node

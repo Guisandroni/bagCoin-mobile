@@ -140,3 +140,6 @@ scripts/
 .agents
 .claude
 .opencode
+.claude/
+.opencode/
+.agents/skills/

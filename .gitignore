@@ -103,3 +103,5 @@ logs/
 Thumbs.db
 
 # Project specific
+
+.agents/skills/

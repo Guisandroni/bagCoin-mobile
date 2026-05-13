@@ -103,3 +103,8 @@ logs/
 Thumbs.db
 
 # Project specific
+.claude/
+.hermes/
+.opencode/
+docs/
+.agents/skills/

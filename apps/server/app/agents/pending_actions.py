@@ -235,6 +235,8 @@ def execute_pending_action(phone_number: str, pending: dict[str, Any]) -> str:
         result = save_transaction(state)
         if result.get("error"):
             return str(result["error"])
+        if not result.get("transaction_id"):
+            return "Nao consegui confirmar a persistencia da transacao no banco. Tente novamente."
         message = resp.transaction_registered(
             params.get("type", "EXPENSE"),
             float(params.get("amount") or 0),

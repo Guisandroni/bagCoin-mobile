@@ -150,3 +150,20 @@ class FileUploadService:
             file_type=file_type,
             parsed_content=parsed_content,
         )
+
+    async def list_user_files(
+        self,
+        *,
+        user_id: Any,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[ChatFile]:
+        """List files belonging to a user."""
+        from app.repositories import chat_file as chat_file_repo
+
+        return await chat_file_repo.list_for_user(
+            self.db,
+            user_id=user_id,
+            skip=skip,
+            limit=limit,
+        )

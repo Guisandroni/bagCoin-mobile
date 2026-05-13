@@ -4,6 +4,8 @@ Handles transactions linked to authenticated users (UUID-based).
 """
 
 import contextlib
+import csv
+import io
 from datetime import datetime, UTC
 from typing import Literal
 from uuid import UUID
@@ -349,3 +351,47 @@ class TransactionRestService:
             categories=categories,
             recent_transactions=recent_responses,
         )
+
+    async def export_csv_for_user(self, user_uuid: UUID) -> str:
+        """Export all user transactions as CSV."""
+        result = await self.db.execute(
+            select(Transaction).options(
+                selectinload(Transaction.category),
+                selectinload(Transaction.recurring_transaction),
+            ).where(Transaction.user_uuid == user_uuid).order_by(Transaction.transaction_date.desc().nulls_last())
+        )
+        transactions = result.scalars().all()
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(
+            [
+                "id",
+                "tipo",
+                "descricao",
+                "categoria",
+                "valor",
+                "data",
+                "origem",
+                "status",
+                "recorrente",
+                "frequencia_recorrencia",
+            ]
+        )
+        for tx in transactions:
+            writer.writerow(
+                [
+                    tx.id,
+                    _transaction_type(tx),
+                    tx.description or "",
+                    _transaction_category_name(tx),
+                    f"{_transaction_amount(tx):.2f}",
+                    tx.transaction_date.date().isoformat() if tx.transaction_date else "",
+                    tx.source_format,
+                    "confirmed" if tx.confidence_score >= 0.7 else "pending",
+                    "true" if isinstance(getattr(tx, "recurring_transaction_id", None), int) else "false",
+                    _transaction_recurrence_frequency(tx) or "",
+                ]
+            )
+
+        return buffer.getvalue()

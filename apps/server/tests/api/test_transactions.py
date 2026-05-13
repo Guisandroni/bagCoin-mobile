@@ -279,10 +279,27 @@ async def test_list_transactions_search(client_with_auth):
 
     app.dependency_overrides.pop(get_transaction_rest_service, None)
 
+
+@pytest.mark.anyio
+async def test_export_transactions_csv(client_with_auth):
+    """Test CSV export endpoint for authenticated user."""
+    from app.api.routes.v1.transactions import get_transaction_rest_service
+
+    mock_service = AsyncMock()
+    mock_service.export_csv_for_user.return_value = (
+        "id,tipo,descricao,categoria,valor,data,origem,status,recorrente,frequencia_recorrencia\n"
+        "1,INCOME,Freela,Salário,1200.00,2026-05-12,manual,confirmed,false,\n"
+    )
+    app.dependency_overrides[get_transaction_rest_service] = lambda: mock_service
+
+    response = await client_with_auth.get(f"{settings.API_V1_STR}/bagcoin/transactions/export.csv")
+
+    app.dependency_overrides.pop(get_transaction_rest_service, None)
+
     assert response.status_code == 200
-    data = response.json()
-    assert data["total"] == 1
-    assert len(data["items"]) == 1
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "attachment; filename=\"bagcoin-transacoes.csv\"" == response.headers.get("content-disposition")
+    assert "Freela" in response.text
 
 
 @pytest.mark.anyio

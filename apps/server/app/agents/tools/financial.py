@@ -30,6 +30,10 @@ def _date_from_recurring_day(day: int | None) -> str | None:
     return now.replace(day=safe_day).date().isoformat()
 
 
+def _today_iso_date() -> str:
+    return datetime.now(UTC).date().isoformat()
+
+
 def create_financial_tools(phone_number: str, context: dict | None = None) -> list[BaseTool]:
     """Create transaction tools with tenant context captured in closures."""
     channel = _channel_from_context(context)
@@ -66,7 +70,7 @@ def create_financial_tools(phone_number: str, context: dict | None = None) -> li
         clean_frequency = str(recurrence_frequency or "monthly").lower()
         if clean_frequency not in {"weekly", "monthly", "yearly"}:
             clean_frequency = "monthly"
-        transaction_date = date or (_date_from_recurring_day(recurrence_day) if is_recurring else None)
+        transaction_date = date or (_date_from_recurring_day(recurrence_day) if is_recurring else _today_iso_date())
         params = {
             "amount": float(amount),
             "description": clean_description,

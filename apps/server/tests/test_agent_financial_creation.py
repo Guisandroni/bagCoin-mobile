@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from uuid import uuid4
+from datetime import UTC, datetime
 
 from app.db.base import Base
 import app.db.models  # noqa: F401
@@ -201,6 +202,7 @@ def test_tool_transaction_requires_confirmation_before_save(monkeypatch):
         tx = db.query(Transaction).one()
         assert tx.amount == 80
         assert tx.description == "Mercado"
+        assert tx.transaction_date.date().isoformat() == datetime.now(UTC).date().isoformat()
 
 
 def test_tool_transaction_cancel_does_not_save(monkeypatch):

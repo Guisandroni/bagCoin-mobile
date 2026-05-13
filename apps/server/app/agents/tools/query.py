@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import csv
+import io
 from datetime import UTC, datetime
 
 from langchain_core.tools import BaseTool, tool
@@ -85,4 +87,45 @@ def create_query_tools(phone_number: str) -> list[BaseTool]:
         finally:
             db.close()
 
-    return [get_financial_snapshot, get_balance_summary, get_spending_by_category]
+    @tool
+    def export_transactions_csv(limit: int = 200) -> str:
+        """Export user transactions to CSV text that can be copied/imported."""
+        db = sync_session_maker()
+        try:
+            user = get_or_create_user(phone_number, db)
+            safe_limit = max(1, min(int(limit or 200), 2000))
+            txs = (
+                db.query(Transaction)
+                .filter(Transaction.user_id == user.id)
+                .order_by(Transaction.transaction_date.desc())
+                .limit(safe_limit)
+                .all()
+            )
+            if not txs:
+                return "Nao encontrei transacoes para exportar."
+            buffer = io.StringIO()
+            writer = csv.writer(buffer)
+            writer.writerow(["id", "tipo", "valor", "descricao", "categoria", "data"])
+            for tx in txs:
+                tx_type = str(getattr(getattr(tx, "type", ""), "value", getattr(tx, "type", ""))).upper()
+                cat = getattr(getattr(tx, "category", None), "name", None) or "Outros"
+                dt = getattr(tx, "transaction_date", None)
+                writer.writerow(
+                    [
+                        tx.id,
+                        tx_type,
+                        f"{float(tx.amount or 0):.2f}",
+                        tx.description or "",
+                        cat,
+                        dt.date().isoformat() if dt else "",
+                    ]
+                )
+            return (
+                "CSV gerado abaixo:\n\n"
+                f"```csv\n{buffer.getvalue().strip()}\n```\n\n"
+                "Se preferir, também posso orientar a exportação direta pela web em /app/relatorios."
+            )
+        finally:
+            db.close()
+
+    return [get_financial_snapshot, get_balance_summary, get_spending_by_category, export_transactions_csv]

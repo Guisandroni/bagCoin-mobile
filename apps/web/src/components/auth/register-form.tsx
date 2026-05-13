@@ -21,7 +21,7 @@ export function RegisterForm({ compact = false }: { compact?: boolean }) {
     e.preventDefault()
     try {
       const pending = await register(email, password, name || undefined, phone || undefined)
-      router.push(`/verify-email?email=${encodeURIComponent(pending.email)}&source=register`)
+      router.push(`/verify-email?email=${encodeURIComponent(pending.email)}&source=register&sent=1`)
     } catch {
       // error is set in the store
     }

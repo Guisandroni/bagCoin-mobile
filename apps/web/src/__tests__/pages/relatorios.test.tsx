@@ -61,6 +61,16 @@ vi.mock("@/lib/store", () => ({
   },
 }))
 
+vi.mock("@/hooks/use-reports", () => ({
+  useReports: () => ({ data: { items: [] }, isLoading: false }),
+  useCreateReport: () => ({ mutate: vi.fn(), isPending: false }),
+  useDownloadReport: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+
+vi.mock("@/hooks/use-transactions", () => ({
+  useExportTransactionsCsv: () => ({ mutate: vi.fn(), isPending: false }),
+}))
+
 describe("RelatoriosLoading", () => {
   it("renderiza skeleton loading", () => {
     const { container } = render(<RelatoriosLoading />)

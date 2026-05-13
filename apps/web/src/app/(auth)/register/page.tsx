@@ -25,7 +25,7 @@ export default function RegisterPage() {
     setFieldErrors({})
     try {
       const pending = await register(data.email, data.password, data.name)
-      router.push(`/verify-email?email=${encodeURIComponent(pending.email)}&source=register`)
+      router.push(`/verify-email?email=${encodeURIComponent(pending.email)}&source=register&sent=1`)
     } catch (error) {
       const resolved = resolveRegisterError(error)
       setFieldErrors(resolved.fieldErrors)

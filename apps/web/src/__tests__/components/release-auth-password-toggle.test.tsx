@@ -50,6 +50,43 @@ describe("release auth password toggle", () => {
     ).toBeInTheDocument()
   })
 
+  it("atualiza checklist da senha em tempo real no cadastro", () => {
+    render(<RegisterCard />)
+
+    const password = screen.getByLabelText("Senha")
+    const minLength = screen.getByTestId("password-check-min-length")
+    const uppercase = screen.getByTestId("password-check-uppercase")
+    const lowercase = screen.getByTestId("password-check-lowercase")
+    const number = screen.getByTestId("password-check-number")
+
+    expect(minLength).toHaveAttribute("data-status", "pending")
+    expect(uppercase).toHaveAttribute("data-status", "pending")
+    expect(lowercase).toHaveAttribute("data-status", "pending")
+    expect(number).toHaveAttribute("data-status", "pending")
+
+    fireEvent.change(password, { target: { value: "abc" } })
+    expect(lowercase).toHaveAttribute("data-status", "ok")
+    expect(minLength).toHaveAttribute("data-status", "pending")
+    expect(uppercase).toHaveAttribute("data-status", "pending")
+    expect(number).toHaveAttribute("data-status", "pending")
+
+    fireEvent.change(password, { target: { value: "Abc" } })
+    expect(uppercase).toHaveAttribute("data-status", "ok")
+    expect(lowercase).toHaveAttribute("data-status", "ok")
+    expect(minLength).toHaveAttribute("data-status", "pending")
+    expect(number).toHaveAttribute("data-status", "pending")
+
+    fireEvent.change(password, { target: { value: "Abc1" } })
+    expect(number).toHaveAttribute("data-status", "ok")
+    expect(minLength).toHaveAttribute("data-status", "pending")
+
+    fireEvent.change(password, { target: { value: "Abcdef1" } })
+    expect(minLength).toHaveAttribute("data-status", "ok")
+    expect(uppercase).toHaveAttribute("data-status", "ok")
+    expect(lowercase).toHaveAttribute("data-status", "ok")
+    expect(number).toHaveAttribute("data-status", "ok")
+  })
+
   it("mostra erro inline quando as senhas não coincidem", () => {
     const onRegister = vi.fn()
     render(<RegisterCard onRegister={onRegister} />)

@@ -61,6 +61,26 @@ interface AuthState {
   clearError: () => void
 }
 
+const PENDING_VERIFY_STORAGE_KEY = "pending_email_verification"
+
+function savePendingVerificationContext(data: PendingAuthResponse) {
+  if (typeof window === "undefined") return
+  window.sessionStorage.setItem(
+    PENDING_VERIFY_STORAGE_KEY,
+    JSON.stringify({
+      email: data.email,
+      source: data.auth_provider,
+      resend_available_in_seconds: data.resend_available_in_seconds,
+      issued_at: Date.now(),
+    }),
+  )
+}
+
+export function clearPendingVerificationContext() {
+  if (typeof window === "undefined") return
+  window.sessionStorage.removeItem(PENDING_VERIFY_STORAGE_KEY)
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
@@ -103,6 +123,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         full_name: fullName || null,
         phone_number: phoneNumber || null,
       })
+      savePendingVerificationContext(response.data)
       set({ isLoading: false })
       return response.data
     } catch (error: unknown) {
@@ -122,6 +143,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const response = await apiClient.post<TokenLike | PendingAuthResponse>("/auth/google", { id_token: idToken })
 
       if ("requires_email_verification" in response.data) {
+        savePendingVerificationContext(response.data)
         set({ isLoading: false, error: null })
         return { status: "pending", pending: response.data }
       }
@@ -129,6 +151,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { access_token, refresh_token } = response.data
       setAuthCookies(access_token, refresh_token)
       getTokenStore().setTokens(access_token, refresh_token)
+      clearPendingVerificationContext()
 
       await get().fetchUser()
       return { status: "authenticated" }
@@ -155,6 +178,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         getTokenStore().setTokens(access_token, refresh_token, csrf_token || undefined)
         await get().fetchUser()
       }
+      clearPendingVerificationContext()
       set({ isLoading: false, error: null })
       return response.data
     } catch (error: unknown) {
@@ -168,6 +192,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await apiClient.post<ResendVerificationResponse>("/auth/resend-verification", { email })
+      savePendingVerificationContext({
+        email,
+        auth_provider: "email",
+        expires_in_seconds: response.data.expires_in_seconds,
+        resend_available_in_seconds: response.data.resend_available_in_seconds,
+        requires_email_verification: true,
+      })
       set({ isLoading: false, error: null })
       return response.data
     } catch (error: unknown) {
@@ -180,6 +211,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: () => {
     clearAuthCookies()
     getTokenStore().clearTokens()
+    clearPendingVerificationContext()
     set({ user: null, isAuthenticated: false })
     if (typeof window !== "undefined") {
       window.location.href = "/login"

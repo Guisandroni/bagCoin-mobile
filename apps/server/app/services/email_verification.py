@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
 
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clients.redis import RedisClient
@@ -279,6 +280,32 @@ class EmailVerificationService:
             )
 
     async def _send_email(self, email: str, code: str) -> None:
+        provider = (settings.EMAIL_PROVIDER or "smtp").strip().lower()
+        if provider == "smtp":
+            await self._send_email_smtp(email, code)
+            return
+        if provider == "resend_api":
+            await self._send_email_resend_api(email, code)
+            return
+        raise ExternalServiceError(
+            message="Provedor de email inválido",
+            code="EMAIL_DELIVERY_NOT_CONFIGURED",
+            details={"provider": provider},
+        )
+
+    def _build_verification_email_content(self, code: str) -> str:
+        return "\n".join(
+            [
+                "Seu codigo de verificacao do BagCoin e:",
+                "",
+                code,
+                "",
+                f"Esse codigo expira em {settings.EMAIL_VERIFICATION_TTL_SECONDS // 60} minutos.",
+                "Se voce nao solicitou este acesso, ignore este email.",
+            ]
+        )
+
+    async def _send_email_smtp(self, email: str, code: str) -> None:
         if not settings.SMTP_HOST or not settings.SMTP_FROM_EMAIL:
             raise ExternalServiceError(
                 message="SMTP não está configurado",
@@ -297,18 +324,7 @@ class EmailVerificationService:
         message["Subject"] = "BagCoin - Seu codigo de verificacao"
         message["From"] = settings.SMTP_FROM_EMAIL
         message["To"] = email
-        message.set_content(
-            "\n".join(
-                [
-                    "Seu codigo de verificacao do BagCoin e:",
-                    "",
-                    code,
-                    "",
-                    f"Esse codigo expira em {settings.EMAIL_VERIFICATION_TTL_SECONDS // 60} minutos.",
-                    "Se voce nao solicitou este acesso, ignore este email.",
-                ]
-            )
-        )
+        message.set_content(self._build_verification_email_content(code))
 
         try:
             await aiosmtplib.send(
@@ -321,6 +337,36 @@ class EmailVerificationService:
             )
         except Exception as exc:  # pragma: no cover - network failure path
             logger.exception("[email_verification] smtp send failed", extra={"email": email})
+            raise ExternalServiceError(
+                message="Não foi possível enviar o email de verificação",
+                code="EMAIL_DELIVERY_FAILED",
+            ) from exc
+
+    async def _send_email_resend_api(self, email: str, code: str) -> None:
+        if not settings.RESEND_API_KEY or not settings.RESEND_FROM_EMAIL:
+            raise ExternalServiceError(
+                message="Resend não está configurado",
+                code="EMAIL_DELIVERY_NOT_CONFIGURED",
+            )
+
+        payload = {
+            "from": settings.RESEND_FROM_EMAIL,
+            "to": [email],
+            "subject": "BagCoin - Seu codigo de verificacao",
+            "text": self._build_verification_email_content(code),
+        }
+        headers = {
+            "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        url = f"{settings.RESEND_API_BASE_URL.rstrip('/')}/emails"
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.post(url, headers=headers, json=payload)
+                response.raise_for_status()
+        except httpx.HTTPError as exc:  # pragma: no cover - network failure path
+            logger.exception("[email_verification] resend send failed", extra={"email": email})
             raise ExternalServiceError(
                 message="Não foi possível enviar o email de verificação",
                 code="EMAIL_DELIVERY_FAILED",

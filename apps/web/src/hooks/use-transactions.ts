@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api-client"
+import apiClient, { api } from "@/lib/api-client"
 import { toast } from "sonner"
 import { financialPollingOptions } from "./use-financial-polling"
 
@@ -156,6 +156,29 @@ export function useDeleteTransaction(options?: { silent?: boolean }) {
         toast.dismiss(TOAST_ID_DELETE_TRANSACTION)
         toast.error(err.message || "Erro ao excluir transação", { id: TOAST_ID_DELETE_TRANSACTION })
       }
+    },
+  })
+}
+
+export function useExportTransactionsCsv() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.get("/bagcoin/transactions/export.csv", {
+        responseType: "blob",
+      })
+      return data as Blob
+    },
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = "bagcoin-transacoes.csv"
+      anchor.click()
+      URL.revokeObjectURL(url)
+      toast.success("CSV exportado com sucesso")
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Erro ao exportar CSV")
     },
   })
 }

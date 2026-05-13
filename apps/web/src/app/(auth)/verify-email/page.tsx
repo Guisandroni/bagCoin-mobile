@@ -7,7 +7,7 @@ import { AuthCard, AuthFooter, AuthHeader } from "@/components/release/auth-card
 import { PillInput } from "@/components/release/pill-input"
 import { ToastBanner } from "@/components/release/toast-banner"
 import type { ApiClientError } from "@/lib/api-client"
-import { useAuthStore } from "@/lib/auth-store"
+import { clearPendingVerificationContext, useAuthStore } from "@/lib/auth-store"
 import { verifyEmailSchema } from "@/lib/validations"
 
 function buildSubtitle(source: string | null, email: string) {
@@ -37,21 +37,58 @@ function formatRetryTime(seconds: number) {
 export default function VerifyEmailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const email = searchParams.get("email") || ""
-  const source = searchParams.get("source")
+  const queryEmail = searchParams.get("email") || ""
+  const querySource = searchParams.get("source")
+  const querySent = searchParams.get("sent")
   const { verifyEmail, resendVerification, isLoading, clearError } = useAuthStore()
 
+  const [email, setEmail] = useState(queryEmail)
+  const [source, setSource] = useState<string | null>(querySource)
   const [code, setCode] = useState("")
   const [codeError, setCodeError] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(0)
+  const [hasManualEmailMode, setHasManualEmailMode] = useState(false)
 
   useEffect(() => {
-    if (!email) {
-      router.replace("/login")
+    if (queryEmail) {
+      setEmail(queryEmail)
+      setSource(querySource)
+      if (querySource === "register" && querySent === "1") {
+        setSuccessMessage("Enviamos um código de verificação para o seu email.")
+      }
+      return
     }
-  }, [email, router])
+    try {
+      const raw = window.sessionStorage.getItem("pending_email_verification")
+      if (!raw) {
+        setHasManualEmailMode(true)
+        setErrorMessage("Não encontramos sua sessão de verificação. Digite seu email para enviar um novo código.")
+        return
+      }
+      const parsed = JSON.parse(raw) as {
+        email?: string
+        source?: string
+        resend_available_in_seconds?: number
+        issued_at?: number
+      }
+      if (!parsed.email) {
+        setHasManualEmailMode(true)
+        setErrorMessage("Não encontramos sua sessão de verificação. Digite seu email para enviar um novo código.")
+        return
+      }
+      setEmail(parsed.email)
+      setSource(parsed.source ?? null)
+      const issuedAt = typeof parsed.issued_at === "number" ? parsed.issued_at : Date.now()
+      const availableIn = typeof parsed.resend_available_in_seconds === "number" ? parsed.resend_available_in_seconds : 0
+      const elapsedSeconds = Math.floor((Date.now() - issuedAt) / 1000)
+      setCooldown(Math.max(availableIn - elapsedSeconds, 0))
+    } catch {
+      setHasManualEmailMode(true)
+      setErrorMessage("Não encontramos sua sessão de verificação. Digite seu email para enviar um novo código.")
+    }
+  }, [queryEmail, querySource, querySent, router])
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -76,6 +113,7 @@ export default function VerifyEmailPage() {
     try {
       const response = await verifyEmail(email, code)
       setSuccessMessage(response.message)
+      clearPendingVerificationContext()
       if (response.access_token && response.refresh_token) {
         router.push("/app")
         return
@@ -120,8 +158,14 @@ export default function VerifyEmailPage() {
     setCodeError(null)
     setSuccessMessage(null)
     try {
+      if (!email.trim()) {
+        const message = "Digite seu email para enviar o código de verificação."
+        setErrorMessage(message)
+        return
+      }
       const response = await resendVerification(email)
       setCooldown(response.resend_available_in_seconds)
+      setHasManualEmailMode(false)
       setSuccessMessage("Enviamos um novo código para o seu email.")
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Falha ao reenviar código")
@@ -160,8 +204,10 @@ export default function VerifyEmailPage() {
             label="Email"
             icon={<Mail className="w-5 h-5" />}
             value={email}
-            disabled
-            readOnly
+            type="email"
+            disabled={!hasManualEmailMode}
+            readOnly={!hasManualEmailMode}
+            onChange={(event) => setEmail(event.target.value)}
           />
 
           <PillInput
@@ -191,11 +237,11 @@ export default function VerifyEmailPage() {
           <button
             type="button"
             onClick={handleResend}
-            disabled={isLoading || cooldown > 0}
+            disabled={isLoading || cooldown > 0 || !email.trim()}
             className="w-full h-14 bg-[var(--rls-surface-container-lowest)] border border-[var(--rls-outline-variant)] text-[var(--rls-on-surface)] rls-text-title-lg rounded-[var(--rls-radius-pill)] hover:bg-[var(--rls-surface-container)] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <RefreshCw className="w-5 h-5" />
-            {cooldown > 0 ? `Reenviar em ${formatRetryTime(cooldown)}` : "Reenviar código"}
+            {cooldown > 0 ? `Reenviar em ${formatRetryTime(cooldown)}` : "Enviar código"}
           </button>
         </form>
 

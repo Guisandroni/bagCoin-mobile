@@ -176,12 +176,16 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
 
     # === SMTP / Email Verification ===
+    EMAIL_PROVIDER: str = "smtp"  # smtp | resend_api
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM_EMAIL: str = ""
     SMTP_USE_TLS: bool = True
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = ""
+    RESEND_API_BASE_URL: str = "https://api.resend.com"
     EMAIL_VERIFICATION_TTL_SECONDS: int = 600
     EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS: int = 60
     EMAIL_VERIFICATION_MAX_ATTEMPTS: int = 5

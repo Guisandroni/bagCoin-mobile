@@ -146,6 +146,7 @@ def test_process_multimodal_sets_image_structured_in_context(monkeypatch, fake_i
 
 def test_process_multimodal_rejects_non_receipt_image(monkeypatch, fake_image_media):
     """Non-receipt image should set a response asking for proper input."""
+    monkeypatch.setattr("app.agents.multimodal.settings.USE_TOOL_AGENTS", False)
     monkeypatch.setattr(
         "app.agents.multimodal.process_image",
         lambda m: MultimodalResult(

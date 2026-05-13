@@ -12,6 +12,8 @@ import re
 from datetime import datetime
 from typing import Any
 
+from app.services.docx_text import extract_docx_text
+
 logger = logging.getLogger(__name__)
 
 # Categorização heurística baseada em palavras-chave do extrato
@@ -375,6 +377,7 @@ def parse_statement(media: dict[str, Any]) -> list[dict[str, Any]]:
         Lista de transações extraídas
     """
     mimetype = media.get("mimetype", "")
+    filename = (media.get("filename") or "").lower()
     data = media.get("data", "")
     if not data:
         return []
@@ -395,6 +398,12 @@ def parse_statement(media: dict[str, Any]) -> list[dict[str, Any]]:
             except ImportError:
                 logger.error("PyPDF2 não instalado")
                 return []
+        elif (
+            "wordprocessingml.document" in mimetype
+            or mimetype == "application/msword"
+            or filename.endswith(".docx")
+        ):
+            content = extract_docx_text(decoded) or ""
         else:
             content = decoded.decode("utf-8", errors="replace")
     except Exception as e:
@@ -419,9 +428,9 @@ def parse_statement(media: dict[str, Any]) -> list[dict[str, Any]]:
         else:
             transactions = parse_generic_csv(content)
             logger.info(f"CSV genérico parseado: {len(transactions)} transações")
-    elif mimetype == "application/pdf" or _is_statement_text(content):
+    elif mimetype == "application/pdf" or filename.endswith(".docx") or _is_statement_text(content):
         transactions = parse_pdf_statement(content)
-        logger.info(f"PDF/texto parseado: {len(transactions)} transações")
+        logger.info(f"Documento/texto parseado: {len(transactions)} transações")
     else:
         logger.info("Conteúdo não reconhecido como extrato bancário")
         return []
@@ -457,6 +466,21 @@ def detect_statement(state: dict[str, Any]) -> bool:
         return True
     if filename.endswith((".csv", ".ofx", ".qfx")):
         return True
+    if filename.endswith(".docx"):
+        keywords_in_name = [
+            "extrato",
+            "fatura",
+            "movimento",
+            "conta",
+            "banco",
+            "nubank",
+            "itau",
+            "bradesco",
+            "caixa",
+            "santander",
+        ]
+        if any(k in filename for k in keywords_in_name):
+            return True
     if filename.endswith(".pdf"):
         keywords_in_name = [
             "extrato",

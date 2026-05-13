@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, String
+from sqlalchemy import Boolean, DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,6 +48,11 @@ class User(Base, TimestampMixin):
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     auth_provider: Mapped[str] = mapped_column(String(20), default="email", nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    email_verification_code_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email_verification_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    email_verification_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    email_verification_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     role: Mapped[str] = mapped_column(String(50), default=UserRole.USER.value, nullable=False)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
@@ -79,6 +85,11 @@ class User(Base, TimestampMixin):
     def user_role(self) -> UserRole:
         """Get role as enum."""
         return UserRole(self.role)
+
+    @property
+    def email_verified(self) -> bool:
+        """Return whether the user has completed BagCoin email verification."""
+        return self.email_verified_at is not None
 
     def has_role(self, required_role: UserRole) -> bool:
         """Check if user has the required role or higher.

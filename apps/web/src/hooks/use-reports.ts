@@ -1,7 +1,7 @@
 "use client"
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/lib/api-client"
+import apiClient, { api } from "@/lib/api-client"
 import { toast } from "sonner"
 
 export interface Report {
@@ -98,11 +98,10 @@ const TOAST_ID_DOWNLOAD_REPORT = "reports-download"
 export function useDownloadReport() {
   return useMutation({
     mutationFn: async (reportId: number) => {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
-      const url = `${apiBase}/bagcoin/reports/${reportId}/download`
-      const res = await fetch(url, { credentials: "include" })
-      if (!res.ok) throw new Error("Erro ao baixar relatório")
-      return res.blob()
+      const { data } = await apiClient.get(`/bagcoin/reports/${reportId}/download`, {
+        responseType: "blob",
+      })
+      return data as Blob
     },
     onSuccess: (blob, reportId) => {
       toast.dismiss(TOAST_ID_DOWNLOAD_REPORT)

@@ -37,6 +37,22 @@ services:
       - API_KEY=${API_KEY:-bagcoin_webhook_secret_123}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
+      - SMTP_HOST=${SMTP_HOST:-mailpit}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply@bagcoin.local}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-false}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-}
+      - RESEND_API_BASE_URL=${RESEND_API_BASE_URL:-https://api.resend.com}
+      - EMAIL_VERIFICATION_TTL_SECONDS=${EMAIL_VERIFICATION_TTL_SECONDS:-600}
+      - EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS=${EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS:-60}
+      - EMAIL_VERIFICATION_MAX_ATTEMPTS=${EMAIL_VERIFICATION_MAX_ATTEMPTS:-5}
+      - EMAIL_VERIFICATION_SEND_LIMIT_PER_HOUR=${EMAIL_VERIFICATION_SEND_LIMIT_PER_HOUR:-5}
+      - EMAIL_VERIFICATION_SEND_LIMIT_PER_IP_PER_HOUR=${EMAIL_VERIFICATION_SEND_LIMIT_PER_IP_PER_HOUR:-20}
+      - EMAIL_VERIFICATION_VERIFY_LIMIT_PER_10_MIN=${EMAIL_VERIFICATION_VERIFY_LIMIT_PER_10_MIN:-10}
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - backend
@@ -45,6 +61,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/v1/health')"]
       interval: 15s
@@ -89,6 +107,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: bagcoin_api_mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - backend
     restart: unless-stopped
 
   celery_worker:

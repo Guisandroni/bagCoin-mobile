@@ -25,6 +25,12 @@ def api_key_headers():
 def mock_redis():
     redis = AsyncMock()
     redis.ping = AsyncMock(return_value=True)
+    redis.get = AsyncMock(return_value=None)
+    redis.set = AsyncMock(return_value=None)
+    redis.exists = AsyncMock(return_value=False)
+    redis.incr = AsyncMock(return_value=1)
+    redis.expire = AsyncMock(return_value=True)
+    redis.ttl = AsyncMock(return_value=0)
     return redis
 
 

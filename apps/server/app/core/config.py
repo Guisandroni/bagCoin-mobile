@@ -156,6 +156,7 @@ class Settings(BaseSettings):
     HUMANIZE_RESPONSES: bool = False
     HUMANIZE_MAX_CHARS: int = 500
     HUMANIZE_ALLOWED_INTENTS_EXTRA: list[str] = []
+    USE_TOOL_AGENTS: bool = True
     LLM_EXTRACT_TIMEOUT: float = 4.0
     IMAGE_STRUCTURED_EXTRACT: bool = True
     ECHO_AUDIO_TRANSCRIPTION: bool = False
@@ -173,6 +174,24 @@ class Settings(BaseSettings):
     # === Google OAuth ===
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
+
+    # === SMTP / Email Verification ===
+    EMAIL_PROVIDER: str = "smtp"  # smtp | resend_api
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_USE_TLS: bool = True
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = ""
+    RESEND_API_BASE_URL: str = "https://api.resend.com"
+    EMAIL_VERIFICATION_TTL_SECONDS: int = 600
+    EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS: int = 60
+    EMAIL_VERIFICATION_MAX_ATTEMPTS: int = 5
+    EMAIL_VERIFICATION_SEND_LIMIT_PER_HOUR: int = 5
+    EMAIL_VERIFICATION_SEND_LIMIT_PER_IP_PER_HOUR: int = 20
+    EMAIL_VERIFICATION_VERIFY_LIMIT_PER_10_MIN: int = 10
 
     # === WhatsApp Bridge ===
     WHATSAPP_BRIDGE_URL: str = "http://whatsapp-bridge:3001"

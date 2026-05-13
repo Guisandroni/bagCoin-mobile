@@ -1,6 +1,23 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"
+const API_BASE_URL = "/api/v1"
+
+export interface ApiClientError extends Error {
+  code?: string
+  details?: unknown
+}
+
+function isAuthFlowRequest(url?: string) {
+  return !!url && /\/auth\/(login|register|google|verify-email|resend-verification|refresh)$/.test(url)
+}
+
+function translateAxiosMessage(message?: string) {
+  if (!message) return null
+  if (message === "Network Error") return "Erro de conexão. Tente novamente."
+  if (message === "Request failed with status code 401") return "Sua sessão expirou. Faça login novamente."
+  if (message === "Request failed with status code 422") return "Os dados informados são inválidos."
+  return message
+}
 
 interface TokenStore {
   accessToken: string | null
@@ -110,7 +127,7 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthFlowRequest(originalRequest.url)) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
@@ -134,7 +151,7 @@ apiClient.interceptors.response.use(
 if (!refreshToken) {
         clearAuthCookies()
         isRefreshing = false
-        processQueue(new Error("No refresh token"))
+        processQueue(new Error("Sessão expirada"))
         if (typeof window !== "undefined") {
           window.location.href = "/login"
         }
@@ -170,10 +187,22 @@ if (!refreshToken) {
   },
 )
 
-function extractErrorMessage(error: AxiosError): Error {
-  const data = error.response?.data as { error?: { message?: string }; detail?: string } | undefined
-  const message = data?.error?.message || (typeof data?.detail === "string" ? data.detail : null) || error.message || "Erro desconhecido"
-  return new Error(message)
+function extractErrorMessage(error: AxiosError): ApiClientError {
+  const data = error.response?.data as {
+    error?: { code?: string; message?: string; details?: unknown }
+    detail?: string | Array<{ loc?: Array<string | number>; msg?: string; type?: string }>
+  } | undefined
+  const validationDetail = Array.isArray(data?.detail) ? data.detail[0] : null
+  const message =
+    data?.error?.message ||
+    (typeof data?.detail === "string" ? data.detail : null) ||
+    validationDetail?.msg ||
+    translateAxiosMessage(error.message) ||
+    "Erro desconhecido"
+  const enriched = new Error(message) as ApiClientError
+  enriched.code = data?.error?.code
+  enriched.details = data?.error?.details ?? data?.detail
+  return enriched
 }
 
 // ---- typed convenience wrapper ----

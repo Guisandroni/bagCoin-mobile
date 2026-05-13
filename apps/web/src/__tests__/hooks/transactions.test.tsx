@@ -33,12 +33,12 @@ vi.mock("@/lib/api-client", () => ({
     }),
     post: vi.fn().mockImplementation((_url: string, body: Record<string, unknown>) => {
       const merged = { ...mockTxList.items[0], ...body, id: "99" }
-      if (body?.description) merged.name = body.description
+      if (body?.description) merged.name = String(body.description)
       return Promise.resolve(merged)
     }),
     patch: vi.fn().mockImplementation((_url: string, body: Record<string, unknown>) => {
       const merged = { ...mockTxList.items[0], ...body }
-      if (body?.description) merged.name = body.description
+      if (body?.description) merged.name = String(body.description)
       return Promise.resolve(merged)
     }),
     delete: vi.fn().mockResolvedValue(undefined),

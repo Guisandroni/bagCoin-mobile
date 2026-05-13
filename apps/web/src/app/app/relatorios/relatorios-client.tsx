@@ -5,6 +5,7 @@ import { serverTransactionToRelease } from "@/lib/adapters"
 import { useAppStore } from "@/lib/store"
 import type { ReleaseReportAnalytics, ReleaseTransaction } from "@/components/release/types"
 import type { ServerTransaction, TransactionSummary } from "@/lib/api-server"
+import { useExportTransactionsCsv } from "@/hooks/use-transactions"
 
 interface Props {
   summary: TransactionSummary | null
@@ -14,6 +15,7 @@ interface Props {
 export function RelatoriosClient({ summary, transactions }: Props) {
   const toggleDrawer = useAppStore((state) => state.toggleDrawer)
   const analytics = buildReportAnalytics(summary, transactions.map(serverTransactionToRelease))
+  const exportCsv = useExportTransactionsCsv()
 
   return (
     <div className="rls">
@@ -21,6 +23,20 @@ export function RelatoriosClient({ summary, transactions }: Props) {
         analytics={analytics}
         onOpenDrawer={toggleDrawer}
       />
+      <section className="mx-auto w-full max-w-md space-y-4 px-4 pb-8">
+        <div className="rounded-xl border bg-white p-4">
+          <h3 className="text-sm font-semibold">Ações</h3>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              className="rounded-md border px-3 py-2 text-sm font-medium disabled:opacity-50"
+              disabled={exportCsv.isPending}
+              onClick={() => exportCsv.mutate()}
+            >
+              Exportar CSV
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

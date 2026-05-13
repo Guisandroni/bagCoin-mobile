@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
+import { financialPollingOptions } from "./use-financial-polling"
 
 export interface Budget {
   id: number
@@ -50,6 +51,7 @@ export function useBudgets() {
       if (Array.isArray(data)) return { items: data, total: data.length } as BudgetListResponse
       return (data as unknown as BudgetListResponse)
     },
+    ...financialPollingOptions,
   })
 }
 

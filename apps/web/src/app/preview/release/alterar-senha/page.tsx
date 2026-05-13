@@ -30,8 +30,7 @@ export default function AlterarSenhaPreview() {
       <ChangePasswordModal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        onSubmit={(data) => {
-          console.log("Password change:", data)
+        onSubmit={() => {
           setIsOpen(false)
           setShowToast(true)
         }}

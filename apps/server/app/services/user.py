@@ -14,7 +14,7 @@ from app.core.exceptions import (
     BadRequestError,
     NotFoundError,
 )
-from app.core.security import get_password_hash, verify_google_token, verify_password
+from app.core.security import get_password_hash, verify_google_access_token, verify_google_token, verify_password
 from app.db.models.user import User
 from app.repositories import user_repo
 from app.schemas.user import GoogleLoginRequest, UserCreate, UserUpdate
@@ -38,7 +38,7 @@ class UserService:
         user = await user_repo.get_by_id(self.db, user_id)
         if not user:
             raise NotFoundError(
-                message="User not found",
+                message="Usuário não encontrado",
                 details={"user_id": user_id},
             )
         return user
@@ -108,7 +108,7 @@ class UserService:
         existing = await user_repo.get_by_email(self.db, user_in.email)
         if existing:
             raise AlreadyExistsError(
-                message="Email already registered",
+                message="Email já cadastrado",
                 details={"email": user_in.email},
             )
 
@@ -133,16 +133,18 @@ class UserService:
         Raises:
             AuthenticationError: If the Google token is invalid.
         """
-        google_payload = verify_google_token(request.id_token)
+        google_payload = verify_google_token(request.id_token) if request.id_token else None
+        if not google_payload and request.access_token:
+            google_payload = await verify_google_access_token(request.access_token)
         if not google_payload:
-            raise AuthenticationError(message="Invalid Google token")
+            raise AuthenticationError(message="Token do Google inválido")
 
         google_id = google_payload.get("sub")
         email = google_payload.get("email", "").lower()
         name = google_payload.get("name")
 
         if not email:
-            raise BadRequestError(message="Google account has no email address")
+            raise BadRequestError(message="A conta do Google não possui um email válido")
 
         existing = await user_repo.get_by_google_id(self.db, google_id)
         if existing:
@@ -179,9 +181,15 @@ class UserService:
             or not user.hashed_password
             or not verify_password(password, user.hashed_password)
         ):
-            raise AuthenticationError(message="Invalid email or password")
+            raise AuthenticationError(message="Email ou senha incorretos")
         if not user.is_active:
-            raise AuthenticationError(message="User account is disabled")
+            raise AuthenticationError(message="Sua conta está desativada")
+        if not user.email_verified:
+            raise AuthenticationError(
+                message="Seu email ainda não foi verificado",
+                code="EMAIL_NOT_VERIFIED",
+                details={"email": user.email},
+            )
         return user
 
     async def update(self, user_id: UUID, user_in: UserUpdate) -> User:
@@ -237,7 +245,7 @@ class UserService:
         user = await user_repo.delete(self.db, user_id)
         if not user:
             raise NotFoundError(
-                message="User not found",
+                message="Usuário não encontrado",
                 details={"user_id": str(user_id)},
             )
         return user

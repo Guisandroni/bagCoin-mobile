@@ -32,8 +32,8 @@ MACRO-INTENÇÕES:
    Ex: "importar extrato", "meu extrato bancário", "importar csv", "quero importar um arquivo"
    Abrange: import_statement
 
-6. chat — conversa livre, agradecimento, follow-up, saudação, pergunta sobre o bot.
-   Ex: "obrigado", "valeu", "beleza", "oi", "bom dia", "e no mês passado?", "na verdade foi 60", "como você funciona?", "o que você é?", "ok", "entendi", "pode repetir?", "meu nome é Guilherme"
+6. chat — conversa livre, agradecimento, follow-up, saudação, pergunta sobre o bot OU sobre conceitos do app (o que é orçamento, como funciona meta, etc).
+   Ex: "obrigado", "valeu", "beleza", "oi", "bom dia", "e no mês passado?", "na verdade foi 60", "como você funciona?", "o que você é?", "ok", "entendi", "pode repetir?", "meu nome é Guilherme", "o que são orçamentos?", "como funcionam metas?", "orçamentos só valem para categorias?", "quais orçamentos posso criar?", "pra que serve uma meta?", "posso ter várias categorias?"
    Abrange: chat, greeting, introduce, help, unknown
 
 7. recommend — pedir dica, recomendação, conselho financeiro.
@@ -57,9 +57,11 @@ REGRAS CRÍTICAS:
 - "na verdade foi X" → manage (correção)
 - "importar extrato" → import_stmt
 - Se tem número + descrição de gasto → register
-- Se é pergunta sobre finanças do usuário → query
+- Se é PERGUNTA sobre finanças específicas do usuário ("quanto eu...", "meu saldo", "minhas metas") → query
+- Se é PERGUNTA sobre CONCEITO do app ("o que é X", "como funciona Y", "pra que serve", "posso fazer Z?", "quais X posso criar") → chat
 - Se é comando de criar/editar/excluir → manage
 - Na dúvida entre register e query: se tem valor numérico + contexto de gasto/recebimento → register; se é pergunta → query
+- Na dúvida entre query e chat: se o usuário quer VER DADOS dele → query; se quer ENTENDER um conceito → chat
 - Frases curtas de 1-3 palavras que parecem follow-up de consulta anterior → query"""
 
 

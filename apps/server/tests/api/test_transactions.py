@@ -192,9 +192,11 @@ def _mock_tx_rest_response(**kwargs) -> dict:
 
     return {
         "id": kwargs.get("id", "1"),
+        "type": kwargs.get("type", "EXPENSE"),
         "name": kwargs.get("name", "Test transaction"),
         "category": kwargs.get("category", "Test transaction"),
-        "amount": kwargs.get("amount", -100.0),
+        "category_name": kwargs.get("category_name", kwargs.get("category", "Test transaction")),
+        "amount": abs(kwargs.get("amount", 100.0)),
         "date": kwargs.get("date", "01 Mai"),
         "source": kwargs.get("source", "manual"),
         "status": kwargs.get("status", "confirmed"),
@@ -229,7 +231,7 @@ async def test_list_transactions_with_data(client_with_auth):
     assert data["total"] == 2
     assert len(data["items"]) == 2
     assert data["items"][0]["name"] == "Supermercado"
-    assert data["items"][0]["amount"] == -287.5
+    assert data["items"][0]["amount"] == 287.5
     assert data["items"][1]["name"] == "Salário"
     assert data["items"][1]["amount"] == 8500.0
 
@@ -277,10 +279,27 @@ async def test_list_transactions_search(client_with_auth):
 
     app.dependency_overrides.pop(get_transaction_rest_service, None)
 
+
+@pytest.mark.anyio
+async def test_export_transactions_csv(client_with_auth):
+    """Test CSV export endpoint for authenticated user."""
+    from app.api.routes.v1.transactions import get_transaction_rest_service
+
+    mock_service = AsyncMock()
+    mock_service.export_csv_for_user.return_value = (
+        "id,tipo,descricao,categoria,valor,data,origem,status,recorrente,frequencia_recorrencia\n"
+        "1,INCOME,Freela,Salário,1200.00,2026-05-12,manual,confirmed,false,\n"
+    )
+    app.dependency_overrides[get_transaction_rest_service] = lambda: mock_service
+
+    response = await client_with_auth.get(f"{settings.API_V1_STR}/bagcoin/transactions/export.csv")
+
+    app.dependency_overrides.pop(get_transaction_rest_service, None)
+
     assert response.status_code == 200
-    data = response.json()
-    assert data["total"] == 1
-    assert len(data["items"]) == 1
+    assert response.headers["content-type"].startswith("text/csv")
+    assert "attachment; filename=\"bagcoin-transacoes.csv\"" == response.headers.get("content-disposition")
+    assert "Freela" in response.text
 
 
 @pytest.mark.anyio
@@ -341,7 +360,7 @@ async def test_create_transaction_expense(client_with_auth):
     assert response.status_code == 201
     data = response.json()
     assert data["name"] == "Supermercado"
-    assert data["amount"] == -150.0
+    assert data["amount"] == 150.0
 
 
 @pytest.mark.anyio
@@ -454,7 +473,7 @@ async def test_get_transaction(client_with_auth, mock_user):
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Supermercado Pão de Açúcar"
-    assert data["amount"] == -287.5  # expense → negative
+    assert data["amount"] == 287.5
     assert data["status"] == "confirmed"
 
 
@@ -623,8 +642,8 @@ async def test_get_summary(client_with_auth):
             {"name": "Transporte", "amount": 380.0, "color": "#0052ff"},
         ],
         "recent_transactions": [
-            _mock_tx_rest_response(id="1", name="Supermercado", amount=-287.5),
-            _mock_tx_rest_response(id="2", name="Salário", amount=8500.0),
+            _mock_tx_rest_response(id="1", name="Supermercado", amount=287.5, type="EXPENSE"),
+            _mock_tx_rest_response(id="2", name="Salário", amount=8500.0, type="INCOME"),
         ],
     }
 

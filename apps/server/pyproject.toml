@@ -5,7 +5,7 @@ description = "A FastAPI project"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
-    { name = "guisandroni", email = "gui.sandroni@email.com" },
+    { name = "guisandroni", email = "gui.sandroni@gmail.com" },
 ]
 
 dependencies = [
@@ -35,6 +35,7 @@ dependencies = [
     "langsmith>=0.4.0",
     "langchain-groq>=0.2.0",
     "httpx>=0.27.0",
+    "aiosmtplib>=3.0.0",
     "reportlab>=4.2.0",
     "groq>=0.13.0",
     "PyPDF2>=3.0.0",
@@ -148,6 +149,9 @@ invalid-type-form = "warn"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "integration: tests that require real PostgreSQL and Redis (slow)",
+]
 
 [tool.coverage.run]
 source = ["app"]

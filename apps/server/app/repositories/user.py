@@ -56,6 +56,11 @@ async def create(
     google_id: str | None = None,
     auth_provider: str = "email",
     is_active: bool = True,
+    email_verified_at: Any | None = None,
+    email_verification_code_hash: str | None = None,
+    email_verification_expires_at: Any | None = None,
+    email_verification_sent_at: Any | None = None,
+    email_verification_attempts: int = 0,
     role: str = "user",
 ) -> User:
     """Create a new user.
@@ -70,6 +75,11 @@ async def create(
         google_id=google_id,
         auth_provider=auth_provider,
         is_active=is_active,
+        email_verified_at=email_verified_at,
+        email_verification_code_hash=email_verification_code_hash,
+        email_verification_expires_at=email_verification_expires_at,
+        email_verification_sent_at=email_verification_sent_at,
+        email_verification_attempts=email_verification_attempts,
         role=role,
     )
     db.add(user)

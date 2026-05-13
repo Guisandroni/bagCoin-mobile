@@ -22,6 +22,7 @@ class BudgetCreate(BaseSchema):
     total_limit: float = Field(gt=0)
     budget_type: str | None = Field(default=None, max_length=50)
     category_id: int | None = None
+    category_name: str | None = Field(default=None, max_length=100)
     items: list[BudgetItemSchema] = Field(default_factory=list)
 
 
@@ -31,6 +32,9 @@ class BudgetUpdate(BaseSchema):
     name: str | None = Field(default=None, max_length=100)
     period: str | None = Field(default=None, max_length=20)
     total_limit: float | None = Field(default=None, gt=0)
+    budget_type: str | None = Field(default=None, max_length=50)
+    category_id: int | None = None
+    category_name: str | None = Field(default=None, max_length=100)
     items: list[BudgetItemSchema] | None = None
 
 

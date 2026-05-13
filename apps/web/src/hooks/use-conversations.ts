@@ -52,16 +52,21 @@ export function useConversation(id: string | null) {
   })
 }
 
+const TOAST_ID_CREATE_CONVERSATION = "conversations-create"
+
 export function useCreateConversation() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => api.post<Conversation>("/bagcoin/conversations"),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE_CONVERSATION)
       qc.invalidateQueries({ queryKey: ["conversations"] })
-      toast.success("Conversa criada com sucesso!")
+      toast.success("Conversa criada com sucesso!", { id: TOAST_ID_CREATE_CONVERSATION })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar conversa")
+      toast.dismiss(TOAST_ID_CREATE_CONVERSATION)
+      console.error('[hook:conversations]', err)
+      toast.error(err.message || "Erro ao criar conversa", { id: TOAST_ID_CREATE_CONVERSATION })
     },
   })
 }

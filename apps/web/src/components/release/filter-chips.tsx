@@ -24,7 +24,7 @@ export function FilterChips<T extends string>({
           className={cn(
             "shrink-0 px-4 py-2 rounded-[var(--rls-radius-pill)] rls-text-label-lg transition-all whitespace-nowrap",
             selected === option.value
-              ? "bg-[var(--rls-primary-container)]/[0.12] text-[var(--rls-primary-container)]"
+              ? "bg-[var(--rls-primary-container)] text-white"
               : "bg-[var(--rls-surface-container)] text-[var(--rls-on-surface-variant)] hover:bg-[var(--rls-surface-container-high)]"
           )}
         >

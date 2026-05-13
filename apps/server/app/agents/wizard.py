@@ -22,28 +22,15 @@ logger = logging.getLogger(__name__)
 # Schemas de cada wizard (campos obrigatórios)
 WIZARD_SCHEMAS = {
     "create_budget": {
-        "fields": ["budget_type", "name", "total_limit"],
-        "defaults": {"period": "monthly"},
+        "fields": ["name", "total_limit"],
+        "defaults": {"period": "monthly", "budget_type": "category"},
         "labels": {
-            "budget_type": "tipo de orçamento",
-            "name": "nome do orçamento",
+            "name": "categoria do orçamento",
             "total_limit": "valor (em R$)",
         },
-        "options": {
-            "budget_type": {
-                "1": "general",
-                "2": "category",
-            },
-        },
-        "option_labels": {
-            "budget_type": {
-                "1": "Conta/Saldo — para acompanhar quanto dinheiro você tem (ex: conta bancária, cartão de crédito)",
-                "2": "Limite por categoria — para controlar gastos em uma categoria específica (ex: alimentação, lazer)",
-            },
-        },
         "examples": [
-            "1 (Conta/Saldo) — Nubank, 3000",
-            "2 (Categoria) — Alimentação, 800",
+            "Alimentação, 800",
+            "Supermercado 500",
         ],
     },
     "create_goal": {
@@ -411,6 +398,10 @@ def _handle_collecting(
     examples = schema["examples"]
     options = schema.get("options", {})
     option_labels = schema.get("option_labels", {})
+    valid_fields = set(fields)
+    wizard["missing"] = [field for field in wizard.get("missing", []) if field in valid_fields]
+    for field, default in schema.get("defaults", {}).items():
+        wizard.setdefault("collected", {}).setdefault(field, default)
 
     # Verifica cancelamento em qualquer fase
     # Só cancela se a mensagem é EXPLICITAMENTE de cancelamento
@@ -654,7 +645,7 @@ def _handle_executing(
                 name=collected.get("name", "Geral"),
                 total_limit=float(total_limit_value),
                 period=collected.get("period", "monthly"),
-                budget_type=collected.get("budget_type", "category"),
+                budget_type="category",
             )
             state["budget_data"] = budget
             from app.agents import responses as resp

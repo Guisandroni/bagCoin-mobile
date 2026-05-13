@@ -11,8 +11,8 @@ vi.mock("@/lib/auth-store", () => ({
 }))
 
 vi.mock("@/lib/store", () => ({
-  useAppStore: (selector?: Function) => {
-    const state = {
+  useAppStore: (selector?: (state: AppStoreState) => unknown) => {
+    const state: AppStoreState = {
       openModal: vi.fn(),
       closeModal: vi.fn(),
       activeModal: null,
@@ -25,20 +25,52 @@ vi.mock("@/lib/store", () => ({
   },
 }))
 
+interface AppStoreState {
+  openModal: ReturnType<typeof vi.fn>
+  closeModal: ReturnType<typeof vi.fn>
+  activeModal: null
+  selectedTransaction: null
+  drawerOpen: boolean
+  openDrawer: ReturnType<typeof vi.fn>
+  closeDrawer: ReturnType<typeof vi.fn>
+}
+
 const mockPathname = vi.hoisted(() => "/app")
 vi.mock("next/navigation", () => ({
   usePathname: () => mockPathname,
+  useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
 }))
 
-vi.mock("@/components/layout/sidebar", () => ({
+vi.mock("@/components/layout/desktop/sidebar", () => ({
   Sidebar: () => <aside data-testid="sidebar">Sidebar</aside>,
 }))
 
-vi.mock("@/components/layout/bottom-nav", () => ({
+vi.mock("@/components/layout/tablet/sidebar", () => ({
+  TabletSidebar: () => null,
+}))
+
+vi.mock("@/components/layout/desktop/top-bar", () => ({
+  TopBar: () => null,
+}))
+
+vi.mock("@/components/layout/tablet/top-bar", () => ({
+  TabletTopBar: () => null,
+}))
+
+vi.mock("@/components/layout/mobile/header", () => ({
+  MobileHeader: ({ initials, userName }: { initials: string; userName: string }) => (
+    <header data-testid="mobile-header">
+      <span>{initials}</span>
+      <span>{userName}</span>
+    </header>
+  ),
+}))
+
+vi.mock("@/components/layout/mobile/bottom-nav", () => ({
   BottomNav: () => <nav data-testid="bottom-nav">BottomNav</nav>,
 }))
 
-vi.mock("@/components/layout/settings-drawer", () => ({
+vi.mock("@/components/layout/shared/settings-drawer", () => ({
   SettingsDrawer: () => <div data-testid="settings-drawer">SettingsDrawer</div>,
 }))
 

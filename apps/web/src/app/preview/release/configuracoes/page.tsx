@@ -7,9 +7,7 @@ export default function ConfiguracoesPreview() {
   return (
     <SettingsView
       profile={mockProfile}
-      onBack={() => console.log("Back")}
-      onNavigate={(section) => console.log("Navigate to:", section)}
-      onLogout={() => console.log("Logout")}
+      onNavigate={() => {}}
     />
   )
 }

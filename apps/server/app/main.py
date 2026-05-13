@@ -43,6 +43,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[LifespanState, None]:
     await redis_client.connect()
     state["redis"] = redis_client
 
+    # Bug 8.1 — multimodal readiness check
+    try:
+        from app.agents.multimodal import _configured_api_key
+
+        groq_ok = _configured_api_key(settings.GROQ_API_KEY) is not None
+        gemini_ok = _configured_api_key(settings.GEMINI_API_KEY) is not None
+        if not groq_ok:
+            msg = "GROQ_API_KEY not configured — audio (Whisper) and image (Llama-4-Scout) will be disabled"
+            if settings.ENVIRONMENT == "production":
+                logger.warning(msg)
+            else:
+                logger.info(msg)
+        if not groq_ok and not gemini_ok:
+            logger.warning(
+                "Neither GROQ_API_KEY nor GEMINI_API_KEY configured — all image analysis disabled"
+            )
+    except Exception as exc:
+        logger.warning(f"Could not verify multimodal API keys: {exc}")
+
     # Tables are managed by Alembic migrations (run via entrypoint.sh).
     # create_all is kept as fallback for environments without Alembic.
     try:
@@ -158,8 +177,9 @@ A FastAPI project
     # Security hardening: protect against XSS, clickjacking, MIME sniffing
     app.add_middleware(SecurityHeadersMiddleware)
 
-    # CSRF protection for state-changing endpoints
-    app.add_middleware(CSRFMiddleware)
+    # CSRF protection disabled — JWT in Authorization header provides equivalent
+    # protection for cross-domain architecture (Vercel frontend + VPS backend).
+    # app.add_middleware(CSRFMiddleware)
 
     # Exception handlers
     register_exception_handlers(app)

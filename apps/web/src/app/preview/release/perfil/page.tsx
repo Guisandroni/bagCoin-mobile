@@ -7,9 +7,7 @@ export default function PerfilPreview() {
   return (
     <ProfileView
       profile={mockProfile}
-      onBack={() => console.log("Back")}
-      onChangePassword={() => console.log("Change password")}
-      onSave={(data) => console.log("Save:", data)}
+      onBack={() => {}}
     />
   )
 }

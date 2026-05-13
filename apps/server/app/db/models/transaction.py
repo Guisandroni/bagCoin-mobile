@@ -16,6 +16,7 @@ from app.db.models.enums import TransactionType
 if TYPE_CHECKING:
     from app.db.models.category import Category
     from app.db.models.phone_user import PhoneUser
+    from app.db.models.recurring_transaction import RecurringTransaction
     from app.db.models.user import User
 
 
@@ -64,6 +65,12 @@ class Transaction(Base, TimestampMixin):
         nullable=True,
         index=True,
     )
+    recurring_transaction_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("recurring_transactions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     source_format: Mapped[str] = mapped_column(String(20), default="text", nullable=False)
     transaction_date: Mapped[datetime | None] = mapped_column(
@@ -77,6 +84,7 @@ class Transaction(Base, TimestampMixin):
     phone_user: Mapped[PhoneUser | None] = relationship("PhoneUser", back_populates="transactions")
     category: Mapped[Category | None] = relationship("Category", back_populates="transactions")
     user: Mapped[User | None] = relationship("User", back_populates="transactions")
+    recurring_transaction: Mapped[RecurringTransaction | None] = relationship("RecurringTransaction")
 
     def __repr__(self) -> str:
         return (

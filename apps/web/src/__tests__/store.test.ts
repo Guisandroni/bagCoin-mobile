@@ -6,7 +6,8 @@ const mockTransaction: Transaction = {
   id: "1",
   name: "Supermercado Pão de Açúcar",
   category: "Alimentação",
-  amount: -287.5,
+  type: "despesa",
+  amount: 287.5,
   date: "30 Abr",
   source: "manual",
   status: "confirmed",
@@ -17,7 +18,6 @@ beforeEach(() => {
     transactions: [],
     activeModal: null,
     selectedTransaction: null,
-    sidebarOpen: true,
     filter: {
       type: "all",
       categories: [
@@ -44,11 +44,6 @@ describe("Zustand Store — Estado Inicial", () => {
   it("selectedTransaction deve ser null", () => {
     const { selectedTransaction } = useAppStore.getState()
     expect(selectedTransaction).toBeNull()
-  })
-
-  it("sidebarOpen deve ser true", () => {
-    const { sidebarOpen } = useAppStore.getState()
-    expect(sidebarOpen).toBe(true)
   })
 
   it("transactions deve ser array vazio", () => {
@@ -181,19 +176,5 @@ describe("Zustand Store — setTransactions", () => {
     // segunda lista substitui
     useAppStore.getState().setTransactions([])
     expect(useAppStore.getState().transactions).toHaveLength(0)
-  })
-})
-
-describe("Zustand Store — sidebarOpen", () => {
-  it("estado inicial é true", () => {
-    expect(useAppStore.getState().sidebarOpen).toBe(true)
-  })
-
-  it("pode ser alternado", () => {
-    useAppStore.setState({ sidebarOpen: false })
-    expect(useAppStore.getState().sidebarOpen).toBe(false)
-
-    useAppStore.setState({ sidebarOpen: true })
-    expect(useAppStore.getState().sidebarOpen).toBe(true)
   })
 })

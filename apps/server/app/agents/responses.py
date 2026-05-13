@@ -6,8 +6,37 @@ Principles:
 - WhatsApp-friendly formatting
 """
 
-from datetime import datetime
+import random
+from datetime import date, datetime
 from typing import Any
+
+
+_MONTHS_PT = (
+    "janeiro",
+    "fevereiro",
+    "março",
+    "abril",
+    "maio",
+    "junho",
+    "julho",
+    "agosto",
+    "setembro",
+    "outubro",
+    "novembro",
+    "dezembro",
+)
+
+_EXPENSE_CONFIRMATIONS = (
+    "Anotado. R$ {amount:,.2f} em {category}{desc_part}.",
+    "Gasto registrado: R$ {amount:,.2f} em {category}{desc_part}.",
+    "Pronto, registrei R$ {amount:,.2f} em {category}{desc_part}.",
+)
+
+_INCOME_CONFIRMATIONS = (
+    "Receita registrada: R$ {amount:,.2f} em {category}{desc_part}.",
+    "Anotado. Entraram R$ {amount:,.2f} em {category}{desc_part}.",
+    "Pronto, registrei a receita de R$ {amount:,.2f} em {category}{desc_part}.",
+)
 
 
 def _fmt_date(raw) -> str:
@@ -22,6 +51,40 @@ def _fmt_date(raw) -> str:
             except ValueError:
                 continue
     return str(raw) if raw else ""
+
+
+def _fmt_deadline(raw) -> str:
+    """Format a goal deadline as month/year in Portuguese."""
+    if isinstance(raw, datetime):
+        return f"{_MONTHS_PT[raw.month - 1]}/{raw.year}"
+    if isinstance(raw, date):
+        return f"{_MONTHS_PT[raw.month - 1]}/{raw.year}"
+    if isinstance(raw, str):
+        value = raw.strip()
+        if not value:
+            return ""
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return f"{_MONTHS_PT[dt.month - 1]}/{dt.year}"
+        except ValueError:
+            pass
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%Y"):
+            try:
+                dt = datetime.strptime(value, fmt)
+                return f"{_MONTHS_PT[dt.month - 1]}/{dt.year}"
+            except ValueError:
+                continue
+    return str(raw) if raw else ""
+
+
+def period_label(period: str | None) -> str:
+    """Return a Portuguese label for a budget period."""
+    return {
+        "daily": "Diário",
+        "weekly": "Semanal",
+        "monthly": "Mensal",
+        "yearly": "Anual",
+    }.get(period or "", period or "")
 
 
 def greeting(name: str | None = None, greeting_time: str | None = None) -> str:
@@ -70,9 +133,14 @@ def help_menu() -> str:
 
 
 def transaction_registered(tx_type: str, amount: float, category: str, description: str) -> str:
-    tipo = "Gasto" if tx_type == "EXPENSE" else "Receita" if tx_type == "INCOME" else "Transação"
-    desc = description or "-"
-    return f"{tipo} de R$ {amount:,.2f} em {category} registrado.\n(Descrição: {desc})"
+    desc_part = f" ({description})" if description else ""
+    if tx_type == "EXPENSE":
+        template = random.choice(_EXPENSE_CONFIRMATIONS)
+    elif tx_type == "INCOME":
+        template = random.choice(_INCOME_CONFIRMATIONS)
+    else:
+        template = "Transação registrada: R$ {amount:,.2f} em {category}{desc_part}."
+    return template.format(amount=amount, category=category, desc_part=desc_part)
 
 
 def query_summary(summary: str) -> str:
@@ -91,25 +159,25 @@ def report_summary(period_label: str, income: float, expense: float, balance: fl
 
 
 def budget_created(name: str, limit: float, period: str, updated: bool = False) -> str:
-    period_label = {
-        "monthly": "Mensal",
-        "weekly": "Semanal",
-        "daily": "Diário",
-        "yearly": "Anual",
-    }.get(period, period)
     verb = "atualizado" if updated else "criado"
     return (
         f"Orçamento {verb}! 📊\n\n"
         f"Categoria: {name}\n"
         f"Limite: R$ {limit:,.2f}\n"
-        f"Período: {period_label}\n\n"
+        f"Período: {period_label(period)}\n\n"
         f"Vou te avisar quando chegar em 80% e 100%."
     )
 
 
 def budget_list(budgets: list[dict[str, Any]]) -> str:
     if not budgets:
-        return "Você ainda não tem orçamentos. Para criar um orcamento me envie uma mensagem como: 'Crie um orcamento de 3000 reais para alimentação'"
+        return (
+            "Você ainda não tem orçamentos ativos.\n\n"
+            "Orçamentos são limites de gasto por categoria (ex: R$ 500/mês em Alimentação). "
+            "Quando você registra um gasto na categoria, eu descontato do orçamento e aviso "
+            "quando chega em 80% e 100% do limite.\n\n"
+            "Para criar: 'Orçamento de R$ 500 para alimentação'."
+        )
     lines = ["Seus orçamentos:"]
     for b in budgets:
         status = (
@@ -120,7 +188,7 @@ def budget_list(budgets: list[dict[str, Any]]) -> str:
             else "OK"
         )
         lines.append(
-            f"\n- {b['name']} ({b['period']})\n"
+            f"\n- {b['name']} ({period_label(b.get('period'))})\n"
             f"  R$ {b['total_spent']:,.2f} / R$ {b['total_limit']:,.2f} ({b['percentage']}%)\n"
             f"  Status: {status}"
         )
@@ -129,12 +197,17 @@ def budget_list(budgets: list[dict[str, Any]]) -> str:
 
 def goal_list(goals: list[dict[str, Any]]) -> str:
     if not goals:
-        return "Você ainda não tem metas. Para criar uma meta me envie uma mensagem como: 'Crie uma meta de 10000 reais para a viagem de férias '"
+        return (
+            "Você ainda não tem metas ativas.\n\n"
+            "Metas são objetivos de poupança (ex: R$ 10.000 para viagem até dez/2026). "
+            "Você adiciona valor gradualmente com 'guardei X na meta Y' e eu acompanho o progresso.\n\n"
+            "Para criar: 'Meta de R$ 10.000 para viagem até dez/2026'."
+        )
     lines = ["Suas metas:"]
     for g in goals:
         pct = g.get("percentage", 0)
         deadline = g.get("deadline")
-        dl_str = f" | Prazo: {_fmt_date(deadline)}" if deadline else ""
+        dl_str = f" | Prazo: {_fmt_deadline(deadline)}" if deadline else ""
         lines.append(
             f"\n- {g['title']}\n"
             f"  R$ {g['current_amount']:,.2f} / R$ {g['target_amount']:,.2f} ({pct}%){dl_str}"
@@ -143,7 +216,7 @@ def goal_list(goals: list[dict[str, Any]]) -> str:
 
 
 def goal_created(title: str, target: float, deadline: str | None = None) -> str:
-    dl = f"\nPrazo: {_fmt_date(deadline)}" if deadline else ""
+    dl = f"\nPrazo: {_fmt_deadline(deadline)}" if deadline else ""
     return (
         f"Meta criada!\n\nObjetivo: {title}\nValor: R$ {target:,.2f}{dl}\n\nBora começar a guardar!"
     )

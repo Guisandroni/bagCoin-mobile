@@ -39,20 +39,27 @@ export function useAccounts() {
   })
 }
 
+const TOAST_ID_CREATE = "accounts-create"
+
 export function useCreateAccount() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: AccountCreate) =>
       api.post<AccountResponse>("/bagcoin/accounts", data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE)
       qc.invalidateQueries({ queryKey: ["accounts"] })
-      toast.success("Conta criada com sucesso!")
+      toast.success("Conta criada com sucesso!", { id: TOAST_ID_CREATE })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar conta")
+      toast.dismiss(TOAST_ID_CREATE)
+      console.error('[hook:accounts]', err)
+      toast.error(err.message || "Erro ao criar conta", { id: TOAST_ID_CREATE })
     },
   })
 }
+
+const TOAST_ID_UPDATE = "accounts-update"
 
 export function useUpdateAccount() {
   const qc = useQueryClient()
@@ -60,14 +67,19 @@ export function useUpdateAccount() {
     mutationFn: ({ id, data }: { id: number; data: AccountUpdate }) =>
       api.patch<AccountResponse>(`/bagcoin/accounts/${id}`, data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_UPDATE)
       qc.invalidateQueries({ queryKey: ["accounts"] })
-      toast.success("Conta atualizada com sucesso!")
+      toast.success("Conta atualizada com sucesso!", { id: TOAST_ID_UPDATE })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao atualizar conta")
+      toast.dismiss(TOAST_ID_UPDATE)
+      console.error('[hook:accounts]', err)
+      toast.error(err.message || "Erro ao atualizar conta", { id: TOAST_ID_UPDATE })
     },
   })
 }
+
+const TOAST_ID_DELETE = "accounts-delete"
 
 export function useDeleteAccount() {
   const qc = useQueryClient()
@@ -75,11 +87,14 @@ export function useDeleteAccount() {
     mutationFn: (id: number) =>
       api.delete(`/bagcoin/accounts/${id}`),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_DELETE)
       qc.invalidateQueries({ queryKey: ["accounts"] })
-      toast.success("Conta excluída com sucesso!")
+      toast.success("Conta excluída com sucesso!", { id: TOAST_ID_DELETE })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao excluir conta")
+      toast.dismiss(TOAST_ID_DELETE)
+      console.error('[hook:accounts]', err)
+      toast.error(err.message || "Erro ao excluir conta", { id: TOAST_ID_DELETE })
     },
   })
 }

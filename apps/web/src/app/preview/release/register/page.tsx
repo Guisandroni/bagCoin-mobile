@@ -1,13 +1,11 @@
 "use client"
 
-import { RegisterCard } from "@/components/release"
+import dynamic from "next/dynamic"
+
+const RegisterPreviewClient = dynamic(() => import("./register-preview-client"), {
+  ssr: false,
+})
 
 export default function RegisterPreview() {
-  return (
-    <RegisterCard
-      onRegister={(data) => console.log("Register:", data)}
-      onGoogleRegister={() => console.log("Google register")}
-      onLoginClick={() => console.log("Go to login")}
-    />
-  )
+  return <RegisterPreviewClient />
 }

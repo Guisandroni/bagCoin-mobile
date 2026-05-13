@@ -5,7 +5,6 @@ interface AppStore {
   transactions: Transaction[]
   activeModal: ModalType
   selectedTransaction: Transaction | null
-  sidebarOpen: boolean
   sidebarCollapsed: boolean
   filter: FilterState
   drawerOpen: boolean
@@ -17,6 +16,7 @@ interface AppStore {
   setTransactions: (transactions: Transaction[]) => void
   openDrawer: () => void
   closeDrawer: () => void
+  toggleDrawer: () => void
   toggleSidebar: () => void
 }
 
@@ -39,7 +39,6 @@ export const useAppStore = create<AppStore>((set) => ({
   transactions: [],
   activeModal: null,
   selectedTransaction: null,
-  sidebarOpen: true,
   sidebarCollapsed: false,
   filter: { ...defaultFilter },
   drawerOpen: false,
@@ -67,5 +66,6 @@ export const useAppStore = create<AppStore>((set) => ({
 
   openDrawer: () => set({ drawerOpen: true }),
   closeDrawer: () => set({ drawerOpen: false }),
+  toggleDrawer: () => set((state) => ({ drawerOpen: !state.drawerOpen })),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 }))

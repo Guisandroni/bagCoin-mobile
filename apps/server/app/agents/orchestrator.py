@@ -7,7 +7,7 @@ via LangGraph's StateGraph with conditional routing.
 import logging
 import re
 import unicodedata
-from datetime import datetime, UTC as dt
+from datetime import UTC, datetime
 from typing import Any, TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -30,17 +30,26 @@ from app.agents.budget_goal import (
 from app.agents.deep_research import deep_research
 from app.agents.import_statement import import_transactions
 from app.agents.ingestion import classify_intent
+from app.agents.humanize import humanize_safely, should_humanize
 from app.agents.multimodal import process_multimodal
 from app.agents.normalization import extract_transaction
 from app.agents.persistence import save_message_to_history, save_transaction
+from app.agents.pending_actions import (
+    handle_pending_confirmation,
+    has_pending_confirmation_message,
+)
 from app.agents.recommendations import generate_recommendations
 from app.agents.reports import generate_report
 from app.agents.statement_parser import detect_statement
 from app.agents.tenant_context import tenant_phone_error
 from app.agents.text_to_sql import process_query
+from app.agents.tools.documents import create_document_tools
 from app.agents.wizard import wizard_node
+from app.core.config import settings
+from app.db.session import sync_session_maker
 from app.schemas.enums import IntentType
 from app.services.integration_service import redact_message_for_log
+from app.services.llm_service import get_llm, timed_invoke
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +63,7 @@ class AgentState(TypedDict):
     intent: str | None
     extracted_data: dict[str, Any] | None
     query_result: dict[str, Any] | None
+    report_id: int | None
     report_path: str | None
     report_summary: str | None
     import_summary: str | None
@@ -103,6 +113,8 @@ def process_multimodal_node(state: AgentState) -> AgentState:
 
     logger.info(f"Processando mídia: {state.get('source_format', 'text')}")
     result = process_multimodal(dict(state))
+    if result.get("error"):
+        return AgentState(**result)
     return AgentState(**result)
 
 
@@ -110,6 +122,22 @@ def import_statement_node(state: AgentState) -> AgentState:
     """Nó de importação de extrato bancário."""
     logger.info("Importando extrato bancário")
     result = import_transactions(dict(state))
+    return AgentState(**result)
+
+
+def document_agent_node(state: AgentState) -> AgentState:
+    """Analyze uploaded document/image with the document tool."""
+    result = dict(state)
+    try:
+        tool = create_document_tools(
+            state.get("phone_number", ""),
+            state.get("context") or {},
+        )[0]
+        result["response"] = str(tool.invoke({}))
+        result["intent"] = IntentType.IMPORT_STATEMENT.value
+    except Exception as exc:
+        logger.exception("[document_agent] failed")
+        result["error"] = f"Erro ao analisar documento: {exc}"
     return AgentState(**result)
 
 
@@ -143,6 +171,19 @@ def process_query_node(state: AgentState) -> AgentState:
     logger.info("Processando consulta")
     result = process_query(dict(state))
     return AgentState(**result)
+
+
+def pending_confirmation_node(state: AgentState) -> AgentState:
+    """Executa ou cancela uma acao financeira pendente."""
+    response = handle_pending_confirmation(
+        state.get("phone_number", ""),
+        state.get("message", ""),
+    )
+    if response:
+        state["response"] = response
+    else:
+        state["response"] = "Nao encontrei uma acao pendente para confirmar."
+    return state
 
 
 def generate_report_node(state: AgentState) -> AgentState:
@@ -273,6 +314,108 @@ def _msg_norm(message: str) -> str:
     import unicodedata
 
     return unicodedata.normalize("NFKD", message.lower()).encode("ASCII", "ignore").decode("ASCII")
+
+
+def _is_account_or_card_request(msg_norm: str) -> bool:
+    create_terms = ("criar", "crie", "adicionar", "cadastrar", "abrir", "nova", "novo")
+    account_terms = ("conta", "saldo", "banco", "nubank", "itau", "inter", "bradesco", "santander")
+    card_terms = ("cartao", "credito", "limite do cartao", "fatura")
+    if not any(term in msg_norm for term in create_terms):
+        return False
+    return any(term in msg_norm for term in account_terms) or any(
+        term in msg_norm for term in card_terms
+    )
+
+
+def _format_recent_transaction_for_prompt(tx: Any) -> str:
+    if isinstance(tx, dict):
+        tx_id = tx.get("id", "?")
+        name = tx.get("name") or tx.get("description") or ""
+        amount = tx.get("amount") or 0
+        date = tx.get("date") or tx.get("transaction_date") or "?"
+    else:
+        tx_id = getattr(tx, "id", "?")
+        name = getattr(tx, "description", "") or ""
+        amount = getattr(tx, "amount", 0) or 0
+        date = getattr(tx, "transaction_date", "?")
+    try:
+        amount_value = float(amount)
+    except (TypeError, ValueError):
+        amount_value = 0.0
+    return f"- id={tx_id}: {name} R${amount_value:.2f} ({date})"
+
+
+def _transaction_type_label(tx: Any) -> str:
+    tx_type = tx.get("type") if isinstance(tx, dict) else getattr(tx, "type", "")
+    tx_type_value = getattr(tx_type, "value", tx_type)
+    return "Receita" if str(tx_type_value).upper() == "INCOME" else "Gasto"
+
+
+def _money(value: Any) -> str:
+    try:
+        amount = float(value or 0)
+    except (TypeError, ValueError):
+        amount = 0.0
+    return f"R$ {amount:,.2f}"
+
+
+def _smart_query_needs_budget_goal_context(msg_norm: str) -> bool:
+    terms = (
+        "orcamento",
+        "orcamentos",
+        "budget",
+        "budgets",
+        "meta",
+        "metas",
+        "objetivo",
+        "objetivos",
+        "goal",
+        "goals",
+    )
+    return any(term in msg_norm for term in terms)
+
+
+def _build_financial_snapshot_response(
+    message: str,
+    transactions: list[Any],
+    budgets: list[dict[str, Any]],
+    goals: list[dict[str, Any]],
+) -> str:
+    msg_norm = _msg_norm(message)
+    wants_spending = any(
+        term in msg_norm
+        for term in ("gasto", "gastos", "despesa", "despesas", "transacao", "transacoes")
+    )
+    wants_budgets = any(term in msg_norm for term in ("orcamento", "orcamentos", "budget", "budgets"))
+    wants_goals = any(
+        term in msg_norm for term in ("meta", "metas", "objetivo", "objetivos", "goal", "goals")
+    )
+
+    if not any((wants_spending, wants_budgets, wants_goals)):
+        wants_spending = wants_budgets = wants_goals = True
+
+    parts: list[str] = []
+    if wants_spending:
+        expenses = [
+            tx
+            for tx in transactions
+            if str(getattr(getattr(tx, "type", ""), "value", getattr(tx, "type", ""))).upper()
+            == "EXPENSE"
+        ]
+        total = sum(abs(float(getattr(tx, "amount", 0) or 0)) for tx in expenses)
+        lines = [f"Gastos recentes: {_money(total)} em {len(expenses)} lançamento(s)."]
+        for tx in expenses[:5]:
+            description = getattr(tx, "description", None) or "Sem descrição"
+            lines.append(f"- {_money(getattr(tx, 'amount', 0))}: {description}")
+        parts.append("\n".join(lines))
+
+    if wants_budgets:
+        parts.append(resp.budget_list(budgets))
+
+    if wants_goals:
+        parts.append(resp.goal_list(goals))
+
+    return "\n\n".join(part for part in parts if part.strip())
 
 
 def create_category_handler_node(state: AgentState) -> AgentState:
@@ -525,9 +668,7 @@ def chat_node(state: AgentState) -> AgentState:
             "iai",
         ]
         if any(w in msg_lower for w in greeting_words):
-            from datetime import datetime, UTC as dt
-
-            hour = dt.now(UTC).hour
+            hour = datetime.now(UTC).hour
             if hour < 12:
                 gt = "Bom dia"
             elif hour < 18:
@@ -655,51 +796,56 @@ def chat_node(state: AgentState) -> AgentState:
     return state
 
 
-def smart_query_node(state: AgentState) -> AgentState:
+def legacy_smart_query_node(state: AgentState) -> AgentState:
     """Consulta inteligente — text-to-SQL ou LLM com dados do usuario.
 
     Combina process_query (text-to-SQL) com consulta LLM contextual.
     Se o text-to-SQL falhar, o LLM responde com o historico da conversa.
     """
     from app.agents.persistence import (
-        get_recent_transactions,
         get_conversation_history,
         get_or_create_user,
+        get_user_transactions,
     )
     from app.db.session import sync_session_maker
+    from app.services.budget_service import get_budgets, get_goals
 
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
+    msg_norm = _msg_norm(message)
 
     # 1. Tenta text-to-SQL primeiro (precisao)
-    result = process_query(dict(state))
-    if result.get("query_result") and result["query_result"].get("summary"):
-        result["query_result"]["type"] = "sql"
-        return AgentState(**result)
+    if not _smart_query_needs_budget_goal_context(msg_norm):
+        result = process_query(dict(state))
+        if result.get("query_result") and result["query_result"].get("summary"):
+            result["query_result"]["type"] = "sql"
+            return AgentState(**result)
 
-    # 2. Fallback: LLM com dados reais do usuario
+    # 2. Fallback: dados reais do usuario, com resposta deterministica quando inclui metas/orcamentos.
+    db = sync_session_maker()
+    try:
+        get_or_create_user(phone_number, db)
+        recent = get_user_transactions(phone_number, limit=10) or []
+        budgets = get_budgets(phone_number) or []
+        goals = get_goals(phone_number) or []
+        history = get_conversation_history(phone_number, limit=4) or ""
+    finally:
+        db.close()
+
+    if _smart_query_needs_budget_goal_context(msg_norm):
+        state["response"] = _build_financial_snapshot_response(message, recent, budgets, goals)
+        return state
+
     llm = get_llm(temperature=0.3)
     if not llm:
         state["response"] = "Não consegui consultar seus dados agora. Tente novamente!"
         return state
 
-    # Coleta dados do usuario para contexto
-    db = sync_session_maker()
-    try:
-        user = get_or_create_user(phone_number, db)
-        recent = get_recent_transactions(phone_number, limit=10) or []
-        history = get_conversation_history(phone_number, limit=4) or ""
-    finally:
-        db.close()
-
     # Formata dados para o prompt
     tx_lines = []
     for tx in recent[:10]:
-        tx_type = "Receita" if tx.get("type") == "INCOME" else "Gasto"
-        tx_lines.append(
-            f"- {tx_type}: R$ {tx.get('amount', 0):.2f} — {tx.get('name', '')} "
-            f"({tx.get('category', '')}) em {tx.get('date', '?')}"
-        )
+        tx_type = _transaction_type_label(tx)
+        tx_lines.append(f"- {tx_type}: {_format_recent_transaction_for_prompt(tx)}")
     tx_context = "\n".join(tx_lines) if tx_lines else "(sem transacoes)"
 
     system_prompt = f"""Voce e o BagCoin, assistente financeiro. Responda consultas com base nos DADOS REAIS do usuario.
@@ -732,7 +878,7 @@ REGRAS:
     return state
 
 
-def smart_manage_node(state: AgentState) -> AgentState:
+def legacy_smart_manage_node(state: AgentState) -> AgentState:
     """Gerencia unificada — LLM decide qual acao tomar (criar/editar/excluir).
 
     Substitui o roteamento manual para budget, goal, transaction, category.
@@ -741,6 +887,14 @@ def smart_manage_node(state: AgentState) -> AgentState:
     phone_number = state.get("phone_number", "")
     message = state.get("message", "")
     msg_norm = _msg_norm(message)
+
+    if _is_account_or_card_request(msg_norm):
+        state["response"] = (
+            "Por enquanto eu não crio contas, saldos ou cartões pelo chat. "
+            "Posso criar um orçamento por categoria, por exemplo: "
+            "'criar orçamento de R$ 500 para Supermercado'."
+        )
+        return state
 
     # 1. Fast-path: comandos explicitos com keywords claras
     # Categoria — mantido deterministico pois e simples
@@ -774,27 +928,27 @@ def smart_manage_node(state: AgentState) -> AgentState:
 
     from app.agents.persistence import (
         get_or_create_user,
-        get_recent_transactions,
+        get_user_transactions,
     )
 
     db = sync_session_maker()
     try:
         user = get_or_create_user(phone_number, db)
-        recent_tx = get_recent_transactions(phone_number, limit=5) or []
+        recent_tx = get_user_transactions(phone_number, limit=5) or []
     finally:
         db.close()
 
     tx_context = ""
     if recent_tx:
         tx_context = "Transacoes recentes:\n" + "\n".join(
-            f"- id={tx['id']}: {tx.get('name','')} R${tx.get('amount',0):.2f} ({tx.get('date','?')})"
+            _format_recent_transaction_for_prompt(tx)
             for tx in recent_tx
         )
 
     system_prompt = f"""Voce e o gerenciador financeiro do BagCoin. Analise a mensagem e decida a acao.
 
 Acoes possiveis:
-- create_budget: criar novo orcamento. Extraia: name, amount_limit, period (monthly/weekly/yearly)
+- create_budget: criar novo orcamento por categoria. Extraia: name, amount_limit, period (monthly/weekly/yearly)
 - create_goal: criar nova meta. Extraia: name, target_amount, deadline (opcional)
 - contribute_goal: adicionar valor a meta existente. Extraia: goal_name, amount
 - delete_budget: excluir orcamento. Extraia: budget_name
@@ -805,6 +959,11 @@ Acoes possiveis:
 - update_transaction: corrigir transacao. Extraia: description, new_amount, new_category
 - toggle_alerts: ativar/desativar alertas
 - help: usuario nao especificou o que quer gerenciar
+
+Regras:
+- Nao crie contas, saldos, bancos ou cartoes de credito pelo chat.
+- Se o usuario pedir conta/saldo/cartao, use action=help e explique que so pode criar orcamento por categoria.
+- Orcamentos devem ser sempre por categoria.
 
 {tx_context}
 
@@ -884,6 +1043,176 @@ Responda APENAS JSON:
     return state
 
 
+def _tool_history(phone_number: str, limit: int = 6) -> str:
+    from app.agents.persistence import get_conversation_history
+
+    return get_conversation_history(phone_number, limit=limit) or ""
+
+
+def register_agent_node(state: AgentState) -> AgentState:
+    """Tool-based transaction registration agent with confirmation-first behavior."""
+    if not settings.USE_TOOL_AGENTS:
+        return extract_data_node(state)
+
+    from app.agents.tool_agent import run_tool_agent
+    from app.agents.tools import create_financial_tools
+
+    phone_number = state.get("phone_number", "")
+    message = state.get("message", "")
+    llm = get_llm(temperature=0.1)
+    if not llm:
+        state["response"] = (
+            "Nao consegui interpretar isso agora. Pode me dizer valor, tipo e descricao? "
+            "Ex: 'gastei R$ 80 no mercado'."
+        )
+        return state
+
+    system_prompt = """Voce e o registrador financeiro do BagCoin.
+
+Objetivo: entender mensagens naturais do usuario e preparar uma transacao para confirmacao.
+
+Regras:
+- Use prepare_register_transaction quando entender valor, tipo e descricao.
+- NUNCA salve direto; a tool prepara a confirmacao.
+- Se faltar valor, tipo (gasto/receita) ou descricao, pergunte apenas o campo faltante.
+- Categoria pode ser inferida de forma razoavel; se estiver inseguro, use Outros.
+- Use transaction_type=EXPENSE para gastos e INCOME para receitas.
+- Se o usuario disser que e recorrente, mensal, semanal, anual, assinatura, salario fixo ou "todo dia X", chame a tool com is_recurring=true.
+- Para recorrencia mensal em "todo dia X", preencha recurrence_day=X e recurrence_frequency=monthly.
+- Depois que a tool retornar a confirmacao, responda preservando os dados preparados e peca confirmacao; nao diga que salvou.
+- Responda em portugues, breve e adequado para WhatsApp."""
+
+    try:
+        state["response"] = run_tool_agent(
+            llm=llm,
+            tools=create_financial_tools(phone_number, state.get("context") or {}),
+            system_prompt=system_prompt,
+            user_message=message,
+            history=_tool_history(phone_number, limit=4),
+            max_iterations=3,
+        )
+    except Exception as exc:
+        logger.warning("[register_agent] tool flow failed: %s", exc)
+        state["response"] = (
+            "Nao consegui preparar esse registro com seguranca agora. "
+            "Pode tentar de novo com valor, descricao e se foi gasto ou receita?"
+        )
+    return state
+
+
+def smart_query_tool_node(state: AgentState) -> AgentState:
+    """Tool-based query agent for financial questions."""
+    from app.agents.tool_agent import run_tool_agent
+    from app.agents.tools import create_query_tools
+
+    phone_number = state.get("phone_number", "")
+    message = state.get("message", "")
+    llm = get_llm(temperature=0.2)
+    if not llm:
+        return legacy_smart_query_node(state)
+
+    system_prompt = """Voce e o consultor financeiro do BagCoin.
+
+Use as tools para consultar dados reais do usuario antes de responder.
+Nao invente valores. Se a tool nao trouxer a informacao, diga isso.
+Responda em portugues, curto e claro para WhatsApp."""
+
+    try:
+        state["response"] = run_tool_agent(
+            llm=llm,
+            tools=create_query_tools(phone_number),
+            system_prompt=system_prompt,
+            user_message=message,
+            history=_tool_history(phone_number, limit=4),
+            max_iterations=3,
+        )
+    except Exception as exc:
+        logger.warning("[smart_query_tool] falling back to legacy query: %s", exc)
+        return legacy_smart_query_node(state)
+    return state
+
+
+def smart_manage_tool_node(state: AgentState) -> AgentState:
+    """Tool-based management agent for budgets, goals, categories and edits."""
+    from app.agents.tool_agent import run_tool_agent
+    from app.agents.tools import (
+        create_budget_tools,
+        create_category_tools,
+        create_financial_tools,
+        create_goal_tools,
+    )
+
+    phone_number = state.get("phone_number", "")
+    message = state.get("message", "")
+    msg_norm = _msg_norm(message)
+
+    if _is_account_or_card_request(msg_norm):
+        state["response"] = (
+            "Por enquanto eu não crio contas, saldos ou cartões pelo chat. "
+            "Posso criar um orçamento por categoria, por exemplo: "
+            "'criar orçamento de R$ 500 para Supermercado'."
+        )
+        return state
+
+    llm = get_llm(temperature=0.1)
+    if not llm:
+        state["response"] = (
+            "Nao consegui gerenciar isso com seguranca agora. "
+            "Pode tentar novamente em instantes?"
+        )
+        return state
+
+    context = state.get("context") or {}
+    tools = [
+        *create_budget_tools(phone_number, context),
+        *create_goal_tools(phone_number, context),
+        *create_financial_tools(phone_number, context),
+        *create_category_tools(phone_number, context),
+    ]
+    system_prompt = """Voce e o gerenciador financeiro do BagCoin.
+
+Objetivo: interpretar o que o usuario quer gerenciar e chamar a tool correta.
+
+Regras:
+- Use tools para orcamentos, metas, categorias, correcoes e exclusoes.
+- Toda criacao, edicao ou exclusao deve ser preparada para confirmacao pela tool.
+- Se faltar informacao, pergunte apenas o dado necessario.
+- Nao crie contas bancarias, saldos ou cartoes de credito.
+- Orcamentos sao sempre por categoria.
+- Para consultas simples de categorias/metas/orcamentos, pode listar direto.
+- Quando uma tool retornar dados reais, nao invente estado diferente do resultado da tool.
+- Responda em portugues, breve e natural para WhatsApp."""
+
+    try:
+        state["response"] = run_tool_agent(
+            llm=llm,
+            tools=tools,
+            system_prompt=system_prompt,
+            user_message=message,
+            history=_tool_history(phone_number, limit=6),
+            max_iterations=4,
+        )
+    except Exception as exc:
+        logger.warning("[smart_manage_tool] tool flow failed: %s", exc)
+        state["response"] = (
+            "Nao consegui preparar essa acao com seguranca agora. "
+            "Pode tentar novamente com mais detalhes?"
+        )
+    return state
+
+
+def smart_query_node(state: AgentState) -> AgentState:
+    if settings.USE_TOOL_AGENTS:
+        return smart_query_tool_node(state)
+    return legacy_smart_query_node(state)
+
+
+def smart_manage_node(state: AgentState) -> AgentState:
+    if settings.USE_TOOL_AGENTS:
+        return smart_manage_tool_node(state)
+    return legacy_smart_manage_node(state)
+
+
 def build_response_node(state: AgentState) -> AgentState:
     """Nó de construção da resposta final."""
     from app.agents.persistence import get_or_create_user
@@ -896,16 +1225,13 @@ def build_response_node(state: AgentState) -> AgentState:
 
     if message.startswith("[") and message.endswith("]"):
         state["response"] = message[1:-1]
-        _save_history(phone_number, message, state.get("response", ""))
+        return state
+
+    if state.get("response"):
         return state
 
     if error:
         state["response"] = resp.error_message(error)
-        _save_history(phone_number, message, state.get("response", ""))
-        return state
-
-    if state.get("response"):
-        _save_history(phone_number, message, state.get("response", ""))
         return state
 
     if intent == IntentType.REGISTER_EXPENSE.value or intent == IntentType.REGISTER_INCOME.value:
@@ -960,7 +1286,7 @@ def build_response_node(state: AgentState) -> AgentState:
             name = None
         finally:
             db.close()
-        hour = dt.now(UTC).hour
+        hour = datetime.now(UTC).hour
         if hour < 12:
             greeting_time = "Bom dia"
         elif hour < 18:
@@ -1001,7 +1327,7 @@ def build_response_node(state: AgentState) -> AgentState:
                 "• CSV (Excel)\n"
                 "• Arquivo OFX\n\n"
                 "Suporto extratos do Nubank, Itaú, Bradesco, Caixa e outros.\n"
-                "Assim que enviar, importo automaticamente suas transações!"
+                "Assim que enviar, mostro uma prévia e peço confirmação antes de importar."
             )
 
     elif state.get("import_summary"):
@@ -1044,8 +1370,26 @@ def build_response_node(state: AgentState) -> AgentState:
         else:
             state["response"] = resp.unknown_intent()
 
-    _save_history(phone_number, message, state.get("response", ""))
     return state
+
+
+def finalize_response_node(state: AgentState) -> AgentState:
+    """Final response step: optional humanize, then persist final history once."""
+    result = dict(state)
+    response = result.get("response") or ""
+    if should_humanize(result):
+        result["response"] = humanize_safely(response, result)
+
+    audio_text = (result.get("context") or {}).get("audio_transcription")
+    if audio_text and settings.ECHO_AUDIO_TRANSCRIPTION and not result.get("error"):
+        result["response"] = f'Ouvi: "{audio_text}". {result.get("response", "")}'
+
+    _save_history(
+        result.get("phone_number", ""),
+        result.get("message", ""),
+        result.get("response", ""),
+    )
+    return AgentState(**result)
 
 
 def _save_history(phone_number: str, user_msg: str, bot_msg: str):
@@ -1067,6 +1411,15 @@ def route_after_multimodal(state: AgentState) -> str:
         return "build_response"
     if state.get("response"):
         return "build_response"
+    if settings.USE_TOOL_AGENTS and has_pending_confirmation_message(
+        state.get("phone_number", ""),
+        state.get("message", ""),
+    ):
+        return "pending_confirmation"
+    original_format = (state.get("context") or {}).get("original_format")
+    if settings.USE_TOOL_AGENTS and original_format in {"document", "image"}:
+        logger.info("Mídia financeira será analisada pela tool de documentos.")
+        return "document_agent"
     if state.get("source_format") == "document" and detect_statement(dict(state)):
         logger.info("Extrato bancário detectado. Roteando para importação.")
         return "import_statement"
@@ -1090,8 +1443,13 @@ def route_by_intent(state: AgentState) -> str:
     if state.get("response"):
         return "build_response"
 
+    if _is_account_or_card_request(_msg_norm(state.get("message", ""))):
+        return "smart_manage"
+
     # === Macro-intent routing ===
     if macro == "register":
+        if settings.USE_TOOL_AGENTS:
+            return "register_agent"
         return "extract_data"
 
     if macro == "query":
@@ -1112,13 +1470,10 @@ def route_by_intent(state: AgentState) -> str:
     if macro == "research":
         return "deep_research"
 
-    # chat, greeting, help, introduce, unknown, correction
-    return "chat"
-
-    # Fallback legacy routing (mantido ate migracao completa)
+    # Fallback routing for states that still carry only the detailed intent.
     routing_map = {
-        IntentType.REGISTER_EXPENSE.value: "extract_data",
-        IntentType.REGISTER_INCOME.value: "extract_data",
+        IntentType.REGISTER_EXPENSE.value: "register_agent" if settings.USE_TOOL_AGENTS else "extract_data",
+        IntentType.REGISTER_INCOME.value: "register_agent" if settings.USE_TOOL_AGENTS else "extract_data",
         IntentType.QUERY_DATA.value: "smart_query",
         IntentType.GENERATE_REPORT.value: "generate_report",
         IntentType.RECOMMENDATION.value: "generate_recommendations",
@@ -1145,7 +1500,7 @@ def route_by_intent(state: AgentState) -> str:
         IntentType.UPDATE_CATEGORY.value: "smart_manage",
         IntentType.UNKNOWN.value: "chat",
     }
-    return routing_map.get(intent, "build_response")
+    return routing_map.get(intent, "chat")
 
 
 def create_orchestrator():
@@ -1154,7 +1509,10 @@ def create_orchestrator():
 
     # Adiciona nós
     workflow.add_node("process_multimodal", process_multimodal_node)
+    workflow.add_node("pending_confirmation", pending_confirmation_node)
     workflow.add_node("classify_intent", classify_intent_node)
+    workflow.add_node("register_agent", register_agent_node)
+    workflow.add_node("document_agent", document_agent_node)
     workflow.add_node("extract_data", extract_data_node)
     workflow.add_node("save_transaction", save_transaction_node)
     workflow.add_node("check_alerts", alerts_node)
@@ -1185,6 +1543,7 @@ def create_orchestrator():
     workflow.add_node("list_categories", list_categories_handler_node)
     workflow.add_node("update_category", update_category_handler_node)
     workflow.add_node("build_response", build_response_node)
+    workflow.add_node("finalize_response", finalize_response_node)
 
     # Define fluxo
     # 1. Sempre processa multimodal primeiro (se for texto, passa direto)
@@ -1195,6 +1554,8 @@ def create_orchestrator():
         route_after_multimodal,
         {
             "classify_intent": "classify_intent",
+            "pending_confirmation": "pending_confirmation",
+            "document_agent": "document_agent",
             "import_statement": "import_statement",
             "build_response": "build_response",
         },
@@ -1206,6 +1567,7 @@ def create_orchestrator():
         route_by_intent,
         {
             "extract_data": "extract_data",
+            "register_agent": "register_agent",
             "smart_query": "smart_query",
             "smart_manage": "smart_manage",
             "process_query": "process_query",
@@ -1235,6 +1597,9 @@ def create_orchestrator():
         },
     )
 
+    workflow.add_edge("pending_confirmation", "build_response")
+    workflow.add_edge("register_agent", "build_response")
+    workflow.add_edge("document_agent", "build_response")
     workflow.add_edge("extract_data", "save_transaction")
     workflow.add_edge("save_transaction", "check_alerts")
     workflow.add_edge("check_alerts", "build_response")
@@ -1264,7 +1629,8 @@ def create_orchestrator():
     workflow.add_edge("delete_category", "build_response")
     workflow.add_edge("list_categories", "build_response")
     workflow.add_edge("update_category", "build_response")
-    workflow.add_edge("build_response", END)
+    workflow.add_edge("build_response", "finalize_response")
+    workflow.add_edge("finalize_response", END)
 
     return workflow.compile()
 

@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
+import { financialPollingOptions } from "./use-financial-polling"
 
 export interface Budget {
   id: number
@@ -21,16 +22,20 @@ export interface Budget {
 
 export interface BudgetCreate {
   name: string
-  period: string
+  period: "monthly" | "weekly" | "yearly"
   total_limit: number
   budget_type?: string
   category_id?: number | null
+  category_name?: string
 }
 
 export interface BudgetUpdate {
   name?: string
-  period?: string
+  period?: "monthly" | "weekly" | "yearly" | string
   total_limit?: number
+  budget_type?: string
+  category_id?: number | null
+  category_name?: string
 }
 
 export interface BudgetListResponse {
@@ -46,6 +51,7 @@ export function useBudgets() {
       if (Array.isArray(data)) return { items: data, total: data.length } as BudgetListResponse
       return (data as unknown as BudgetListResponse)
     },
+    ...financialPollingOptions,
   })
 }
 
@@ -57,47 +63,74 @@ export function useBudget(id: number) {
   })
 }
 
-export function useCreateBudget() {
+const TOAST_ID_CREATE_BUDGET = "budgets-create"
+
+export function useCreateBudget(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: BudgetCreate) =>
       api.post<Budget>("/bagcoin/budgets", data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE_BUDGET)
       qc.invalidateQueries({ queryKey: ["budgets"] })
-      toast.success("Orçamento criado com sucesso!")
+      if (!options?.silent) {
+        toast.success("Orçamento criado com sucesso!", { id: TOAST_ID_CREATE_BUDGET })
+      }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar orçamento")
+      toast.dismiss(TOAST_ID_CREATE_BUDGET)
+      console.error('[hook:budgets]', err)
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao criar orçamento", { id: TOAST_ID_CREATE_BUDGET })
+      }
     },
   })
 }
 
-export function useUpdateBudget() {
+const TOAST_ID_UPDATE_BUDGET = "budgets-update"
+
+export function useUpdateBudget(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: BudgetUpdate }) =>
       api.patch<Budget>(`/bagcoin/budgets/${id}`, data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_UPDATE_BUDGET)
       qc.invalidateQueries({ queryKey: ["budgets"] })
-      toast.success("Orçamento atualizado com sucesso!")
+      if (!options?.silent) {
+        toast.success("Orçamento atualizado com sucesso!", { id: TOAST_ID_UPDATE_BUDGET })
+      }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao atualizar orçamento")
+      toast.dismiss(TOAST_ID_UPDATE_BUDGET)
+      console.error('[hook:budgets]', err)
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao atualizar orçamento", { id: TOAST_ID_UPDATE_BUDGET })
+      }
     },
   })
 }
 
-export function useDeleteBudget() {
+const TOAST_ID_DELETE_BUDGET = "budgets-delete"
+
+export function useDeleteBudget(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) =>
       api.delete(`/bagcoin/budgets/${id}`),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_DELETE_BUDGET)
       qc.invalidateQueries({ queryKey: ["budgets"] })
-      toast.success("Orçamento excluído com sucesso!")
+      if (!options?.silent) {
+        toast.success("Orçamento excluído com sucesso!", { id: TOAST_ID_DELETE_BUDGET })
+      }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao excluir orçamento")
+      toast.dismiss(TOAST_ID_DELETE_BUDGET)
+      console.error('[hook:budgets]', err)
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao excluir orçamento", { id: TOAST_ID_DELETE_BUDGET })
+      }
     },
   })
 }

@@ -5,11 +5,12 @@ These are used by agents that run in sync context via sync_session_maker.
 """
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func
 
+from app.core.financial_categories import default_category_names, resolve_default_category_name
 from app.db.models.budget import Budget
 from app.db.models.category import Category
 from app.db.models.enums import GoalStatus
@@ -26,24 +27,30 @@ logger = logging.getLogger(__name__)
 
 
 def _period_start(period: str) -> datetime | None:
-    """Return the start date of the period."""
-    today = date.today()
+    """Return the start of the current period as a tz-aware UTC datetime.
+
+    Always tz-aware to match Transaction.transaction_date (TIMESTAMPTZ).
+    Avoids naive vs aware comparison bugs under non-UTC session timezones.
+    """
+    now = datetime.now(UTC)
     if period == "daily":
-        return datetime.combine(today, datetime.min.time())
-    elif period == "weekly":
-        week_ago = today - timedelta(days=today.weekday())
-        return datetime.combine(week_ago, datetime.min.time())
-    elif period == "monthly":
-        return datetime.combine(today.replace(day=1), datetime.min.time())
-    elif period == "yearly":
-        return datetime.combine(today.replace(month=1, day=1), datetime.min.time())
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)
+    if period == "weekly":
+        monday = now - timedelta(days=now.weekday())
+        return monday.replace(hour=0, minute=0, second=0, microsecond=0)
+    if period == "monthly":
+        return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if period == "yearly":
+        return now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
     return None
 
 
-def _get_or_create_user(phone_number: str):
+def _get_or_create_user(phone_number: str, db=None):
     """Get or create a phone user (sync)."""
-    from app.agents.persistence import get_or_create_user_sync
+    from app.agents.persistence import get_or_create_user, get_or_create_user_sync
 
+    if db is not None:
+        return get_or_create_user(phone_number, db)
     return get_or_create_user_sync(phone_number)
 
 
@@ -70,12 +77,13 @@ def create_budget(
     """
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
 
         # For "general" type, category is optional
         category = None
         category_id = None
         if budget_type == "category":
+            name = resolve_default_category_name(name)
             category = (
                 db.query(Category)
                 .filter(
@@ -85,11 +93,10 @@ def create_budget(
                 .first()
             )
             if not category:
-                name = name.strip().capitalize()
                 category = Category(
                     user_id=user.id,
                     name=name,
-                    is_default=False,
+                    is_default=name in default_category_names(),
                 )
                 db.add(category)
                 db.commit()
@@ -98,6 +105,7 @@ def create_budget(
 
         budget = Budget(
             user_id=user.id,
+            user_uuid=user.merged_into_user_id,
             category_id=category_id,
             name=name,
             period=period,
@@ -129,7 +137,7 @@ def get_budgets(phone_number: str) -> list[dict[str, Any]]:
     """Return active budgets with progress calculations."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         budgets = db.query(Budget).filter(Budget.user_id == user.id).all()
 
         result = []
@@ -160,6 +168,7 @@ def get_budget_spent(db, budget_id: int, user_id: int, period: str) -> float:
     """Calculate how much has been spent in the budget period."""
     date_from = _period_start(period)
     if not date_from:
+        logger.warning(f"[budget_spent] unknown period={period!r} — returning 0")
         return 0.0
 
     budget = (
@@ -173,8 +182,13 @@ def get_budget_spent(db, budget_id: int, user_id: int, period: str) -> float:
     if not budget:
         return 0.0
 
+    if budget.category_id is None and getattr(budget, "budget_type", "category") == "category":
+        logger.warning(
+            f"[budget_spent] budget_id={budget_id} has budget_type=category but category_id is NULL"
+        )
+
     result = (
-        db.query(func.coalesce(func.sum(Transaction.amount), 0))
+        db.query(func.coalesce(func.sum(func.abs(Transaction.amount)), 0))
         .filter(
             Transaction.type == "EXPENSE",
             Transaction.user_id == user_id,
@@ -183,14 +197,19 @@ def get_budget_spent(db, budget_id: int, user_id: int, period: str) -> float:
         )
         .scalar()
     )
-    return float(result or 0)
+    spent = float(result or 0)
+    logger.info(
+        f"[budget_spent] budget_id={budget_id} category_id={budget.category_id} "
+        f"period={period} from={date_from.isoformat()} spent={spent}"
+    )
+    return spent
 
 
 def delete_budget_by_name(phone_number: str, name: str) -> int:
     """Delete budget by name/category. Returns count deleted."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         budgets = (
             db.query(Budget)
             .filter(
@@ -225,7 +244,7 @@ def delete_all_budgets(phone_number: str) -> int:
     """Delete all budgets for a user."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         count = db.query(Budget).filter(Budget.user_id == user.id).delete()
         db.commit()
         return count
@@ -237,7 +256,7 @@ def update_budget_limit(phone_number: str, name: str, new_limit: float) -> dict[
     """Update the limit of a budget by name/category."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         budget = (
             db.query(Budget)
             .filter(
@@ -295,10 +314,11 @@ def create_goal(
     """Create a new financial goal."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
 
         goal = Goal(
             user_id=user.id,
+            user_uuid=user.merged_into_user_id,
             title=title,
             target_amount=target_amount,
             current_amount=0.0,
@@ -329,7 +349,7 @@ def update_goal_progress(phone_number: str, goal_id: int, amount: float) -> dict
     """Update the progress of a goal."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         goal = (
             db.query(Goal)
             .filter(
@@ -371,7 +391,7 @@ def get_goals(phone_number: str) -> list[dict[str, Any]]:
     """Return active goals for the user."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         goals = (
             db.query(Goal)
             .filter(
@@ -403,7 +423,7 @@ def delete_goal(phone_number: str, goal_identifier: str) -> bool:
     """Delete a goal by title or index. Returns True if deleted."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         goals = (
             db.query(Goal)
             .filter(
@@ -443,7 +463,7 @@ def update_goal(
     """Update title, target, or deadline of a goal."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         goals = (
             db.query(Goal)
             .filter(
@@ -504,7 +524,7 @@ def get_financial_alerts_enabled(phone_number: str) -> bool:
     """Check if financial alerts are enabled for the user. Default: True."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         prefs = user.preferences or {}
         return bool(prefs.get("financial_alerts_enabled", True))
     finally:
@@ -515,7 +535,7 @@ def set_financial_alerts_enabled(phone_number: str, enabled: bool) -> None:
     """Persist alert preference in user's preferences JSON."""
     db = sync_session_maker()
     try:
-        user = _get_or_create_user(phone_number)
+        user = _get_or_create_user(phone_number, db)
         prefs = dict(user.preferences or {})
         prefs["financial_alerts_enabled"] = bool(enabled)
         user.preferences = prefs

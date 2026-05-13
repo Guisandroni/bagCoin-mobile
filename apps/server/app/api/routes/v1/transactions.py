@@ -3,6 +3,7 @@
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import Response
 
 from app.api.deps import CurrentUser, DBSession
 from app.schemas.transaction import (
@@ -61,6 +62,20 @@ async def create_transaction(
 ) -> Any:
     """Create a new transaction."""
     return await service.create_for_user(current_user.id, body)
+
+
+@router.get("/export.csv")
+async def export_transactions_csv(
+    current_user: CurrentUser,
+    service: TransactionRestSvc,
+) -> Any:
+    """Export authenticated user's transactions as CSV."""
+    csv_content = await service.export_csv_for_user(current_user.id)
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="bagcoin-transacoes.csv"'},
+    )
 
 
 @router.get("/{transaction_id}", response_model=TransactionRestResponse)

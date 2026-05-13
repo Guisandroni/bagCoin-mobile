@@ -1,7 +1,7 @@
 "use client"
 
-import { Plane, Car, Home, MoreHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getCategoryLucideIcon } from "@/lib/category"
 import type { ReleaseCategoryType } from "./types"
 
 interface CategoryOption {
@@ -10,12 +10,20 @@ interface CategoryOption {
   icon: React.ReactNode
 }
 
-const CATEGORY_OPTIONS: CategoryOption[] = [
-  { value: "viagem", label: "Viagem", icon: <Plane className="w-5 h-5" /> },
-  { value: "veiculo", label: "Veículo", icon: <Car className="w-5 h-5" /> },
-  { value: "casa", label: "Casa", icon: <Home className="w-5 h-5" /> },
-  { value: "outro", label: "Outro", icon: <MoreHorizontal className="w-5 h-5" /> },
-]
+function getGoalCategoryOptions(): CategoryOption[] {
+  const categories: { value: ReleaseCategoryType; label: string }[] = [
+    { value: "viagem", label: "Viagem" },
+    { value: "veiculo", label: "Veículo" },
+    { value: "casa", label: "Casa" },
+    { value: "outro", label: "Outro" },
+  ]
+  return categories.map((c) => {
+    const Icon = getCategoryLucideIcon(c.label)
+    return { ...c, icon: <Icon className="w-5 h-5" /> }
+  })
+}
+
+const CATEGORY_OPTIONS: CategoryOption[] = getGoalCategoryOptions()
 
 interface CategoryIconGridProps {
   value?: ReleaseCategoryType

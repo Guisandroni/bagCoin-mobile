@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/lib/api-client"
 import { toast } from "sonner"
+import { financialPollingOptions } from "./use-financial-polling"
 
 export interface Goal {
   id: number
@@ -44,6 +45,7 @@ export function useGoals() {
       if (Array.isArray(data)) return { items: data, total: data.length } as GoalListResponse
       return (data as unknown as GoalListResponse)
     },
+    ...financialPollingOptions,
   })
 }
 
@@ -55,47 +57,74 @@ export function useGoal(id: number) {
   })
 }
 
-export function useCreateGoal() {
+const TOAST_ID_CREATE_GOAL = "goals-create"
+
+export function useCreateGoal(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: GoalCreate) =>
       api.post<Goal>("/bagcoin/goals", data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta criada com sucesso!")
+      if (!options?.silent) {
+        toast.success("Meta criada com sucesso!", { id: TOAST_ID_CREATE_GOAL })
+      }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar meta")
+      toast.dismiss(TOAST_ID_CREATE_GOAL)
+      console.error('[hook:goals]', err)
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao criar meta", { id: TOAST_ID_CREATE_GOAL })
+      }
     },
   })
 }
 
-export function useUpdateGoal() {
+const TOAST_ID_UPDATE_GOAL = "goals-update"
+
+export function useUpdateGoal(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: GoalUpdate }) =>
       api.patch<Goal>(`/bagcoin/goals/${id}`, data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_UPDATE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta atualizada com sucesso!")
+      if (!options?.silent) {
+        toast.success("Meta atualizada com sucesso!", { id: TOAST_ID_UPDATE_GOAL })
+      }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao atualizar meta")
+      toast.dismiss(TOAST_ID_UPDATE_GOAL)
+      console.error('[hook:goals]', err)
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao atualizar meta", { id: TOAST_ID_UPDATE_GOAL })
+      }
     },
   })
 }
 
-export function useDeleteGoal() {
+const TOAST_ID_DELETE_GOAL = "goals-delete"
+
+export function useDeleteGoal(options?: { silent?: boolean }) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) =>
       api.delete(`/bagcoin/goals/${id}`),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_DELETE_GOAL)
       qc.invalidateQueries({ queryKey: ["goals"] })
-      toast.success("Meta excluída com sucesso!")
+      if (!options?.silent) {
+        toast.success("Meta excluída com sucesso!", { id: TOAST_ID_DELETE_GOAL })
+      }
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao excluir meta")
+      toast.dismiss(TOAST_ID_DELETE_GOAL)
+      console.error('[hook:goals]', err)
+      if (!options?.silent) {
+        toast.error(err.message || "Erro ao excluir meta", { id: TOAST_ID_DELETE_GOAL })
+      }
     },
   })
 }

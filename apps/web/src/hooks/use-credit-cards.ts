@@ -42,20 +42,27 @@ export function useCreditCards() {
   })
 }
 
+const TOAST_ID_CREATE_CC = "credit-cards-create"
+
 export function useCreateCreditCard() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: CreditCardCreate) =>
       api.post<CreditCardResponse>("/bagcoin/credit-cards", data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_CREATE_CC)
       qc.invalidateQueries({ queryKey: ["credit-cards"] })
-      toast.success("Cartão criado com sucesso!")
+      toast.success("Cartão criado com sucesso!", { id: TOAST_ID_CREATE_CC })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao criar cartão")
+      toast.dismiss(TOAST_ID_CREATE_CC)
+      console.error('[hook:credit-cards]', err)
+      toast.error(err.message || "Erro ao criar cartão", { id: TOAST_ID_CREATE_CC })
     },
   })
 }
+
+const TOAST_ID_UPDATE_CC = "credit-cards-update"
 
 export function useUpdateCreditCard() {
   const qc = useQueryClient()
@@ -63,14 +70,19 @@ export function useUpdateCreditCard() {
     mutationFn: ({ id, data }: { id: number; data: CreditCardUpdate }) =>
       api.patch<CreditCardResponse>(`/bagcoin/credit-cards/${id}`, data),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_UPDATE_CC)
       qc.invalidateQueries({ queryKey: ["credit-cards"] })
-      toast.success("Cartão atualizado com sucesso!")
+      toast.success("Cartão atualizado com sucesso!", { id: TOAST_ID_UPDATE_CC })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao atualizar cartão")
+      toast.dismiss(TOAST_ID_UPDATE_CC)
+      console.error('[hook:credit-cards]', err)
+      toast.error(err.message || "Erro ao atualizar cartão", { id: TOAST_ID_UPDATE_CC })
     },
   })
 }
+
+const TOAST_ID_DELETE_CC = "credit-cards-delete"
 
 export function useDeleteCreditCard() {
   const qc = useQueryClient()
@@ -78,11 +90,14 @@ export function useDeleteCreditCard() {
     mutationFn: (id: number) =>
       api.delete(`/bagcoin/credit-cards/${id}`),
     onSuccess: () => {
+      toast.dismiss(TOAST_ID_DELETE_CC)
       qc.invalidateQueries({ queryKey: ["credit-cards"] })
-      toast.success("Cartão excluído com sucesso!")
+      toast.success("Cartão excluído com sucesso!", { id: TOAST_ID_DELETE_CC })
     },
     onError: (err: Error) => {
-      toast.error(err.message || "Erro ao excluir cartão")
+      toast.dismiss(TOAST_ID_DELETE_CC)
+      console.error('[hook:credit-cards]', err)
+      toast.error(err.message || "Erro ao excluir cartão", { id: TOAST_ID_DELETE_CC })
     },
   })
 }

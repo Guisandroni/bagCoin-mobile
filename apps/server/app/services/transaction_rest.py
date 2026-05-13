@@ -4,14 +4,20 @@ Handles transactions linked to authenticated users (UUID-based).
 """
 
 import contextlib
+import csv
+import io
 from datetime import datetime, UTC
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import NotFoundError
+from app.db.models.category import Category
 from app.db.models.transaction import Transaction
+from app.db.models.user import User
 from app.schemas.transaction import (
     TransactionListResponse,
     TransactionRestCreate,
@@ -19,6 +25,8 @@ from app.schemas.transaction import (
     TransactionRestUpdate,
     TransactionSummaryResponse,
 )
+from app.services.category_rest import get_or_create_category_for_user, get_or_create_phone_profile
+from app.services.recurring_transactions import create_recurring_transaction, next_run_from
 
 CATEGORY_COLORS: dict[str, str] = {
     "Alimentação": "#ff6b35",
@@ -35,16 +43,74 @@ CATEGORY_COLORS: dict[str, str] = {
 }
 
 
+def _transaction_type(tx: Transaction) -> Literal["EXPENSE", "INCOME"]:
+    value = str(getattr(tx.type, "value", tx.type))
+    return "INCOME" if value == "INCOME" else "EXPENSE"
+
+
+def _transaction_amount(tx: Transaction) -> float:
+    return abs(float(tx.amount or 0))
+
+
+def _transaction_category_name(tx: Transaction) -> str:
+    category = getattr(tx, "category", None)
+    name = getattr(category, "name", None)
+    return name if isinstance(name, str) and name else "Outros"
+
+
+def _transaction_category_id(tx: Transaction) -> int | None:
+    category_id = getattr(tx, "category_id", None)
+    return category_id if isinstance(category_id, int) else None
+
+
+def _transaction_recurrence_frequency(tx: Transaction) -> Literal["weekly", "monthly", "yearly"] | None:
+    recurring_id = getattr(tx, "recurring_transaction_id", None)
+    if not isinstance(recurring_id, int):
+        return None
+    recurring = getattr(tx, "recurring_transaction", None)
+    frequency = getattr(recurring, "frequency", None)
+    return frequency if frequency in ("weekly", "monthly", "yearly") else None
+
+
+def _format_transaction_date_pt_br(tx: Transaction) -> str:
+    if not tx.transaction_date:
+        return ""
+
+    months = [
+        "jan",
+        "fev",
+        "mar",
+        "abr",
+        "mai",
+        "jun",
+        "jul",
+        "ago",
+        "set",
+        "out",
+        "nov",
+        "dez",
+    ]
+    return f"{tx.transaction_date.day:02d} {months[tx.transaction_date.month - 1]}"
+
+
 def _to_frontend_response(tx: Transaction) -> TransactionRestResponse:
-    category_name = tx.description or "Outros"
+    category_name = _transaction_category_name(tx)
+    recurrence_frequency = _transaction_recurrence_frequency(tx)
+    recurring_id = getattr(tx, "recurring_transaction_id", None)
     return TransactionRestResponse(
         id=str(tx.id),
+        type=_transaction_type(tx),
         name=tx.description or "Sem descrição",
         category=category_name,
-        amount=tx.amount if tx.type == "INCOME" else -tx.amount,
-        date=tx.transaction_date.strftime("%d %b") if tx.transaction_date else "",
+        category_id=_transaction_category_id(tx),
+        category_name=category_name,
+        amount=_transaction_amount(tx),
+        date=_format_transaction_date_pt_br(tx),
+        transaction_date=tx.transaction_date.date().isoformat() if tx.transaction_date else None,
         source=tx.source_format if tx.source_format != "text" else "manual",
         status="confirmed" if tx.confidence_score >= 0.7 else "pending",
+        is_recurring=isinstance(recurring_id, int),
+        recurrence_frequency=recurrence_frequency,
         created_at=tx.created_at,
         updated_at=tx.updated_at,
     )
@@ -66,7 +132,12 @@ class TransactionRestService:
         search: str | None = None,
     ) -> TransactionListResponse:
         """List transactions for a user with optional filters."""
-        query = select(Transaction).where(Transaction.user_uuid == user_uuid)
+        query = (
+            select(Transaction).options(
+                selectinload(Transaction.category),
+                selectinload(Transaction.recurring_transaction),
+            ).where(Transaction.user_uuid == user_uuid)
+        )
 
         if type_filter and type_filter in ("EXPENSE", "INCOME"):
             query = query.where(Transaction.type == type_filter)
@@ -88,8 +159,10 @@ class TransactionRestService:
     async def get_for_user(self, transaction_id: int, user_uuid: UUID) -> Transaction:
         """Get a transaction by ID, verifying ownership."""
         result = await self.db.execute(
-            select(Transaction).where(
-                and_(Transaction.id == transaction_id, Transaction.user_uuid == user_uuid)
+            select(Transaction).options(
+                selectinload(Transaction.category),
+                selectinload(Transaction.recurring_transaction),
+            ).where(and_(Transaction.id == transaction_id, Transaction.user_uuid == user_uuid)
             )
         )
         tx = result.scalar_one_or_none()
@@ -108,11 +181,19 @@ class TransactionRestService:
             except ValueError:
                 tx_date = datetime.now(UTC)
 
+        category_id = None
+        if data.category_id:
+            category_id = (await self._get_user_category(user_uuid, data.category_id)).id
+        elif data.category_name:
+            category = await get_or_create_category_for_user(self.db, user_uuid, data.category_name)
+            category_id = category.id if category else None
+
         transaction = Transaction(
             user_uuid=user_uuid,
             type=data.type,
-            amount=data.amount,
+            amount=abs(data.amount),
             description=data.description,
+            category_id=category_id,
             source_format=data.source,
             confidence_score=1.0 if data.status == "confirmed" else 0.5,
             transaction_date=tx_date or datetime.now(UTC),
@@ -120,7 +201,37 @@ class TransactionRestService:
         self.db.add(transaction)
         await self.db.flush()
         await self.db.refresh(transaction)
-        return _to_frontend_response(transaction)
+        if data.is_recurring:
+            recurring = await create_recurring_transaction(
+                self.db,
+                user_uuid=user_uuid,
+                type=data.type,
+                amount=data.amount,
+                category_id=category_id,
+                description=data.description,
+                frequency=data.recurrence_frequency or "monthly",
+                start_date=transaction.transaction_date or datetime.now(UTC),
+            )
+            transaction.recurring_transaction_id = recurring.id
+            await self.db.flush()
+        loaded_transaction = await self.get_for_user(transaction.id, user_uuid)
+        return _to_frontend_response(loaded_transaction)
+
+    async def _get_user_category(self, user_uuid: UUID, category_id: int) -> Category:
+        user_result = await self.db.execute(select(User).where(User.id == user_uuid))
+        user = user_result.scalar_one_or_none()
+        phone_user = await get_or_create_phone_profile(self.db, user) if user else None
+        owner_id = phone_user.id if phone_user else -1
+        result = await self.db.execute(
+            select(Category).where(
+                Category.id == category_id,
+                Category.user_id == owner_id,
+            )
+        )
+        category = result.scalar_one_or_none()
+        if not category:
+            raise NotFoundError(message="Category not found", details={"id": category_id})
+        return category
 
     async def update_for_user(
         self, transaction_id: int, user_uuid: UUID, data: TransactionRestUpdate
@@ -132,9 +243,17 @@ class TransactionRestService:
         if update_data.get("type"):
             transaction.type = update_data["type"]
         if update_data.get("amount"):
-            transaction.amount = update_data["amount"]
+            transaction.amount = abs(update_data["amount"])
         if update_data.get("description"):
             transaction.description = update_data["description"]
+        if update_data.get("category_id"):
+            category = await self._get_user_category(user_uuid, update_data["category_id"])
+            transaction.category_id = category.id
+        elif "category_name" in update_data:
+            category = await get_or_create_category_for_user(
+                self.db, user_uuid, update_data.get("category_name")
+            )
+            transaction.category_id = category.id if category else None
         if "status" in update_data:
             transaction.confidence_score = 1.0 if update_data["status"] == "confirmed" else 0.5
         if update_data.get("transaction_date"):
@@ -142,11 +261,44 @@ class TransactionRestService:
                 transaction.transaction_date = datetime.strptime(
                     update_data["transaction_date"], "%Y-%m-%d"
                 )
+        if "is_recurring" in update_data:
+            if update_data["is_recurring"]:
+                frequency = update_data.get("recurrence_frequency") or "monthly"
+                if transaction.recurring_transaction:
+                    transaction.recurring_transaction.type = transaction.type
+                    transaction.recurring_transaction.amount = abs(transaction.amount)
+                    transaction.recurring_transaction.category_id = transaction.category_id
+                    transaction.recurring_transaction.description = transaction.description or "Sem descrição"
+                    transaction.recurring_transaction.frequency = frequency
+                    transaction.recurring_transaction.next_run_at = next_run_from(
+                        transaction.transaction_date or datetime.now(UTC),
+                        frequency,
+                    )
+                    transaction.recurring_transaction.active = True
+                    self.db.add(transaction.recurring_transaction)
+                else:
+                    recurring = await create_recurring_transaction(
+                        self.db,
+                        user_uuid=user_uuid,
+                        type=transaction.type,
+                        amount=abs(transaction.amount),
+                        category_id=transaction.category_id,
+                        description=transaction.description or "Sem descrição",
+                        frequency=frequency,
+                        start_date=transaction.transaction_date or datetime.now(UTC),
+                    )
+                    transaction.recurring_transaction_id = recurring.id
+            else:
+                if transaction.recurring_transaction:
+                    transaction.recurring_transaction.active = False
+                    self.db.add(transaction.recurring_transaction)
+                transaction.recurring_transaction_id = None
 
         self.db.add(transaction)
         await self.db.flush()
         await self.db.refresh(transaction)
-        return _to_frontend_response(transaction)
+        loaded_transaction = await self.get_for_user(transaction.id, user_uuid)
+        return _to_frontend_response(loaded_transaction)
 
     async def delete_for_user(self, transaction_id: int, user_uuid: UUID) -> None:
         """Delete a transaction."""
@@ -157,20 +309,29 @@ class TransactionRestService:
     async def get_summary(self, user_uuid: UUID) -> TransactionSummaryResponse:
         """Get dashboard summary for a user."""
         result = await self.db.execute(
-            select(Transaction).where(Transaction.user_uuid == user_uuid)
+            select(Transaction)
+            .options(
+                selectinload(Transaction.category),
+                selectinload(Transaction.recurring_transaction),
+            )
+            .where(Transaction.user_uuid == user_uuid)
         )
         transactions = result.scalars().all()
 
-        total_income = sum(tx.amount for tx in transactions if tx.type == "INCOME")
-        total_expenses = sum(tx.amount for tx in transactions if tx.type == "EXPENSE")
+        total_income = sum(
+            _transaction_amount(tx) for tx in transactions if _transaction_type(tx) == "INCOME"
+        )
+        total_expenses = sum(
+            _transaction_amount(tx) for tx in transactions if _transaction_type(tx) == "EXPENSE"
+        )
         balance = total_income - total_expenses
 
         # Category breakdown
         cat_map: dict[str, float] = {}
         for tx in transactions:
-            if tx.type == "EXPENSE":
-                cat = tx.description or "Outros"
-                cat_map[cat] = cat_map.get(cat, 0) + tx.amount
+            if _transaction_type(tx) == "EXPENSE":
+                cat = _transaction_category_name(tx)
+                cat_map[cat] = cat_map.get(cat, 0) + _transaction_amount(tx)
 
         categories = [
             {"name": name, "amount": amt, "color": CATEGORY_COLORS.get(name, "#607d8b")}
@@ -190,3 +351,47 @@ class TransactionRestService:
             categories=categories,
             recent_transactions=recent_responses,
         )
+
+    async def export_csv_for_user(self, user_uuid: UUID) -> str:
+        """Export all user transactions as CSV."""
+        result = await self.db.execute(
+            select(Transaction).options(
+                selectinload(Transaction.category),
+                selectinload(Transaction.recurring_transaction),
+            ).where(Transaction.user_uuid == user_uuid).order_by(Transaction.transaction_date.desc().nulls_last())
+        )
+        transactions = result.scalars().all()
+
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(
+            [
+                "id",
+                "tipo",
+                "descricao",
+                "categoria",
+                "valor",
+                "data",
+                "origem",
+                "status",
+                "recorrente",
+                "frequencia_recorrencia",
+            ]
+        )
+        for tx in transactions:
+            writer.writerow(
+                [
+                    tx.id,
+                    _transaction_type(tx),
+                    tx.description or "",
+                    _transaction_category_name(tx),
+                    f"{_transaction_amount(tx):.2f}",
+                    tx.transaction_date.date().isoformat() if tx.transaction_date else "",
+                    tx.source_format,
+                    "confirmed" if tx.confidence_score >= 0.7 else "pending",
+                    "true" if isinstance(getattr(tx, "recurring_transaction_id", None), int) else "false",
+                    _transaction_recurrence_frequency(tx) or "",
+                ]
+            )
+
+        return buffer.getvalue()

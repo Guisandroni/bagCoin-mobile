@@ -14,22 +14,36 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
   if (token) headers["Authorization"] = `Bearer ${token}`
 
+  const url = `${API_BASE}${path}`
+  const start = Date.now()
+
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(url, {
       ...options,
       headers,
     } as RequestInit)
 
+    const duration = Date.now() - start
+
     if (!res.ok) {
-      if (res.status === 401) return null as T
-      throw new Error(`API error ${res.status}: ${res.statusText}`)
+      const body = await res.text().catch(() => "<unreadable>")
+      if (res.status === 401) {
+        console.warn(`[api-server] 401 ${path} (${duration}ms)`)
+        return null as T
+      }
+      console.error(
+        `[api-server] ${res.status} ${path} (${duration}ms)\n` +
+        `  request: ${options?.method || "GET"} ${url}\n` +
+        `  response: ${body.slice(0, 300)}`
+      )
+      return null as T
     }
 
     return res.json() as Promise<T>
   } catch (err) {
-    if (process.env.NODE_ENV === "production") {
-      console.error(`[api-server] fetch failed for ${path}:`, (err as Error).message)
-    }
+    const duration = Date.now() - start
+    const message = err instanceof Error ? err.message : String(err)
+    console.error(`[api-server] ERR ${path} (${duration}ms): ${message}`)
     return null as T
   }
 }
@@ -38,16 +52,19 @@ async function serverFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 export interface ServerTransaction {
   id: string
-  type?: "INCOME" | "EXPENSE"
+  type: "INCOME" | "EXPENSE"
   name: string
   description?: string
   category?: string
+  category_id?: number | null
   category_name?: string
   amount: number
   date?: string
   transaction_date?: string
   source: string
   status: string
+  is_recurring?: boolean
+  recurrence_frequency?: "weekly" | "monthly" | "yearly" | null
 }
 
 export interface TransactionSummary {
@@ -60,10 +77,24 @@ export interface TransactionSummary {
 }
 
 export async function getTransactionSummary(): Promise<TransactionSummary | null> {
-  "use cache: private"
-  cacheTag("transactions", "summary")
-  cacheLife("minutes")
   return serverFetch<TransactionSummary>("/bagcoin/transactions/summary")
+}
+
+export interface ServerCategory {
+  id: number
+  name: string
+  color: string
+  emoji?: string
+  type: "despesa" | "receita" | "investimento"
+  is_default: boolean
+  is_user_created?: boolean
+  can_delete?: boolean
+  created_at?: string
+  updated_at?: string | null
+}
+
+export async function getCategories(): Promise<ServerCategory[] | null> {
+  return serverFetch("/bagcoin/categories")
 }
 
 export async function getTransactions(params?: {
@@ -74,9 +105,6 @@ export async function getTransactions(params?: {
   skip?: number
   limit?: number
 }): Promise<{ items: ServerTransaction[]; total: number } | null> {
-  "use cache: private"
-  cacheTag("transactions")
-  cacheLife("minutes")
   const qs = new URLSearchParams()
   if (params?.search) qs.set("search", params.search)
   if (params?.type) qs.set("type", params.type)
@@ -91,7 +119,7 @@ export async function getTransactions(params?: {
 export interface ServerBudget {
   id: number
   name: string
-  period: string
+  period: "monthly" | "weekly" | "yearly" | string
   total_limit: number
   total_spent: number
   total_remaining: number
@@ -104,9 +132,6 @@ export interface ServerBudget {
 }
 
 export async function getBudgets(): Promise<ServerBudget[] | null> {
-  "use cache: private"
-  cacheTag("budgets")
-  cacheLife("hours")
   return serverFetch("/bagcoin/budgets")
 }
 
@@ -124,9 +149,6 @@ export interface ServerGoal {
 }
 
 export async function getGoals(): Promise<ServerGoal[] | null> {
-  "use cache: private"
-  cacheTag("goals")
-  cacheLife("hours")
   return serverFetch("/bagcoin/goals")
 }
 

@@ -53,6 +53,33 @@ async def upload_file(
     )
 
 
+@router.get("", response_model=list[FileInfo])
+async def list_files(
+    file_upload_svc: FileUploadSvc,
+    current_user: CurrentUser,
+    skip: int = 0,
+    limit: int = 20,
+) -> Any:
+    """List user's latest uploaded files."""
+    files = await file_upload_svc.list_user_files(
+        user_id=current_user.id,
+        skip=max(0, int(skip)),
+        limit=max(1, min(int(limit), 100)),
+    )
+    return [
+        FileInfo(
+            id=f.id,
+            filename=f.filename,
+            mime_type=f.mime_type,
+            size=f.size,
+            file_type=f.file_type,
+            created_at=f.created_at,
+            user_id=f.user_id,
+        )
+        for f in files
+    ]
+
+
 @router.get("/{file_id}")
 async def download_file(
     file_id: UUID,
